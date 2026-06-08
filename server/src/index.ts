@@ -4,6 +4,7 @@ import { authRouter } from "./routes/auth.js";
 import { requireAuth } from "./middleware/auth.js";
 import { notesRouter } from "./routes/notes.js";
 import { tagsRouter } from "./routes/tags.js";
+import { searchRouter } from "./routes/search.js";
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.get("/health", (_req, res) => {
 app.use("/auth", authRouter);
 app.use("/api/notes", requireAuth, notesRouter);
 app.use("/api/tags", requireAuth, tagsRouter);
+app.use("/api/search", requireAuth, searchRouter);
 
 app.listen(config.port, () => {
   console.log(`NoteOne server running on port ${config.port}`);
