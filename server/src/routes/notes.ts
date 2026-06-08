@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db/client.js";
-import { notes } from "../db/schema.js";
+import { notes, noteTags, tags } from "../db/schema.js";
 import { eq, and, desc } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { z } from "zod";
@@ -108,6 +108,58 @@ router.delete("/:id", async (req: AuthRequest, res) => {
   }
 
   res.json({ deleted: true });
+});
+
+// POST /api/notes/:id/tags
+router.post("/:id/tags", async (req: AuthRequest, res) => {
+  const { tagId, confidence, isManual } = req.body;
+  if (!tagId) {
+    res.status(400).json({ error: "tagId is required" });
+    return;
+  }
+
+  const id = req.params.id as string;
+  const note = await db.query.notes.findFirst({
+    where: and(eq(notes.id, id), eq(notes.userId, req.userId!)),
+  });
+  if (!note) {
+    res.status(404).json({ error: "Note not found" });
+    return;
+  }
+
+  await db.insert(noteTags).values({
+    noteId: id,
+    tagId,
+    confidence: confidence ?? null,
+    isManual: isManual ?? false,
+  });
+
+  res.status(201).json({ attached: true });
+});
+
+// GET /api/notes/:id/tags
+router.get("/:id/tags", async (req: AuthRequest, res) => {
+  const id = req.params.id as string;
+  const note = await db.query.notes.findFirst({
+    where: and(eq(notes.id, id), eq(notes.userId, req.userId!)),
+  });
+  if (!note) {
+    res.status(404).json({ error: "Note not found" });
+    return;
+  }
+
+  const result = await db.select({
+    tagId: noteTags.tagId,
+    name: tags.name,
+    dimension: tags.dimension,
+    confidence: noteTags.confidence,
+    isManual: noteTags.isManual,
+  })
+    .from(noteTags)
+    .innerJoin(tags, eq(noteTags.tagId, tags.id))
+    .where(eq(noteTags.noteId, id));
+
+  res.json({ tags: result });
 });
 
 export { router as notesRouter };
