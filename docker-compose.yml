@@ -1,0 +1,14 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: noteone
+      POSTGRES_PASSWORD: noteone
+      POSTGRES_DB: noteone
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
