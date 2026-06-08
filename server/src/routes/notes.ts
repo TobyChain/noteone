@@ -4,6 +4,7 @@ import { notes, noteTags, tags } from "../db/schema.js";
 import { eq, and, desc } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { z } from "zod";
+import { processNote } from "../services/pipeline.js";
 
 const router = Router();
 
@@ -39,6 +40,9 @@ router.post("/", async (req: AuthRequest, res) => {
     userId: req.userId!,
     ...parsed.data,
   }).returning();
+
+  // Fire-and-forget: AI pipeline processes note in the background
+  processNote(note.id, note.content, note.contentType).catch(console.error);
 
   res.status(201).json({ note });
 });
