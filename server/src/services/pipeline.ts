@@ -8,13 +8,18 @@ export async function processNote(
   contentType: string,
   llmConfig?: LLMConfig,
 ): Promise<void> {
-  try {
-    await Promise.all([
-      tagNote(noteId, content, contentType, llmConfig),
-      enrichNote(noteId, content, contentType, llmConfig),
-    ]);
+  const results = await Promise.allSettled([
+    tagNote(noteId, content, contentType, llmConfig),
+    enrichNote(noteId, content, contentType, llmConfig),
+  ]);
+
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.error(`[pipeline] Partial failure for note ${noteId}:`, result.reason);
+    }
+  }
+
+  if (results.every(r => r.status === "fulfilled")) {
     console.log(`[pipeline] Note ${noteId} processed successfully`);
-  } catch (error) {
-    console.error(`[pipeline] Error processing note ${noteId}:`, error);
   }
 }

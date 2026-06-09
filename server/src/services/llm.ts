@@ -54,7 +54,7 @@ export async function generateEmbedding(
       Authorization: `Bearer ${cfg.apiKey}`,
     },
     body: JSON.stringify({
-      model: "text-embedding-v3",
+      model: "text-embedding-v2",
       input: text,
       dimensions: 1536,
     }),
