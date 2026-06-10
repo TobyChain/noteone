@@ -32,6 +32,21 @@ struct LoginView: View {
             .signInWithAppleButtonStyle(.black)
             .frame(height: 50)
             .frame(maxWidth: 280)
+
+            #if DEBUG
+            Divider()
+                .frame(maxWidth: 280)
+
+            Button {
+                authService.devLogin(name: "Bingtao")
+            } label: {
+                Label("开发者快速登录", systemImage: "hammer.fill")
+                    .frame(maxWidth: 280)
+                    .frame(height: 44)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.orange)
+            #endif
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)

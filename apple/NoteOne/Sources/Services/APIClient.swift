@@ -46,6 +46,13 @@ actor APIClient {
         return try await post("/auth/apple", body: Body(appleId: appleId, email: email, name: name))
     }
 
+    func devLogin(name: String) async throws -> AuthResponse {
+        struct Body: Encodable {
+            let name: String
+        }
+        return try await post("/auth/dev-token", body: Body(name: name))
+    }
+
     // MARK: - Notes
 
     func createNote(_ request: CreateNoteRequest) async throws -> Note {
