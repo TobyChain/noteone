@@ -5,6 +5,7 @@ struct NoteOneApp: App {
     @StateObject private var authService = AuthService()
     #if os(macOS)
     @StateObject private var hotkeyManager = HotkeyManager.shared
+    @State private var showCaptureWindow = false
     #endif
 
     var body: some Scene {
@@ -27,6 +28,14 @@ struct NoteOneApp: App {
         }
         #if os(macOS)
         .defaultSize(width: 900, height: 600)
+        .commands {
+            CommandGroup(after: .newItem) {
+                Button("顺手记一条") {
+                    hotkeyManager.togglePanel()
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+            }
+        }
         #endif
 
         #if os(macOS)

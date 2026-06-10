@@ -24,7 +24,7 @@ class HotkeyManager: ObservableObject {
         }
     }
 
-    private func togglePanel() {
+    func togglePanel() {
         if let panel = panel, panel.isVisible {
             panel.close()
             self.panel = nil
