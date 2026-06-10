@@ -12,13 +12,14 @@ struct NoteDetailView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         Text(note.title ?? "无标题")
                             .font(.title)
+                            .foregroundStyle(Color.ink)
 
                         if let summary = note.aiSummary {
                             Text(summary)
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.inkSecondary)
                                 .padding()
-                                .background(Color.gray.opacity(0.1))
+                                .background(Color.canvasSecondary)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
 
@@ -26,6 +27,7 @@ struct NoteDetailView: View {
 
                         Text(note.content)
                             .font(.body)
+                            .foregroundStyle(Color.ink)
                             .textSelection(.enabled)
 
                         Divider()
@@ -105,11 +107,11 @@ private struct FlowLayoutView: View {
 
     private func colorForDimension(_ dimension: String) -> Color {
         switch dimension {
-        case "format": return .blue.opacity(0.15)
-        case "topic": return .green.opacity(0.15)
-        case "domain": return .orange.opacity(0.15)
-        case "module": return .purple.opacity(0.15)
-        default: return .gray.opacity(0.15)
+        case "format": return .tagBackground
+        case "topic": return .green.opacity(0.12)
+        case "domain": return .orange.opacity(0.12)
+        case "module": return .purple.opacity(0.12)
+        default: return Color.canvasSecondary
         }
     }
 }

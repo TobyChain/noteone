@@ -7,6 +7,7 @@ import { tagsRouter } from "./routes/tags.js";
 import { searchRouter } from "./routes/search.js";
 import { statsRouter } from "./routes/stats.js";
 import { chatRouter } from "./routes/chat.js";
+import { chatSessionsRouter } from "./routes/chat-sessions.js";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use("/api/tags", requireAuth, tagsRouter);
 app.use("/api/search", requireAuth, searchRouter);
 app.use("/api/stats", requireAuth, statsRouter);
 app.use("/api/chat", requireAuth, chatRouter);
+app.use("/api/chat-sessions", requireAuth, chatSessionsRouter);
 
 app.listen(config.port, () => {
   console.log(`NoteOne server running on port ${config.port}`);

@@ -13,6 +13,7 @@
 		0ECBE548FC6E276B8B040258 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E61FD3FD2B408D9A8D7D8E0 /* ContentView.swift */; };
 		10F0F2F51DCD8A5B64EFB8DE /* NoteOneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */; };
 		10F5263C8963D04F59AE8FEF /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A147139B5F8A558D8AB007CC /* APIClient.swift */; };
+		1618DF935486DBE43FD7E509 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82FA9FA28AD13D36EB22561F /* Theme.swift */; };
 		1AC8A13C778ED964BFC1C4D9 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CA362CA9A0DEF17406F4EB /* FloatingPanel.swift */; };
 		2616763C45E756EEFFF3E380 /* NoteListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D0A97460BE3D35B5B5E39C /* NoteListView.swift */; };
 		29B03C832D82CADE94C2F67B /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */; };
@@ -40,6 +41,7 @@
 		B73B4E0F7C9199E1D24D78C2 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09BC0033D2386FF0223874AF /* AuthService.swift */; };
 		D2AB1E78DFD98BB543335A16 /* NoteOneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */; };
 		D8974388C3F186B91C9DC7DF /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F93BB424A479EE7F81E50F0 /* LoginView.swift */; };
+		D93A6AA6BE5BADE41BB54865 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82FA9FA28AD13D36EB22561F /* Theme.swift */; };
 		DF5D981F89DBB27AA09D34B5 /* NoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490BB48DEEA279237A8A473B /* NoteDetailView.swift */; };
 		E821B6AB0140CC645D83574C /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */; };
 		EC71192E9677EAA4E2F5A2C0 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1079E75DF4BD08C37A84A968 /* Note.swift */; };
@@ -61,6 +63,7 @@
 		71CF96D60D564E9C8477248C /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		73BC93FEB9429E19B23B5E29 /* CaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureView.swift; sourceTree = "<group>"; };
 		76C21DFC46974BFDA55F2506 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
+		82FA9FA28AD13D36EB22561F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		93ED8FC56B2194277F2CB7C7 /* NoteOneShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = NoteOneShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9509847332E1CD6E94D93766 /* NottyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NottyView.swift; sourceTree = "<group>"; };
 		A147139B5F8A558D8AB007CC /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
@@ -103,6 +106,14 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
+		8CADC88D790A56BE0932F797 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				82FA9FA28AD13D36EB22561F /* Theme.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
 		AA1BAFAF4995D3CB20DDED4F = {
 			isa = PBXGroup;
 			children = (
@@ -119,6 +130,7 @@
 				C05DCDF36B6A8A84CCC6A981 /* macOS */,
 				57015FD0069083C20F758DB0 /* Models */,
 				6E43D3869861EBF76C18AF91 /* Services */,
+				8CADC88D790A56BE0932F797 /* Theme */,
 				CCB774B1C6263F74D65361CA /* Views */,
 			);
 			name = Sources;
@@ -276,6 +288,7 @@
 				37554AF0D24204D3657B6399 /* SettingsView.swift in Sources */,
 				B47FCC10098D017F3D146CE3 /* SyncQueue.swift in Sources */,
 				2BC4131212ABE644E3B8DAEA /* Tag.swift in Sources */,
+				1618DF935486DBE43FD7E509 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -309,6 +322,7 @@
 				42EB627D9FCCA905E02A9744 /* SettingsView.swift in Sources */,
 				ED95702218A9FF3F35F3495D /* SyncQueue.swift in Sources */,
 				5802ECF1F8EF845155DFD2C4 /* Tag.swift in Sources */,
+				D93A6AA6BE5BADE41BB54865 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

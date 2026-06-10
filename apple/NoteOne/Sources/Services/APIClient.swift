@@ -119,6 +119,32 @@ actor APIClient {
         return response.message
     }
 
+    // MARK: - Chat Sessions
+
+    func createChatSession(title: String? = nil) async throws -> ChatSession {
+        struct Body: Encodable { let title: String? }
+        return try await post("/api/chat-sessions", body: Body(title: title))
+    }
+
+    func listChatSessions() async throws -> [ChatSession] {
+        return try await get("/api/chat-sessions")
+    }
+
+    func getChatSession(id: String) async throws -> ChatSessionDetail {
+        return try await get("/api/chat-sessions/\(id)")
+    }
+
+    func deleteChatSession(id: String) async throws {
+        let _: DeleteWrapper = try await delete("/api/chat-sessions/\(id)")
+    }
+
+    func sendSessionMessage(sessionId: String, message: String) async throws -> ChatResponseMessage {
+        struct Body: Encodable { let message: String }
+        struct Resp: Decodable { let message: ChatResponseMessage }
+        let response: Resp = try await post("/api/chat-sessions/\(sessionId)/messages", body: Body(message: message))
+        return response.message
+    }
+
     // MARK: - HTTP Methods
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
