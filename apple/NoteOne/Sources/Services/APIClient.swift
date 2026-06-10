@@ -108,6 +108,17 @@ actor APIClient {
         return try await get("/api/stats")
     }
 
+    // MARK: - Chat
+
+    func sendChat(messages: [ChatMessage], noteIds: [String]? = nil) async throws -> ChatResponseMessage {
+        let payload = ChatRequest(
+            messages: messages.map { ChatMessagePayload(role: $0.role, content: $0.content) },
+            noteIds: noteIds
+        )
+        let response: ChatResponse = try await post("/api/chat", body: payload)
+        return response.message
+    }
+
     // MARK: - HTTP Methods
 
     private func get<T: Decodable>(_ path: String) async throws -> T {

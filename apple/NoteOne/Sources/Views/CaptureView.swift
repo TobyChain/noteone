@@ -1,11 +1,16 @@
 import SwiftUI
 
+extension Notification.Name {
+    static let noteCreated = Notification.Name("noteCreated")
+}
+
 struct CaptureView: View {
     @State private var content = ""
     @State private var sourceUrl = ""
     @State private var isSaving = false
     @State private var showSuccess = false
     @Environment(\.dismiss) private var dismiss
+    var initialContent: String?
     var onDismiss: (() -> Void)?
 
     var body: some View {
@@ -24,7 +29,12 @@ struct CaptureView: View {
                     if content.isEmpty {
                         Text("记录你看到的内容...")
                             .foregroundStyle(.tertiary)
+                            #if os(macOS)
+                            .padding(.top, 8)
+                            .padding(.leading, 5)
+                            #else
                             .padding(8)
+                            #endif
                             .allowsHitTesting(false)
                     }
                 }
@@ -65,7 +75,13 @@ struct CaptureView: View {
         .frame(width: 460)
         #endif
         .navigationTitle("记一条")
-        .onAppear { pasteFromClipboard() }
+        .onAppear {
+            if let text = initialContent, !text.isEmpty {
+                content = text
+            } else {
+                pasteFromClipboard()
+            }
+        }
     }
 
     private func pasteFromClipboard() {
@@ -86,6 +102,9 @@ struct CaptureView: View {
         Task {
             do {
                 _ = try await APIClient.shared.createNote(request)
+                await MainActor.run {
+                    NotificationCenter.default.post(name: .noteCreated, object: nil)
+                }
             } catch {
                 await SyncQueue.shared.enqueue(request)
             }

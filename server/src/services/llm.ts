@@ -10,7 +10,7 @@ export function getDefaultLLMConfig(): LLMConfig {
   return {
     apiKey: config.qwen.apiKey,
     baseUrl: config.qwen.baseUrl,
-    model: "qwen-turbo",
+    model: "gpt-5.4-mini",
   };
 }
 
@@ -54,7 +54,7 @@ export async function generateEmbedding(
       Authorization: `Bearer ${cfg.apiKey}`,
     },
     body: JSON.stringify({
-      model: "text-embedding-v2",
+      model: "text-embedding-3-small",
       input: text,
       dimensions: 1536,
     }),

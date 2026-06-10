@@ -21,7 +21,7 @@ struct NoteListView: View {
         .toolbar {
             #if os(macOS)
             ToolbarItem(placement: .primaryAction) {
-                Button(action: {}) {
+                Button(action: { Task { await loadNotes() } }) {
                     Image(systemName: "arrow.clockwise")
                 }
             }
@@ -29,6 +29,9 @@ struct NoteListView: View {
         }
         .task { await loadNotes() }
         .refreshable { await loadNotes() }
+        .onReceive(NotificationCenter.default.publisher(for: .noteCreated)) { _ in
+            Task { await loadNotes() }
+        }
     }
 
     private func loadNotes() async {
