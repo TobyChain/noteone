@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		01AD1E853E8C7FD58AF576E9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E61FD3FD2B408D9A8D7D8E0 /* ContentView.swift */; };
 		0704C59F11814237F711C53B /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1079E75DF4BD08C37A84A968 /* Note.swift */; };
+		0AA0F4266BC3B6F6B8F1B814 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F652DB919B58BC615BE4B57 /* Assets.xcassets */; };
 		0BA6C6E06F9D0E3229505304 /* NoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490BB48DEEA279237A8A473B /* NoteDetailView.swift */; };
 		0ECBE548FC6E276B8B040258 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E61FD3FD2B408D9A8D7D8E0 /* ContentView.swift */; };
 		10F0F2F51DCD8A5B64EFB8DE /* NoteOneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */; };
@@ -42,6 +43,7 @@
 		D2AB1E78DFD98BB543335A16 /* NoteOneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */; };
 		D8974388C3F186B91C9DC7DF /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F93BB424A479EE7F81E50F0 /* LoginView.swift */; };
 		D93A6AA6BE5BADE41BB54865 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82FA9FA28AD13D36EB22561F /* Theme.swift */; };
+		DA236F8F411BE8264DB35516 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F652DB919B58BC615BE4B57 /* Assets.xcassets */; };
 		DF5D981F89DBB27AA09D34B5 /* NoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490BB48DEEA279237A8A473B /* NoteDetailView.swift */; };
 		E821B6AB0140CC645D83574C /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */; };
 		EC71192E9677EAA4E2F5A2C0 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1079E75DF4BD08C37A84A968 /* Note.swift */; };
@@ -50,6 +52,7 @@
 
 /* Begin PBXFileReference section */
 		09BC0033D2386FF0223874AF /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		0F652DB919B58BC615BE4B57 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1079E75DF4BD08C37A84A968 /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
 		14E6C7017395B182C0EB0733 /* SyncQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncQueue.swift; sourceTree = "<group>"; };
 		1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -117,6 +120,7 @@
 		AA1BAFAF4995D3CB20DDED4F = {
 			isa = PBXGroup;
 			children = (
+				CB0579F5E448CB083149806D /* Resources */,
 				B019C8BB961E3CA86E10EBC6 /* Sources */,
 				0A06950E5E9053C69B0BE69F /* Sources */,
 				D54CA59E6327DB5B8350E81E /* Products */,
@@ -144,6 +148,15 @@
 				299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */,
 			);
 			path = macOS;
+			sourceTree = "<group>";
+		};
+		CB0579F5E448CB083149806D /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				0F652DB919B58BC615BE4B57 /* Assets.xcassets */,
+			);
+			name = Resources;
+			path = NoteOne/Resources;
 			sourceTree = "<group>";
 		};
 		CCB774B1C6263F74D65361CA /* Views */ = {
@@ -195,6 +208,7 @@
 			buildConfigurationList = D84E530D65364C9FD0936482 /* Build configuration list for PBXNativeTarget "NoteOne_macOS" */;
 			buildPhases = (
 				AD0A1C15F29AE87A50678EB6 /* Sources */,
+				AC29182C9485AD4A501A8D93 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -212,6 +226,7 @@
 			buildConfigurationList = 1396DD97F5AF510B7322FBFB /* Build configuration list for PBXNativeTarget "NoteOne_iOS" */;
 			buildPhases = (
 				4028FCAA129162147CAEE92F /* Sources */,
+				FC5358298EE35100AB28D25B /* Resources */,
 			);
 			buildRules = (
 			);
@@ -264,6 +279,25 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AC29182C9485AD4A501A8D93 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0AA0F4266BC3B6F6B8F1B814 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FC5358298EE35100AB28D25B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DA236F8F411BE8264DB35516 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		4028FCAA129162147CAEE92F /* Sources */ = {
