@@ -42,7 +42,7 @@ router.post("/", async (req: AuthRequest, res) => {
   }).returning();
 
   // Fire-and-forget: AI pipeline processes note in the background
-  processNote(note.id, note.content, note.contentType).catch(console.error);
+  processNote(note.id, note.content, note.contentType, note.sourceUrl).catch(console.error);
 
   res.status(201).json({ note });
 });

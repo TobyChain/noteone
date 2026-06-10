@@ -96,7 +96,7 @@ server.tool(
       title,
       contentType: "text",
     }).returning();
-    processNote(note.id, content, "text").catch(console.error);
+    processNote(note.id, content, "text", source_url).catch(console.error);
     return { content: [{ type: "text" as const, text: `笔记已创建: ${note.id}\nAI 正在后台分析生成标题和标签...` }] };
   }
 );
