@@ -1,0 +1,587 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		01AD1E853E8C7FD58AF576E9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E61FD3FD2B408D9A8D7D8E0 /* ContentView.swift */; };
+		0704C59F11814237F711C53B /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1079E75DF4BD08C37A84A968 /* Note.swift */; };
+		0BA6C6E06F9D0E3229505304 /* NoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490BB48DEEA279237A8A473B /* NoteDetailView.swift */; };
+		0ECBE548FC6E276B8B040258 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E61FD3FD2B408D9A8D7D8E0 /* ContentView.swift */; };
+		10F0F2F51DCD8A5B64EFB8DE /* NoteOneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */; };
+		10F5263C8963D04F59AE8FEF /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A147139B5F8A558D8AB007CC /* APIClient.swift */; };
+		1AC8A13C778ED964BFC1C4D9 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CA362CA9A0DEF17406F4EB /* FloatingPanel.swift */; };
+		2616763C45E756EEFFF3E380 /* NoteListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D0A97460BE3D35B5B5E39C /* NoteListView.swift */; };
+		29B03C832D82CADE94C2F67B /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */; };
+		2BC4131212ABE644E3B8DAEA /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76C21DFC46974BFDA55F2506 /* Tag.swift */; };
+		3007C9B5986F112253CAE6F3 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = E127F96E2FB02EA2DA6E6483 /* KeychainHelper.swift */; };
+		3388C8E60E0175207F77FCD8 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */; };
+		37554AF0D24204D3657B6399 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */; };
+		42EB627D9FCCA905E02A9744 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */; };
+		44C8046955AC4D6D3DE2DD6B /* CaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73BC93FEB9429E19B23B5E29 /* CaptureView.swift */; };
+		5802ECF1F8EF845155DFD2C4 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76C21DFC46974BFDA55F2506 /* Tag.swift */; };
+		5E37CEDE27F2B3C18154E873 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */; };
+		6AE477980D253F7C5E90C276 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CA362CA9A0DEF17406F4EB /* FloatingPanel.swift */; };
+		704AD0EFD6A50EF4E1FE7E24 /* NoteListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D0A97460BE3D35B5B5E39C /* NoteListView.swift */; };
+		706218EFE6D537894BBA5531 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = E127F96E2FB02EA2DA6E6483 /* KeychainHelper.swift */; };
+		752867F30AE0200A5275A792 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71CF96D60D564E9C8477248C /* ShareViewController.swift */; };
+		7900B47DAC5B115E6C8BC65D /* CaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73BC93FEB9429E19B23B5E29 /* CaptureView.swift */; };
+		A276D326307511A5192F6C58 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09BC0033D2386FF0223874AF /* AuthService.swift */; };
+		A2800C9A83B55804E7753C0F /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F93BB424A479EE7F81E50F0 /* LoginView.swift */; };
+		A80FEA9ED8D0B7507FDBDB46 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A147139B5F8A558D8AB007CC /* APIClient.swift */; };
+		B47FCC10098D017F3D146CE3 /* SyncQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E6C7017395B182C0EB0733 /* SyncQueue.swift */; };
+		B73B4E0F7C9199E1D24D78C2 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09BC0033D2386FF0223874AF /* AuthService.swift */; };
+		D2AB1E78DFD98BB543335A16 /* NoteOneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */; };
+		D8974388C3F186B91C9DC7DF /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F93BB424A479EE7F81E50F0 /* LoginView.swift */; };
+		DF5D981F89DBB27AA09D34B5 /* NoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490BB48DEEA279237A8A473B /* NoteDetailView.swift */; };
+		E821B6AB0140CC645D83574C /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */; };
+		EC71192E9677EAA4E2F5A2C0 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1079E75DF4BD08C37A84A968 /* Note.swift */; };
+		ED95702218A9FF3F35F3495D /* SyncQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E6C7017395B182C0EB0733 /* SyncQueue.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		09BC0033D2386FF0223874AF /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		1079E75DF4BD08C37A84A968 /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
+		14E6C7017395B182C0EB0733 /* SyncQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncQueue.swift; sourceTree = "<group>"; };
+		1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		1F93BB424A479EE7F81E50F0 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
+		2FAA2A66EA75B7E100559FDA /* NoteOne.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = NoteOne.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		41D0A97460BE3D35B5B5E39C /* NoteListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteListView.swift; sourceTree = "<group>"; };
+		490BB48DEEA279237A8A473B /* NoteDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteDetailView.swift; sourceTree = "<group>"; };
+		4E61FD3FD2B408D9A8D7D8E0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		71CF96D60D564E9C8477248C /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		73BC93FEB9429E19B23B5E29 /* CaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureView.swift; sourceTree = "<group>"; };
+		76C21DFC46974BFDA55F2506 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
+		93ED8FC56B2194277F2CB7C7 /* NoteOneShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = NoteOneShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A147139B5F8A558D8AB007CC /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthModels.swift; sourceTree = "<group>"; };
+		B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteOneApp.swift; sourceTree = "<group>"; };
+		C4CA362CA9A0DEF17406F4EB /* FloatingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanel.swift; sourceTree = "<group>"; };
+		E127F96E2FB02EA2DA6E6483 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
+		FB061DC2E0E8A734A94854AE /* NoteOne.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NoteOne.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0A06950E5E9053C69B0BE69F /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				71CF96D60D564E9C8477248C /* ShareViewController.swift */,
+			);
+			name = Sources;
+			path = NoteOneShareExtension/Sources;
+			sourceTree = "<group>";
+		};
+		57015FD0069083C20F758DB0 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */,
+				1079E75DF4BD08C37A84A968 /* Note.swift */,
+				76C21DFC46974BFDA55F2506 /* Tag.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		6E43D3869861EBF76C18AF91 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A147139B5F8A558D8AB007CC /* APIClient.swift */,
+				09BC0033D2386FF0223874AF /* AuthService.swift */,
+				E127F96E2FB02EA2DA6E6483 /* KeychainHelper.swift */,
+				14E6C7017395B182C0EB0733 /* SyncQueue.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		AA1BAFAF4995D3CB20DDED4F = {
+			isa = PBXGroup;
+			children = (
+				B019C8BB961E3CA86E10EBC6 /* Sources */,
+				0A06950E5E9053C69B0BE69F /* Sources */,
+				D54CA59E6327DB5B8350E81E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B019C8BB961E3CA86E10EBC6 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */,
+				C05DCDF36B6A8A84CCC6A981 /* macOS */,
+				57015FD0069083C20F758DB0 /* Models */,
+				6E43D3869861EBF76C18AF91 /* Services */,
+				CCB774B1C6263F74D65361CA /* Views */,
+			);
+			name = Sources;
+			path = NoteOne/Sources;
+			sourceTree = "<group>";
+		};
+		C05DCDF36B6A8A84CCC6A981 /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				C4CA362CA9A0DEF17406F4EB /* FloatingPanel.swift */,
+				299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */,
+			);
+			path = macOS;
+			sourceTree = "<group>";
+		};
+		CCB774B1C6263F74D65361CA /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				73BC93FEB9429E19B23B5E29 /* CaptureView.swift */,
+				4E61FD3FD2B408D9A8D7D8E0 /* ContentView.swift */,
+				1F93BB424A479EE7F81E50F0 /* LoginView.swift */,
+				490BB48DEEA279237A8A473B /* NoteDetailView.swift */,
+				41D0A97460BE3D35B5B5E39C /* NoteListView.swift */,
+				1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		D54CA59E6327DB5B8350E81E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2FAA2A66EA75B7E100559FDA /* NoteOne.app */,
+				FB061DC2E0E8A734A94854AE /* NoteOne.app */,
+				93ED8FC56B2194277F2CB7C7 /* NoteOneShareExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1FE41A1429C43B5A2A729289 /* NoteOneShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E4EFD5F52EA84CE904639CA0 /* Build configuration list for PBXNativeTarget "NoteOneShareExtension" */;
+			buildPhases = (
+				6D84A98D9B68A99B031362E0 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NoteOneShareExtension;
+			packageProductDependencies = (
+			);
+			productName = NoteOneShareExtension;
+			productReference = 93ED8FC56B2194277F2CB7C7 /* NoteOneShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		3130E3A435458D823B24EDAD /* NoteOne_macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D84E530D65364C9FD0936482 /* Build configuration list for PBXNativeTarget "NoteOne_macOS" */;
+			buildPhases = (
+				AD0A1C15F29AE87A50678EB6 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NoteOne_macOS;
+			packageProductDependencies = (
+			);
+			productName = NoteOne_macOS;
+			productReference = FB061DC2E0E8A734A94854AE /* NoteOne.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B46F4A75CBD3813EAE2C0295 /* NoteOne_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1396DD97F5AF510B7322FBFB /* Build configuration list for PBXNativeTarget "NoteOne_iOS" */;
+			buildPhases = (
+				4028FCAA129162147CAEE92F /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NoteOne_iOS;
+			packageProductDependencies = (
+			);
+			productName = NoteOne_iOS;
+			productReference = 2FAA2A66EA75B7E100559FDA /* NoteOne.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4FC5E1001D0B7BE0B61D3247 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					1FE41A1429C43B5A2A729289 = {
+						DevelopmentTeam = "";
+					};
+					3130E3A435458D823B24EDAD = {
+						DevelopmentTeam = "";
+					};
+					B46F4A75CBD3813EAE2C0295 = {
+						DevelopmentTeam = "";
+					};
+				};
+			};
+			buildConfigurationList = 0216E816436F7CAEF6D05BE0 /* Build configuration list for PBXProject "NoteOne" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = AA1BAFAF4995D3CB20DDED4F;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D54CA59E6327DB5B8350E81E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1FE41A1429C43B5A2A729289 /* NoteOneShareExtension */,
+				B46F4A75CBD3813EAE2C0295 /* NoteOne_iOS */,
+				3130E3A435458D823B24EDAD /* NoteOne_macOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4028FCAA129162147CAEE92F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				10F5263C8963D04F59AE8FEF /* APIClient.swift in Sources */,
+				3388C8E60E0175207F77FCD8 /* AuthModels.swift in Sources */,
+				A276D326307511A5192F6C58 /* AuthService.swift in Sources */,
+				7900B47DAC5B115E6C8BC65D /* CaptureView.swift in Sources */,
+				01AD1E853E8C7FD58AF576E9 /* ContentView.swift in Sources */,
+				1AC8A13C778ED964BFC1C4D9 /* FloatingPanel.swift in Sources */,
+				E821B6AB0140CC645D83574C /* HotkeyManager.swift in Sources */,
+				706218EFE6D537894BBA5531 /* KeychainHelper.swift in Sources */,
+				D8974388C3F186B91C9DC7DF /* LoginView.swift in Sources */,
+				0704C59F11814237F711C53B /* Note.swift in Sources */,
+				0BA6C6E06F9D0E3229505304 /* NoteDetailView.swift in Sources */,
+				704AD0EFD6A50EF4E1FE7E24 /* NoteListView.swift in Sources */,
+				10F0F2F51DCD8A5B64EFB8DE /* NoteOneApp.swift in Sources */,
+				37554AF0D24204D3657B6399 /* SettingsView.swift in Sources */,
+				B47FCC10098D017F3D146CE3 /* SyncQueue.swift in Sources */,
+				2BC4131212ABE644E3B8DAEA /* Tag.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6D84A98D9B68A99B031362E0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				752867F30AE0200A5275A792 /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AD0A1C15F29AE87A50678EB6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A80FEA9ED8D0B7507FDBDB46 /* APIClient.swift in Sources */,
+				5E37CEDE27F2B3C18154E873 /* AuthModels.swift in Sources */,
+				B73B4E0F7C9199E1D24D78C2 /* AuthService.swift in Sources */,
+				44C8046955AC4D6D3DE2DD6B /* CaptureView.swift in Sources */,
+				0ECBE548FC6E276B8B040258 /* ContentView.swift in Sources */,
+				6AE477980D253F7C5E90C276 /* FloatingPanel.swift in Sources */,
+				29B03C832D82CADE94C2F67B /* HotkeyManager.swift in Sources */,
+				3007C9B5986F112253CAE6F3 /* KeychainHelper.swift in Sources */,
+				A2800C9A83B55804E7753C0F /* LoginView.swift in Sources */,
+				EC71192E9677EAA4E2F5A2C0 /* Note.swift in Sources */,
+				DF5D981F89DBB27AA09D34B5 /* NoteDetailView.swift in Sources */,
+				2616763C45E756EEFFF3E380 /* NoteListView.swift in Sources */,
+				D2AB1E78DFD98BB543335A16 /* NoteOneApp.swift in Sources */,
+				42EB627D9FCCA905E02A9744 /* SettingsView.swift in Sources */,
+				ED95702218A9FF3F35F3495D /* SyncQueue.swift in Sources */,
+				5802ECF1F8EF845155DFD2C4 /* Tag.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		19E7257F5229CF92E31989DA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = NoteOne/NoteOne.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = NoteOne;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.noteone.app;
+				PRODUCT_NAME = NoteOne;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		324F69944EB4D05C4C05B97E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		66352E41F10DB622EFD38052 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = NoteOne/NoteOne.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = NoteOne;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.noteone.app;
+				PRODUCT_NAME = NoteOne;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		67ACFFBE87732187DA8842D5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = NoteOneShareExtension/ShareExtension.entitlements;
+				INFOPLIST_FILE = NoteOneShareExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.noteone.app.share;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		8BF444C5F421CF2BE759977F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = NoteOneShareExtension/ShareExtension.entitlements;
+				INFOPLIST_FILE = NoteOneShareExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.noteone.app.share;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D4FFD608292280C20B81F3BB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		DAF4FB9011376DA98138BC1E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = NoteOne/NoteOne.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = NoteOne;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.noteone.app;
+				PRODUCT_NAME = NoteOne;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DC896F4F0F2520D0C3D0EBA8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = NoteOne/NoteOne.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = NoteOne;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.noteone.app;
+				PRODUCT_NAME = NoteOne;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0216E816436F7CAEF6D05BE0 /* Build configuration list for PBXProject "NoteOne" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				324F69944EB4D05C4C05B97E /* Debug */,
+				D4FFD608292280C20B81F3BB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1396DD97F5AF510B7322FBFB /* Build configuration list for PBXNativeTarget "NoteOne_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DAF4FB9011376DA98138BC1E /* Debug */,
+				19E7257F5229CF92E31989DA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D84E530D65364C9FD0936482 /* Build configuration list for PBXNativeTarget "NoteOne_macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DC896F4F0F2520D0C3D0EBA8 /* Debug */,
+				66352E41F10DB622EFD38052 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E4EFD5F52EA84CE904639CA0 /* Build configuration list for PBXNativeTarget "NoteOneShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8BF444C5F421CF2BE759977F /* Debug */,
+				67ACFFBE87732187DA8842D5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4FC5E1001D0B7BE0B61D3247 /* Project object */;
+}

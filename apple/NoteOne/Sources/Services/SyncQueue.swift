@@ -11,6 +11,9 @@ actor SyncQueue {
             .appendingPathComponent("NoteOne", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         self.fileURL = dir.appendingPathComponent("sync_queue.json")
+    }
+
+    func warmUp() {
         loadFromDisk()
     }
 

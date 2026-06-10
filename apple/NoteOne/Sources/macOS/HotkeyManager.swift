@@ -2,6 +2,7 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 class HotkeyManager: ObservableObject {
     static let shared = HotkeyManager()
     private var panel: FloatingPanel?

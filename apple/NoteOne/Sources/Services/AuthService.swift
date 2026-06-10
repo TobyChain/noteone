@@ -1,6 +1,7 @@
 import SwiftUI
 import AuthenticationServices
 
+@MainActor
 class AuthService: NSObject, ObservableObject {
     @Published var isAuthenticated = false
     @Published var userName: String?
@@ -10,9 +11,7 @@ class AuthService: NSObject, ObservableObject {
         if let token = KeychainHelper.load(key: "jwt_token") {
             Task {
                 await APIClient.shared.setToken(token)
-                await MainActor.run {
-                    self.isAuthenticated = true
-                }
+                self.isAuthenticated = true
             }
         }
     }
@@ -29,10 +28,8 @@ class AuthService: NSObject, ObservableObject {
                 )
                 KeychainHelper.save(key: "jwt_token", value: response.token)
                 await APIClient.shared.setToken(response.token)
-                await MainActor.run {
-                    self.isAuthenticated = true
-                    self.userName = response.user.name
-                }
+                self.isAuthenticated = true
+                self.userName = response.user.name
             } catch {
                 print("Auth failed: \(error)")
             }
