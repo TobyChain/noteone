@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db/client.js";
 import { notes, noteTags, tags } from "../db/schema.js";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { z } from "zod";
 import { processNote } from "../services/pipeline.js";
@@ -59,7 +59,31 @@ router.get("/", async (req: AuthRequest, res) => {
     offset,
   });
 
-  res.json({ notes: result, limit, offset });
+  const noteIds = result.map(n => n.id);
+  let tagsByNote: Record<string, any[]> = {};
+  if (noteIds.length > 0) {
+    const allTags = await db.select({
+      noteId: noteTags.noteId,
+      tagId: noteTags.tagId,
+      name: tags.name,
+      dimension: tags.dimension,
+      confidence: noteTags.confidence,
+      isManual: noteTags.isManual,
+    }).from(noteTags)
+      .innerJoin(tags, eq(noteTags.tagId, tags.id))
+      .where(inArray(noteTags.noteId, noteIds));
+
+    for (const t of allTags) {
+      (tagsByNote[t.noteId] ??= []).push(t);
+    }
+  }
+
+  const notesWithTags = result.map(n => ({
+    ...n,
+    tags: tagsByNote[n.id] || [],
+  }));
+
+  res.json({ notes: notesWithTags, limit, offset });
 });
 
 // GET /api/notes/:id
@@ -74,7 +98,17 @@ router.get("/:id", async (req: AuthRequest, res) => {
     return;
   }
 
-  res.json({ note });
+  const noteTags_ = await db.select({
+    tagId: noteTags.tagId,
+    name: tags.name,
+    dimension: tags.dimension,
+    confidence: noteTags.confidence,
+    isManual: noteTags.isManual,
+  }).from(noteTags)
+    .innerJoin(tags, eq(noteTags.tagId, tags.id))
+    .where(eq(noteTags.noteId, id));
+
+  res.json({ note: { ...note, tags: noteTags_ } });
 });
 
 // PATCH /api/notes/:id

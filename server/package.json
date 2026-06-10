@@ -11,16 +11,18 @@
     "test:run": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "mcp": "tsx src/mcp.ts"
   },
   "dependencies": {
-    "express": "^5.1.0",
-    "drizzle-orm": "^0.44.0",
-    "postgres": "^3.4.5",
-    "jsonwebtoken": "^9.0.2",
-    "zod": "^3.24.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "dotenv": "^16.5.0",
-    "uuid": "^11.1.0"
+    "drizzle-orm": "^0.44.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "postgres": "^3.4.5",
+    "uuid": "^11.1.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

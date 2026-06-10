@@ -121,7 +121,7 @@ struct NottyView: View {
                 messages = detail.messages.map { ChatMessage(role: $0.role, content: $0.content) }
             }
         } catch {
-            print("Init session failed: \(error)")
+            // No sessions yet or network issue — just start fresh
         }
 
         if messages.isEmpty {
