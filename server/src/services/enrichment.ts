@@ -28,14 +28,14 @@ export async function enrichNote(
 
 async function generateSummary(content: string, llmConfig?: LLMConfig): Promise<string> {
   return chatCompletion(
-    [{ role: "user", content: `用一句话总结以下内容（不超过100字）：\n\n${content.slice(0, 3000)}` }],
+    [{ role: "user", content: `用一句话总结以下内容（不超过100字）：\n\n${content.slice(0, 6000)}` }],
     llmConfig,
   );
 }
 
 async function generateTitle(content: string, llmConfig?: LLMConfig): Promise<string> {
   return chatCompletion(
-    [{ role: "user", content: `为以下内容生成一个简短的标题（不超过30字）：\n\n${content.slice(0, 2000)}` }],
+    [{ role: "user", content: `为以下内容生成一个简短的标题（不超过30字）：\n\n${content.slice(0, 4000)}` }],
     llmConfig,
   );
 }

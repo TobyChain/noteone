@@ -4,7 +4,8 @@ import { chatSessions, chatMessages, notes, noteTags, tags } from "../db/schema.
 import { eq, and, asc, lt, desc } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { z } from "zod";
-import { chatCompletion } from "../services/llm.js";
+import { chatCompletion, chatCompletionWithTools, ToolDefinition } from "../services/llm.js";
+import { fetchUrlContent } from "../services/web-fetch.js";
 
 const router = Router();
 
@@ -104,17 +105,43 @@ router.post("/:id/messages", async (req: AuthRequest, res) => {
 用户共有 ${allNotes.length} 条笔记，索引如下：
 ${noteIndex}
 
+你拥有 web_fetch 工具，当用户消息中包含链接，或你需要查看某个网页的内容时，主动调用 web_fetch 获取页面内容后再回答。
+
 规则：
 - 用中文回答
 - 引用笔记时注明标题
-- 简洁友好`;
+- 简洁友好
+- 遇到 URL 时主动使用 web_fetch 查看内容`;
+
+  const NOTTY_TOOLS: ToolDefinition[] = [{
+    type: "function",
+    function: {
+      name: "web_fetch",
+      description: "获取指定 URL 的网页内容，返回纯文本。当用户分享链接或你需要查看网页内容时使用。",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "要获取的网页 URL" },
+        },
+        required: ["url"],
+      },
+    },
+  }];
+
+  const toolHandlers: Record<string, (args: any) => Promise<string>> = {
+    web_fetch: async ({ url }: { url: string }) => {
+      const result = await fetchUrlContent(url);
+      if (result.error) return `获取失败: ${result.error}`;
+      return `标题: ${result.title}\n\n${result.content}`;
+    },
+  };
 
   const llmMessages = [
     { role: "system", content: systemPrompt },
     ...allMessages.map(m => ({ role: m.role, content: m.content })),
   ];
 
-  const reply = await chatCompletion(llmMessages);
+  const reply = await chatCompletionWithTools(llmMessages, NOTTY_TOOLS, toolHandlers);
 
   const [assistantMsg] = await db.insert(chatMessages).values({
     sessionId: session.id,
