@@ -2,3 +2,13 @@
 *.swp
 node_modules/
 dist/
+
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/
+build/
+
+# Environment
+.env
+.env.local
