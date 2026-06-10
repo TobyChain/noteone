@@ -19,8 +19,7 @@ targets:
     platform: [iOS, macOS]
     sources:
       - path: NoteOne/Sources
-    resources:
-      - path: NoteOne/Resources
+      - path: NoteOne/Resources/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.noteone.app
