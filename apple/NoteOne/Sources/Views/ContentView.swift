@@ -13,6 +13,7 @@ struct ContentView: View {
         } detail: {
             if let noteId = selectedNoteId {
                 NoteDetailView(noteId: noteId)
+                    .id(noteId)
             } else {
                 Text("选择一条笔记")
                     .foregroundStyle(.secondary)
