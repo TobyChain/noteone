@@ -35,6 +35,7 @@ struct NoteOneApp: App {
         #if os(macOS)
         .defaultSize(width: 900, height: 600)
         .commands {
+            CommandGroup(replacing: .textFormatting) {}
             CommandGroup(after: .newItem) {
                 Button("顺手记一条") {
                     hotkeyManager.togglePanel()
