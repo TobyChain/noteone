@@ -196,7 +196,7 @@ private struct AIProcessingBanner: View {
             Image(systemName: "sparkles")
                 .foregroundStyle(Color.accent)
                 .symbolEffect(.pulse, options: .repeating)
-            Text("AI 正在分析并生成标签和标题...")
+            Text("Notty 正在细品...")
                 .font(.subheadline)
                 .foregroundStyle(Color.inkSecondary)
             Spacer()
