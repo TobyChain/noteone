@@ -4,20 +4,36 @@ struct NoteListView: View {
     @State private var notes: [Note] = []
     @State private var searchText = ""
     @State private var isLoading = false
+
+    #if os(macOS)
+    @Binding var selectedNoteId: String?
+    #else
     @State private var selectedNoteId: String?
+
+    init() {
+        _selectedNoteId = State(initialValue: nil)
+    }
+    #endif
 
     var body: some View {
         List(notes, selection: $selectedNoteId) { note in
+            #if os(macOS)
+            NoteRowView(note: note)
+                .tag(note.id)
+            #else
             NavigationLink(value: note.id) {
                 NoteRowView(note: note)
             }
+            #endif
         }
         .navigationTitle("NoteOne")
         .searchable(text: $searchText, prompt: "搜索笔记...")
         .onSubmit(of: .search) { search() }
+        #if !os(macOS)
         .navigationDestination(for: String.self) { noteId in
             NoteDetailView(noteId: noteId)
         }
+        #endif
         .toolbar {
             #if os(macOS)
             ToolbarItem(placement: .primaryAction) {
@@ -83,10 +99,11 @@ struct NoteRowView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(note.title ?? "无标题")
                 .font(.headline)
+                .foregroundStyle(Color.ink)
                 .lineLimit(1)
             Text(note.aiSummary ?? String(note.content.prefix(100)))
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.inkSecondary)
                 .lineLimit(2)
             HStack(spacing: 4) {
                 if let tags = note.tags {
@@ -95,14 +112,14 @@ struct NoteRowView: View {
                             .font(.caption2)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color.blue.opacity(0.1))
+                            .background(Color.tagBackground)
                             .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
                 }
                 Spacer()
                 Text(note.createdAt, style: .date)
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.inkTertiary)
             }
         }
         .padding(.vertical, 4)

@@ -11,6 +11,8 @@ struct CaptureView: View {
     @State private var showSuccess = false
     @Environment(\.dismiss) private var dismiss
     var initialContent: String?
+    var initialSourceUrl: String?
+    var initialSourceTitle: String?
     var onDismiss: (() -> Void)?
 
     var body: some View {
@@ -80,6 +82,12 @@ struct CaptureView: View {
                 content = text
             } else {
                 pasteFromClipboard()
+            }
+            if let url = initialSourceUrl, !url.isEmpty {
+                sourceUrl = url
+            }
+            if let title = initialSourceTitle, !title.isEmpty, !content.isEmpty {
+                content = "[\(title)]\n\n\(content)"
             }
         }
     }

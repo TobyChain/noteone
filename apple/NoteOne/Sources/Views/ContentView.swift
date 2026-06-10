@@ -3,15 +3,20 @@ import SwiftUI
 struct ContentView: View {
     #if os(macOS)
     @State private var showNotty = false
+    @State private var selectedNoteId: String?
     #endif
 
     var body: some View {
         #if os(macOS)
         NavigationSplitView {
-            NoteListView()
+            NoteListView(selectedNoteId: $selectedNoteId)
         } detail: {
-            Text("选择一条笔记")
-                .foregroundStyle(.secondary)
+            if let noteId = selectedNoteId {
+                NoteDetailView(noteId: noteId)
+            } else {
+                Text("选择一条笔记")
+                    .foregroundStyle(.secondary)
+            }
         }
         .overlay(alignment: .bottomTrailing) {
             Button { showNotty = true } label: {
@@ -19,9 +24,8 @@ struct ContentView: View {
                     .font(.title2)
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
-                    .background(Color.blue)
+                    .background(Color.accent)
                     .clipShape(Circle())
-                    .shadow(radius: 4)
             }
             .buttonStyle(.plain)
             .padding(20)

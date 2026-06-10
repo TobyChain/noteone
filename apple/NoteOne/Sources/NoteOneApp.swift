@@ -3,10 +3,15 @@ import SwiftUI
 @main
 struct NoteOneApp: App {
     @StateObject private var authService = AuthService()
+    @AppStorage("appTheme") private var selectedTheme: String = AppTheme.system.rawValue
     #if os(macOS)
     @StateObject private var hotkeyManager = HotkeyManager.shared
     @State private var showCaptureWindow = false
     #endif
+
+    private var theme: AppTheme {
+        AppTheme(rawValue: selectedTheme) ?? .system
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -19,6 +24,7 @@ struct NoteOneApp: App {
                         .environmentObject(authService)
                 }
             }
+            .applyTheme(theme)
             .task {
                 await SyncQueue.shared.warmUp()
                 #if os(macOS)
