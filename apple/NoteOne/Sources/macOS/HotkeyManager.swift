@@ -1,6 +1,26 @@
 #if os(macOS)
 import AppKit
 import SwiftUI
+import ApplicationServices
+
+/// User-configurable quick-capture hotkey, persisted in UserDefaults so both the global
+/// monitor (HotkeyManager) and the recorder UI (SettingsView) read the same source of truth.
+enum HotkeyConfig {
+    static let keyCodeKey = "hotkeyKeyCode"
+    static let modifiersKey = "hotkeyModifiers"
+    static let keyLabelKey = "hotkeyKeyLabel"
+
+    // Default: ⌘⇧O.
+    static let defaultKeyCode = 31 // 'o'
+    static let defaultModifiers = Int(NSEvent.ModifierFlags([.command, .shift]).rawValue)
+    static let defaultKeyLabel = "O"
+
+    /// Only these flags participate in matching; ignore caps lock, fn, numeric pad, etc.
+    static let relevantMask: NSEvent.ModifierFlags = [.command, .option, .control, .shift]
+
+    static var keyCode: Int { UserDefaults.standard.object(forKey: keyCodeKey) as? Int ?? defaultKeyCode }
+    static var modifiers: Int { UserDefaults.standard.object(forKey: modifiersKey) as? Int ?? defaultModifiers }
+}
 
 @MainActor
 class HotkeyManager: ObservableObject {
@@ -10,7 +30,8 @@ class HotkeyManager: ObservableObject {
 
     func register() {
         monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            if event.modifierFlags.contains([.command, .shift]) && event.keyCode == 45 {
+            let mods = event.modifierFlags.intersection(HotkeyConfig.relevantMask)
+            if Int(event.keyCode) == HotkeyConfig.keyCode && Int(mods.rawValue) == HotkeyConfig.modifiers {
                 DispatchQueue.main.async { self?.togglePanel() }
             }
         }
@@ -23,6 +44,12 @@ class HotkeyManager: ObservableObject {
         }
     }
 
+    /// Re-arm the global monitor after the user changes the hotkey in Settings.
+    func reload() {
+        unregister()
+        register()
+    }
+
     func togglePanel() {
         if let panel = panel, panel.isVisible {
             panel.close()
@@ -31,12 +58,13 @@ class HotkeyManager: ObservableObject {
         }
 
         let browserMeta = captureBrowserMeta()
-        let selectedText = captureSelectedText()
+        let captured = captureSelection()
 
         let captureView = CaptureView(
-            initialContent: selectedText,
+            initialContent: captured.text,
             initialSourceUrl: browserMeta?.url,
             initialSourceTitle: browserMeta?.title,
+            initialImageData: captured.image,
             onDismiss: { [weak self] in
                 self?.panel?.close()
                 self?.panel = nil
@@ -51,28 +79,53 @@ class HotkeyManager: ObservableObject {
         self.panel = panel
     }
 
-    private nonisolated func captureSelectedText() -> String? {
+    struct CapturedSelection {
+        var text: String?
+        var image: Data?
+    }
+
+    private nonisolated func captureSelection() -> CapturedSelection {
         let pasteboard = NSPasteboard.general
+
+        // If the user already copied an image, use it directly. Reading the clipboard needs
+        // no Accessibility permission, and we must NOT fire a synthetic Cmd+C here — that would
+        // clobber the image they deliberately put on the clipboard.
+        if let image = readClipboardImage(pasteboard) {
+            var result = CapturedSelection()
+            result.image = image
+            // Keep any text copied alongside the image (mixed selection) — don't drop it.
+            result.text = pasteboard.string(forType: .string)
+            return result
+        }
+
+        // Synthetic Cmd+C requires Accessibility permission; guide the user if it's missing.
+        guard ensureAccessibilityPermission() else {
+            return CapturedSelection()
+        }
+
         let originalChangeCount = pasteboard.changeCount
         let originalContent = pasteboard.string(forType: .string)
 
         let source = CGEventSource(stateID: .combinedSessionState)
         guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: true),
               let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: false) else {
-            return nil
+            return CapturedSelection()
         }
         keyDown.flags = .maskCommand
         keyUp.flags = .maskCommand
         keyDown.post(tap: .cgSessionEventTap)
         keyUp.post(tap: .cgSessionEventTap)
 
-        Thread.sleep(forTimeInterval: 0.1)
+        // Poll for the pasteboard to update instead of a fixed sleep (handles slow apps).
+        let deadline = Date().addingTimeInterval(0.6)
+        while pasteboard.changeCount == originalChangeCount && Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.02)
+        }
 
-        let selectedText: String?
+        var result = CapturedSelection()
         if pasteboard.changeCount != originalChangeCount {
-            selectedText = pasteboard.string(forType: .string)
-        } else {
-            selectedText = nil
+            result.text = pasteboard.string(forType: .string)
+            result.image = readClipboardImage(pasteboard)
         }
 
         pasteboard.clearContents()
@@ -80,7 +133,30 @@ class HotkeyManager: ObservableObject {
             pasteboard.setString(original, forType: .string)
         }
 
-        return selectedText
+        return result
+    }
+
+    /// Returns PNG data for any image currently on the pasteboard (normalizing TIFF → PNG),
+    /// or nil if the clipboard holds no image.
+    private nonisolated func readClipboardImage(_ pasteboard: NSPasteboard) -> Data? {
+        if let png = pasteboard.data(forType: .png) {
+            return png
+        }
+        if let tiff = pasteboard.data(forType: .tiff),
+           let bitmap = NSBitmapImageRep(data: tiff) {
+            return bitmap.representation(using: .png, properties: [:])
+        }
+        return nil
+    }
+
+    private nonisolated func ensureAccessibilityPermission() -> Bool {
+        let trusted = AXIsProcessTrusted()
+        if !trusted {
+            // Prompt once and point the user at System Settings. Use the literal option
+            // key to avoid referencing the non-Sendable global CFString constant.
+            _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+        }
+        return trusted
     }
 
     struct BrowserMeta {

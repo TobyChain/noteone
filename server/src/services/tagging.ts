@@ -9,8 +9,11 @@ interface TagResult {
   confidence: number;
 }
 
+const VALID_DIMENSIONS = ["format", "topic", "domain", "module"] as const;
+
 export async function tagNote(
   noteId: string,
+  userId: string,
   content: string,
   contentType: string,
   llmConfig?: LLMConfig,
@@ -39,15 +42,37 @@ export async function tagNote(
   );
 
   const cleaned = result.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
-  const parsed: TagResult[] = JSON.parse(cleaned);
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(cleaned);
+  } catch {
+    console.error(`[tagging] model returned non-JSON for note ${noteId}`);
+    return [];
+  }
+
+  // Defensively validate model output before trusting it (avoids enum violations / junk tags).
+  const parsed: TagResult[] = (Array.isArray(raw) ? raw : []).filter(
+    (t): t is TagResult =>
+      !!t &&
+      typeof t.name === "string" &&
+      t.name.trim().length > 0 &&
+      VALID_DIMENSIONS.includes(t.dimension),
+  );
 
   for (const tagResult of parsed) {
+    // tags are tenant-scoped: dedup within the owning user only
     let existingTag = await db.query.tags.findFirst({
-      where: and(eq(tags.name, tagResult.name), eq(tags.dimension, tagResult.dimension)),
+      where: and(
+        eq(tags.userId, userId),
+        eq(tags.name, tagResult.name),
+        eq(tags.dimension, tagResult.dimension),
+      ),
     });
 
     if (!existingTag) {
       const [created] = await db.insert(tags).values({
+        userId,
         name: tagResult.name,
         dimension: tagResult.dimension,
       }).returning();
@@ -57,9 +82,9 @@ export async function tagNote(
     await db.insert(noteTags).values({
       noteId,
       tagId: existingTag.id,
-      confidence: tagResult.confidence,
+      confidence: typeof tagResult.confidence === "number" ? tagResult.confidence : null,
       isManual: false,
-    });
+    }).onConflictDoNothing();
   }
 
   return parsed;

@@ -10,7 +10,7 @@ export function getDefaultLLMConfig(): LLMConfig {
   return {
     apiKey: config.qwen.apiKey,
     baseUrl: config.qwen.baseUrl,
-    model: "gpt-5.4-mini",
+    model: config.qwen.model,
   };
 }
 

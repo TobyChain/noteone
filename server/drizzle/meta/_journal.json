@@ -15,6 +15,27 @@
       "when": 1781079377969,
       "tag": "0001_parallel_johnny_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781149078738,
+      "tag": "0002_tired_captain_midlands",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781173273382,
+      "tag": "0003_huge_madrox",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781229310115,
+      "tag": "0004_flippant_layla_miller",
+      "breakpoints": true
     }
   ]
 }

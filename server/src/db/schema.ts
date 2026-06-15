@@ -1,11 +1,11 @@
-import { pgTable, pgEnum, text, timestamp, uuid, real, boolean, jsonb, index, vector } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, text, timestamp, uuid, real, boolean, jsonb, index, uniqueIndex, vector } from "drizzle-orm/pg-core";
 
 export const contentTypeEnum = pgEnum("content_type", [
   "text", "image", "video", "link", "mixed",
 ]);
 
 export const noteStatusEnum = pgEnum("note_status", [
-  "pending_ai", "active", "archived",
+  "pending_ai", "active", "archived", "trashed", "failed",
 ]);
 
 export const tagDimensionEnum = pgEnum("tag_dimension", [
@@ -19,8 +19,8 @@ export const users = pgTable("users", {
   name: text("name"),
   avatarUrl: text("avatar_url"),
   settings: jsonb("settings").default({}),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const notes = pgTable("notes", {
@@ -37,8 +37,9 @@ export const notes = pgTable("notes", {
   aiSummary: text("ai_summary"),
   embedding: vector("embedding", { dimensions: 1536 }),
   status: noteStatusEnum("status").notNull().default("pending_ai"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index("notes_user_id_idx").on(table.userId),
   index("notes_status_idx").on(table.status),
@@ -47,12 +48,15 @@ export const notes = pgTable("notes", {
 
 export const tags = pgTable("tags", {
   id: uuid("id").primaryKey().defaultRandom(),
+  // tenant owner; nullable to keep migration non-destructive for any legacy global tags
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   dimension: tagDimensionEnum("dimension").notNull(),
   parentId: uuid("parent_id"),
   description: text("description"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
+  index("tags_user_id_idx").on(table.userId),
   index("tags_dimension_idx").on(table.dimension),
   index("tags_parent_id_idx").on(table.parentId),
 ]);
@@ -65,14 +69,15 @@ export const noteTags = pgTable("note_tags", {
 }, (table) => [
   index("note_tags_note_id_idx").on(table.noteId),
   index("note_tags_tag_id_idx").on(table.tagId),
+  uniqueIndex("note_tags_note_tag_uniq").on(table.noteId, table.tagId),
 ]);
 
 export const chatSessions = pgTable("chat_sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   title: text("title"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index("chat_sessions_user_id_idx").on(table.userId),
 ]);
@@ -83,7 +88,7 @@ export const chatMessages = pgTable("chat_messages", {
   role: text("role").notNull(),
   content: text("content").notNull(),
   isSummary: boolean("is_summary").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index("chat_messages_session_id_idx").on(table.sessionId),
 ]);

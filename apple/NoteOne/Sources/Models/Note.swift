@@ -8,6 +8,8 @@ enum NoteStatus: String, Codable, Sendable {
     case pendingAi = "pending_ai"
     case active
     case archived
+    case trashed
+    case failed
 }
 
 struct Note: Codable, Identifiable, Sendable {
@@ -21,6 +23,7 @@ struct Note: Codable, Identifiable, Sendable {
     var authorOrg: String?
     var aiSummary: String?
     var status: NoteStatus
+    var deletedAt: Date?
     var tags: [NoteTag]?
     var createdAt: Date
     var updatedAt: Date

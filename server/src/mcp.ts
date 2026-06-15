@@ -4,7 +4,7 @@ import { z } from "zod";
 import "dotenv/config";
 import { db } from "./db/client.js";
 import { notes, noteTags, tags } from "./db/schema.js";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, ne, sql } from "drizzle-orm";
 import { processNote } from "./services/pipeline.js";
 import { generateEmbedding } from "./services/llm.js";
 
@@ -39,7 +39,7 @@ server.tool(
   { limit: z.number().optional(), offset: z.number().optional() },
   async ({ limit = 20, offset = 0 }) => {
     const result = await db.query.notes.findMany({
-      where: eq(notes.userId, USER_ID),
+      where: and(eq(notes.userId, USER_ID), ne(notes.status, "trashed")),
       orderBy: desc(notes.createdAt),
       limit: Math.min(limit, 50),
       offset,
@@ -67,12 +67,22 @@ server.tool(
       .where(eq(noteTags.noteId, id));
 
     const tagStr = noteTags_.map(t => `#${t.name}(${t.dimension})`).join(" ");
+    const citation = [
+      note.author ? `作者: ${note.author}` : null,
+      note.authorOrg ? `单位/来源: ${note.authorOrg}` : null,
+      note.sourceUrl ? `链接: ${note.sourceUrl}` : null,
+      `日期: ${note.createdAt.toISOString().slice(0, 10)}`,
+    ].filter(Boolean).join(" | ");
     const text = `标题: ${note.title || "无标题"}
 状态: ${note.status}
 摘要: ${note.aiSummary || "无"}
 标签: ${tagStr || "无"}
 来源: ${note.sourceUrl || "无"}
+作者: ${note.author || "无"}
+单位/来源: ${note.authorOrg || "无"}
 创建: ${note.createdAt.toISOString()}
+
+引用信息: ${citation}
 
 ---
 ${note.content}`;
@@ -96,7 +106,7 @@ server.tool(
       title,
       contentType: "text",
     }).returning();
-    processNote(note.id, content, "text", source_url).catch(console.error);
+    processNote(note.id, USER_ID, content, "text", source_url).catch(console.error);
     return { content: [{ type: "text" as const, text: `笔记已创建: ${note.id}\nAI 正在后台分析生成标题和标签...` }] };
   }
 );
@@ -124,14 +134,29 @@ server.tool(
 
 server.tool(
   "delete_note",
-  "删除笔记",
+  "删除笔记（移入垃圾箱，30天后自动清理）",
   { id: z.string() },
   async ({ id }) => {
-    const [note] = await db.delete(notes)
-      .where(and(eq(notes.id, id), eq(notes.userId, USER_ID)))
+    const [note] = await db.update(notes)
+      .set({ status: "trashed", deletedAt: new Date() })
+      .where(and(eq(notes.id, id), eq(notes.userId, USER_ID), ne(notes.status, "trashed")))
       .returning();
     if (!note) return { content: [{ type: "text" as const, text: "笔记不存在" }] };
-    return { content: [{ type: "text" as const, text: `已删除: ${note.title || note.id}` }] };
+    return { content: [{ type: "text" as const, text: `已移入垃圾箱: ${note.title || note.id}` }] };
+  }
+);
+
+server.tool(
+  "restore_note",
+  "从垃圾箱恢复笔记",
+  { id: z.string() },
+  async ({ id }) => {
+    const [note] = await db.update(notes)
+      .set({ status: "active", deletedAt: null })
+      .where(and(eq(notes.id, id), eq(notes.userId, USER_ID), eq(notes.status, "trashed")))
+      .returning();
+    if (!note) return { content: [{ type: "text" as const, text: "笔记不存在或不在垃圾箱中" }] };
+    return { content: [{ type: "text" as const, text: `已恢复: ${note.title || note.id}` }] };
   }
 );
 
@@ -141,16 +166,20 @@ server.tool(
   { query: z.string(), limit: z.number().optional() },
   async ({ query, limit = 10 }) => {
     const embedding = await generateEmbedding(query);
-    const result = await db.execute<any>(`
+    const vectorStr = `[${embedding.join(",")}]`;
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+
+    // Parameterized via the sql template — never string-concatenate user/env values into SQL.
+    const result = await db.execute<any>(sql`
       SELECT id, title, ai_summary, content, source_url,
-             1 - (embedding <=> $1::vector) AS similarity
+             1 - (embedding <=> ${vectorStr}::vector) AS similarity
       FROM notes
-      WHERE user_id = $2 AND embedding IS NOT NULL
-      ORDER BY embedding <=> $1::vector
-      LIMIT $3
-    `.replace("$1", `'[${embedding.join(",")}]'`)
-     .replace("$2", `'${USER_ID}'`)
-     .replace("$3", `${limit}`));
+      WHERE user_id = ${USER_ID}
+        AND status != 'trashed'
+        AND embedding IS NOT NULL
+      ORDER BY embedding <=> ${vectorStr}::vector
+      LIMIT ${safeLimit}
+    `);
 
     const rows = Array.isArray(result) ? result : (result as any).rows || [];
     const text = rows.map((r: any, i: number) =>

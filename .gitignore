@@ -12,3 +12,14 @@ build/
 # Environment
 .env
 .env.local
+
+# Uploaded files (local image storage)
+server/uploads/
+# 3eye tooling scratch dirs (any level)
+.3eye/
+.3eye/.ai-touched-files-tmp.json
+.3eye/requirements/*/.ai-touched-files-tmp.json
+.3eye/requirements/*/coverage-result.json
+
+# Scratch planning notes
+plan.md

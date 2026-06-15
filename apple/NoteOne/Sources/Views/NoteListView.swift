@@ -1,45 +1,109 @@
 import SwiftUI
 
 struct NoteListView: View {
-    @State private var notes: [Note] = []
     @State private var searchText = ""
     @State private var isLoading = false
     @State private var pollTimer: Timer?
+    @State private var filterType: ContentType?
 
     #if os(macOS)
     @Binding var selectedNoteId: String?
+    @Binding var notes: [Note]
     #else
     @State private var selectedNoteId: String?
+    @State private var notes: [Note] = []
 
     init() {
         _selectedNoteId = State(initialValue: nil)
     }
     #endif
 
-    var body: some View {
-        List(notes, selection: $selectedNoteId) { note in
-            #if os(macOS)
-            NoteRowView(note: note)
-                .tag(note.id)
-            #else
-            NavigationLink(value: note.id) {
-                NoteRowView(note: note)
+    private var filteredNotes: [Note] {
+        guard let filter = filterType else { return notes }
+        return notes.filter { $0.contentType == filter }
+    }
+
+    private var groupedNotes: [(String, [Note])] {
+        let calendar = Calendar.current
+        let now = Date()
+        var groups: [String: [Note]] = [:]
+        let order = ["今天", "昨天", "本周", "本月", "更早"]
+
+        for note in filteredNotes {
+            let key: String
+            if calendar.isDateInToday(note.createdAt) {
+                key = "今天"
+            } else if calendar.isDateInYesterday(note.createdAt) {
+                key = "昨天"
+            } else if let weekAgo = calendar.date(byAdding: .day, value: -7, to: now),
+                      note.createdAt >= weekAgo {
+                key = "本周"
+            } else if let monthAgo = calendar.date(byAdding: .month, value: -1, to: now),
+                      note.createdAt >= monthAgo {
+                key = "本月"
+            } else {
+                key = "更早"
             }
-            .swipeActions(edge: .trailing) {
-                Button(role: .destructive) {
-                    deleteNote(note)
-                } label: {
-                    Label("删除", systemImage: "trash")
+            groups[key, default: []].append(note)
+        }
+
+        return order.compactMap { key in
+            guard let notes = groups[key], !notes.isEmpty else { return nil }
+            return (key, notes)
+        }
+    }
+
+    var body: some View {
+        List(selection: $selectedNoteId) {
+            ForEach(groupedNotes, id: \.0) { section in
+                Section {
+                    ForEach(section.1) { note in
+                        #if os(macOS)
+                        NoteRowView(note: note)
+                            .tag(note.id)
+                        #else
+                        NavigationLink(value: note.id) {
+                            NoteRowView(note: note)
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                deleteNote(note)
+                            } label: {
+                                Label("垃圾箱", systemImage: "trash")
+                            }
+                        }
+                        #endif
+                    }
+                } header: {
+                    Text(section.0)
                 }
             }
-            #endif
         }
         .navigationTitle("NoteOne")
         .searchable(text: $searchText, prompt: "搜索笔记...")
         .onSubmit(of: .search) { search() }
         #if !os(macOS)
         .navigationDestination(for: String.self) { noteId in
-            NoteDetailView(noteId: noteId)
+            NoteDetailView(noteId: noteId, initialNote: notes.first { $0.id == noteId })
+        }
+        .safeAreaInset(edge: .bottom) {
+            NavigationLink {
+                TrashView()
+            } label: {
+                HStack {
+                    Image(systemName: "trash")
+                    Text("垃圾箱")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(Color.inkTertiary)
+                }
+                .font(.subheadline)
+                .foregroundStyle(Color.inkSecondary)
+                .padding(.horizontal)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
+            }
         }
         #endif
         .toolbar {
@@ -51,6 +115,34 @@ struct NoteListView: View {
                 .help("刷新笔记列表")
             }
             #endif
+            ToolbarItem(placement: .automatic) {
+                Menu {
+                    Button {
+                        filterType = nil
+                    } label: {
+                        if filterType == nil {
+                            Label("全部类型", systemImage: "checkmark")
+                        } else {
+                            Text("全部类型")
+                        }
+                    }
+                    Divider()
+                    ForEach(ContentType.allCases, id: \.rawValue) { type in
+                        Button {
+                            filterType = type
+                        } label: {
+                            if filterType == type {
+                                Label(type.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(type.displayName)
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: filterType == nil ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+                }
+                .help("按类型筛选")
+            }
         }
         .task { await loadNotes() }
         .refreshable { await loadNotes() }
@@ -118,7 +210,7 @@ struct NoteListView: View {
         }
         Task {
             do {
-                let results = try await APIClient.shared.searchNotes(query: searchText)
+                let results = try await APIClient.shared.searchNotes(query: searchText, contentType: filterType?.rawValue)
                 notes = results.map { r in
                     Note(
                         id: r.id,
@@ -131,6 +223,7 @@ struct NoteListView: View {
                         authorOrg: r.authorOrg,
                         aiSummary: r.aiSummary,
                         status: .active,
+                        deletedAt: nil,
                         tags: nil,
                         createdAt: r.createdAt,
                         updatedAt: r.updatedAt
@@ -149,6 +242,11 @@ struct NoteRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
+                Image(systemName: note.contentType.iconName)
+                    .font(.caption)
+                    .foregroundStyle(Color.inkTertiary)
+                    .frame(width: 16)
+
                 Text(note.title ?? "无标题")
                     .font(.headline)
                     .foregroundStyle(Color.ink)
@@ -159,12 +257,17 @@ struct NoteRowView: View {
                         .font(.caption)
                         .foregroundStyle(Color.accent)
                         .symbolEffect(.pulse, options: .repeating)
+                } else if note.status == .failed {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
                 }
             }
             Text(note.aiSummary ?? String(note.content.prefix(100)))
                 .font(.caption)
                 .foregroundStyle(Color.inkSecondary)
                 .lineLimit(2)
+                .padding(.leading, 22)
             HStack(spacing: 6) {
                 if let tags = note.tags {
                     ForEach(tags.prefix(3), id: \.tagId) { tag in
@@ -178,7 +281,30 @@ struct NoteRowView: View {
                     .font(.caption2)
                     .foregroundStyle(Color.inkTertiary)
             }
+            .padding(.leading, 22)
         }
         .padding(.vertical, 4)
+    }
+}
+
+extension ContentType {
+    var displayName: String {
+        switch self {
+        case .text: return "文本"
+        case .image: return "图片"
+        case .video: return "视频"
+        case .link: return "链接"
+        case .mixed: return "混合"
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .text: return "doc.text"
+        case .image: return "photo"
+        case .video: return "video"
+        case .link: return "link"
+        case .mixed: return "doc.on.doc"
+        }
     }
 }

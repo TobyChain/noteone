@@ -28,6 +28,7 @@ struct ShareView: View {
     @State private var content = ""
     @State private var sourceUrl = ""
     @State private var contentType = "text"
+    @State private var imageData: Data?
     @State private var isSaving = false
     @State private var isLoading = true
 
@@ -37,6 +38,14 @@ struct ShareView: View {
                 if isLoading {
                     ProgressView("正在读取内容...")
                 } else {
+                    if let data = imageData, let uiImage = UIImage(data: data) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 160)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+
                     TextEditor(text: $content)
                         .frame(minHeight: 120)
                         .overlay(
@@ -72,7 +81,7 @@ struct ShareView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") { save() }
-                        .disabled(content.isEmpty || isSaving)
+                        .disabled((content.isEmpty && imageData == nil) || isSaving)
                         .bold()
                 }
             }
@@ -105,11 +114,11 @@ struct ShareView: View {
                     }
                 } else if attachment.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
                     contentType = "image"
-                    if let url = try? await attachment.loadItem(forTypeIdentifier: UTType.image.identifier) as? URL {
-                        sourceUrl = url.absoluteString
-                        if content.isEmpty {
-                            content = "图片: \(url.lastPathComponent)"
-                        }
+                    if let data = try? await attachment.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) {
+                        imageData = data
+                    } else if let url = try? await attachment.loadItem(forTypeIdentifier: UTType.image.identifier) as? URL,
+                              let data = try? Data(contentsOf: url) {
+                        imageData = data
                     }
                 }
             }
@@ -127,18 +136,47 @@ struct ShareView: View {
     private func save() {
         isSaving = true
 
-        let sharedDefaults = UserDefaults(suiteName: "group.com.noteone.app")
+        let appGroupId = "group.com.noteone.app"
+        let sharedDefaults = UserDefaults(suiteName: appGroupId)
         var queue = loadQueue(from: sharedDefaults)
 
-        let entry: [String: String] = [
+        var entry: [String: String] = [
             "content": content,
             "contentType": contentType,
             "sourceUrl": sourceUrl,
         ]
+
+        // Persist image bytes to the shared container; the main app uploads them on next sync.
+        if let data = imageData, let fileName = persistImage(data, appGroupId: appGroupId) {
+            entry["contentType"] = "image"
+            entry["imagePath"] = fileName
+        }
+
         queue.append(entry)
         saveQueue(queue, to: sharedDefaults)
 
         extensionContext?.completeRequest(returningItems: nil)
+    }
+
+    private func persistImage(_ data: Data, appGroupId: String) -> String? {
+        let fm = FileManager.default
+        guard let container = fm.containerURL(forSecurityApplicationGroupIdentifier: appGroupId) else {
+            return nil
+        }
+        let dir = container
+            .appendingPathComponent("NoteOne", isDirectory: true)
+            .appendingPathComponent("share-images", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let fileName = "\(UUID().uuidString).png"
+        let fileURL = dir.appendingPathComponent(fileName)
+        // Normalize to PNG so the main app can upload with a known mime type.
+        let pngData = UIImage(data: data)?.pngData() ?? data
+        do {
+            try pngData.write(to: fileURL)
+            return fileName
+        } catch {
+            return nil
+        }
     }
 
     private func cancel() {
