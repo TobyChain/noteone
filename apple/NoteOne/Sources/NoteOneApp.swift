@@ -4,6 +4,7 @@ import SwiftUI
 struct NoteOneApp: App {
     @StateObject private var authService = AuthService()
     @AppStorage("appTheme") private var selectedTheme: String = AppTheme.system.rawValue
+    @Environment(\.scenePhase) private var scenePhase
     #if os(macOS)
     @StateObject private var hotkeyManager = HotkeyManager.shared
     @State private var showCaptureWindow = false
@@ -11,6 +12,16 @@ struct NoteOneApp: App {
 
     private var theme: AppTheme {
         AppTheme(rawValue: selectedTheme) ?? .system
+    }
+
+    private func syncPending() async {
+        guard authService.isAuthenticated else { return }
+        let synced = await SyncQueue.shared.flush()
+        if synced > 0 {
+            await MainActor.run {
+                NotificationCenter.default.post(name: .noteCreated, object: nil)
+            }
+        }
     }
 
     var body: some Scene {
@@ -27,9 +38,15 @@ struct NoteOneApp: App {
             .applyTheme(theme)
             .task {
                 await SyncQueue.shared.warmUp()
+                await syncPending()
                 #if os(macOS)
                 hotkeyManager.register()
                 #endif
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    Task { await syncPending() }
+                }
             }
         }
         #if os(macOS)

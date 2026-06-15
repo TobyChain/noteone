@@ -5,6 +5,7 @@ import { eq, and, inArray } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { z } from "zod";
 import { chatCompletion } from "../services/llm.js";
+import { getUserChatConfig } from "../services/user-config.js";
 
 const router = Router();
 
@@ -30,12 +31,14 @@ router.post("/", async (req: AuthRequest, res) => {
     columns: { id: true, title: true, aiSummary: true, contentType: true, createdAt: true },
   });
 
-  const allTags = await db.select({
+  const noteIdList = allNotes.map(n => n.id);
+  const allTags = noteIdList.length === 0 ? [] : await db.select({
     noteId: noteTags.noteId,
     name: tags.name,
     dimension: tags.dimension,
   }).from(noteTags)
-    .innerJoin(tags, eq(noteTags.tagId, tags.id));
+    .innerJoin(tags, eq(noteTags.tagId, tags.id))
+    .where(inArray(noteTags.noteId, noteIdList));
 
   const tagsByNote = new Map<string, string[]>();
   for (const t of allTags) {
@@ -77,7 +80,8 @@ ${noteDetails ? `以下是用户请求查看的笔记详情：${noteDetails}` : 
     ...messages,
   ];
 
-  const reply = await chatCompletion(llmMessages);
+  const chatConfig = await getUserChatConfig(req.userId!);
+  const reply = await chatCompletion(llmMessages, chatConfig);
 
   res.json({ message: { role: "assistant", content: reply } });
 });

@@ -12,7 +12,8 @@ export async function enrichNote(
   const [summary, title, embedding] = await Promise.all([
     generateSummary(content, llmConfig),
     generateTitle(content, llmConfig),
-    generateEmbedding(content, llmConfig),
+    // Embeddings always use the default provider to keep the stored vector space consistent.
+    generateEmbedding(content),
   ]);
 
   await db.update(notes)

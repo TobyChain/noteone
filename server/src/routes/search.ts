@@ -9,16 +9,25 @@ const router = Router();
 
 // POST /api/search
 router.post("/", async (req: AuthRequest, res) => {
-  const { query, contentType, limit = 20 } = req.body;
+  const { query } = req.body;
 
   if (!query || typeof query !== "string") {
     res.status(400).json({ error: "query is required" });
     return;
   }
 
+  const limit = Math.min(Math.max(parseInt(req.body.limit) || 20, 1), 100);
+
+  // Optional content-type filter (previously accepted but ignored).
+  const validTypes = ["text", "image", "video", "link", "mixed"];
+  const contentType = typeof req.body.contentType === "string" && validTypes.includes(req.body.contentType)
+    ? req.body.contentType
+    : null;
+
   try {
     const queryEmbedding = await generateEmbedding(query);
     const vectorStr = `[${queryEmbedding.join(",")}]`;
+    const typeFilter = contentType ? sql`AND content_type = ${contentType}` : sql``;
 
     const results = await db.execute(sql`
       SELECT
@@ -30,6 +39,7 @@ router.post("/", async (req: AuthRequest, res) => {
       WHERE user_id = ${req.userId}
         AND status = 'active'
         AND embedding IS NOT NULL
+        ${typeFilter}
       ORDER BY embedding <=> ${vectorStr}::vector
       LIMIT ${limit}
     `);

@@ -1,5 +1,32 @@
 import Foundation
 
+extension Notification.Name {
+    static let unauthorized = Notification.Name("unauthorized")
+}
+
+extension JSONDecoder.DateDecodingStrategy {
+    /// Parses server ISO8601 timestamps that may or may not carry fractional seconds
+    /// (e.g. "2026-06-12T03:14:00.000Z" or "2026-06-12T03:14:00Z"). The built-in
+    /// `.iso8601` strategy rejects fractional seconds, so we try both formatters.
+    static let iso8601WithOptionalFractional: JSONDecoder.DateDecodingStrategy = {
+        let withFraction = ISO8601DateFormatter()
+        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+
+        return .custom { decoder in
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            if let date = withFraction.date(from: raw) ?? plain.date(from: raw) {
+                return date
+            }
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: decoder.codingPath,
+                debugDescription: "Unrecognized ISO8601 date: \(raw)"
+            ))
+        }
+    }()
+}
+
 enum APIError: Error, LocalizedError {
     case invalidURL
     case unauthorized
@@ -25,6 +52,14 @@ actor APIClient {
 
     private var baseURL = "http://localhost:3000"
     private var token: String?
+    private let session: URLSession
+
+    init() {
+        let config = URLSessionConfiguration.default
+        config.urlCache = nil
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        self.session = URLSession(configuration: config)
+    }
 
     func configure(baseURL: String, token: String) {
         self.baseURL = baseURL
@@ -37,13 +72,13 @@ actor APIClient {
 
     // MARK: - Auth
 
-    func signInWithApple(appleId: String, email: String?, name: String?) async throws -> AuthResponse {
+    func signInWithApple(identityToken: String, email: String?, name: String?) async throws -> AuthResponse {
         struct Body: Encodable {
-            let appleId: String
+            let identityToken: String
             let email: String?
             let name: String?
         }
-        return try await post("/auth/apple", body: Body(appleId: appleId, email: email, name: name))
+        return try await post("/auth/apple", body: Body(identityToken: identityToken, email: email, name: name))
     }
 
     func devLogin(name: String) async throws -> AuthResponse {
@@ -83,14 +118,74 @@ actor APIClient {
         let _: DeleteWrapper = try await delete("/api/notes/\(id)")
     }
 
+    func restoreNote(id: String) async throws -> Note {
+        let response: NoteWrapper = try await post("/api/notes/\(id)/restore", body: EmptyBody())
+        return response.note
+    }
+
+    func retryNote(id: String) async throws -> Note {
+        let response: NoteWrapper = try await post("/api/notes/\(id)/retry", body: EmptyBody())
+        return response.note
+    }
+
+    func listTrash() async throws -> [Note] {
+        let response: NotesWrapper = try await get("/api/notes/trash")
+        return response.notes
+    }
+
+    func permanentDeleteNote(id: String) async throws {
+        let _: DeleteWrapper = try await delete("/api/notes/\(id)/permanent")
+    }
+
+    // MARK: - Uploads
+
+    /// Uploads image data as multipart/form-data and returns an absolute URL to the stored image.
+    func uploadImage(data: Data, mimeType: String = "image/png", fileName: String = "image.png") async throws -> String {
+        guard let url = URL(string: "\(baseURL)/api/uploads/image") else {
+            throw APIError.invalidURL
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        if let token = token {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let boundary = "Boundary-\(UUID().uuidString)"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(data)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        req.httpBody = body
+
+        let (respData, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.networkError(URLError(.badServerResponse))
+        }
+        switch http.statusCode {
+        case 200...299:
+            struct UploadResponse: Decodable { let url: String }
+            let decoded = try JSONDecoder().decode(UploadResponse.self, from: respData)
+            return decoded.url.hasPrefix("http") ? decoded.url : "\(baseURL)\(decoded.url)"
+        case 401:
+            NotificationCenter.default.post(name: .unauthorized, object: nil)
+            throw APIError.unauthorized
+        default:
+            throw APIError.serverError(http.statusCode)
+        }
+    }
+
     // MARK: - Search
 
-    func searchNotes(query: String, limit: Int = 20) async throws -> [SearchResult] {
+    func searchNotes(query: String, contentType: String? = nil, limit: Int = 20) async throws -> [SearchResult] {
         struct Body: Encodable {
             let query: String
+            let contentType: String?
             let limit: Int
         }
-        let response: SearchWrapper = try await post("/api/search", body: Body(query: query, limit: limit))
+        let response: SearchWrapper = try await post("/api/search", body: Body(query: query, contentType: contentType, limit: limit))
         return response.results
     }
 
@@ -106,6 +201,22 @@ actor APIClient {
 
     func getStats() async throws -> StatsResponse {
         return try await get("/api/stats")
+    }
+
+    // MARK: - Settings
+
+    func getSettings() async throws -> SettingsResponse {
+        return try await get("/api/settings")
+    }
+
+    func updateLLMSettings(apiKey: String?, baseUrl: String?, model: String?) async throws -> SettingsResponse {
+        struct LLMBody: Encodable {
+            let apiKey: String?
+            let baseUrl: String?
+            let model: String?
+        }
+        struct Body: Encodable { let llm: LLMBody }
+        return try await patch("/api/settings", body: Body(llm: LLMBody(apiKey: apiKey, baseUrl: baseUrl, model: model)))
     }
 
     // MARK: - Chat
@@ -178,7 +289,7 @@ actor APIClient {
             req.httpBody = try JSONEncoder().encode(body)
         }
 
-        let (data, response) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await session.data(for: req)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.networkError(URLError(.badServerResponse))
         }
@@ -188,12 +299,13 @@ actor APIClient {
             do {
                 let decoder = JSONDecoder()
                 decoder.keyDecodingStrategy = .convertFromSnakeCase
-                decoder.dateDecodingStrategy = .iso8601
+                decoder.dateDecodingStrategy = .iso8601WithOptionalFractional
                 return try decoder.decode(T.self, from: data)
             } catch {
                 throw APIError.decodingError(error)
             }
         case 401:
+            NotificationCenter.default.post(name: .unauthorized, object: nil)
             throw APIError.unauthorized
         case 404:
             throw APIError.notFound
@@ -210,6 +322,7 @@ private struct NotesWrapper: Decodable { let notes: [Note] }
 private struct TagsWrapper: Decodable { let tags: [Tag] }
 private struct DeleteWrapper: Decodable { let deleted: Bool }
 private struct SearchWrapper: Decodable { let results: [SearchResult] }
+private struct EmptyBody: Encodable {}
 
 struct SearchResult: Codable, Identifiable, Sendable {
     let id: String
@@ -241,4 +354,14 @@ struct TagCount: Codable, Sendable {
     let name: String
     let dimension: String
     let count: Int
+}
+
+struct SettingsResponse: Codable, Sendable {
+    let llm: LLMSettingsInfo
+}
+
+struct LLMSettingsInfo: Codable, Sendable {
+    let baseUrl: String?
+    let model: String?
+    let hasApiKey: Bool
 }

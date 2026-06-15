@@ -13,8 +13,10 @@ struct NottyView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Image(systemName: "sparkle")
-                    .foregroundStyle(Color.accent)
+                Image("NottyAvatar")
+                    .resizable()
+                    .frame(width: 28, height: 28)
+                    .clipShape(Circle())
                 Text("Notty")
                     .font(.headline)
 
@@ -287,8 +289,10 @@ private struct ChatBubble: View {
             VStack(alignment: isUser ? .trailing : .leading, spacing: 4) {
                 if !isUser {
                     HStack(spacing: 4) {
-                        Image(systemName: "sparkle")
-                            .font(.caption2)
+                        Image("NottyAvatar")
+                            .resizable()
+                            .frame(width: 16, height: 16)
+                            .clipShape(Circle())
                         Text("Notty")
                             .font(.caption2)
                     }
@@ -297,6 +301,7 @@ private struct ChatBubble: View {
 
                 Text(message.content)
                     .font(.body)
+                    .textSelection(.enabled)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(isUser ? Color.accent : Color.canvasSecondary)
