@@ -50,7 +50,13 @@ enum APIError: Error, LocalizedError {
 actor APIClient {
     static let shared = APIClient()
 
+    // DEBUG builds talk to a local dev server; release builds default to the production host.
+    // Self-hosters can still override via the SettingsView "服务器" field (calls `configure`).
+    #if DEBUG
     private var baseURL = "http://localhost:3000"
+    #else
+    private var baseURL = "https://api.noteone.app"
+    #endif
     private var token: String?
     private let session: URLSession
 
@@ -217,6 +223,62 @@ actor APIClient {
         }
         struct Body: Encodable { let llm: LLMBody }
         return try await patch("/api/settings", body: Body(llm: LLMBody(apiKey: apiKey, baseUrl: baseUrl, model: model)))
+    }
+
+    // MARK: - Account
+
+    /// Permanently delete the authenticated user and all their data. Returns once the
+    /// server replies 204; the caller is expected to clear local credentials.
+    func deleteAccount() async throws {
+        guard let url = URL(string: "\(baseURL)/api/account") else { throw APIError.invalidURL }
+        var req = URLRequest(url: url)
+        req.httpMethod = "DELETE"
+        if let token = token {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let (_, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.networkError(URLError(.badServerResponse))
+        }
+        switch http.statusCode {
+        case 200...299: return
+        case 401:
+            NotificationCenter.default.post(name: .unauthorized, object: nil)
+            throw APIError.unauthorized
+        default:
+            throw APIError.serverError(http.statusCode)
+        }
+    }
+
+    /// Download the user's full data export as a zip into a temporary file. Caller can
+    /// hand the resulting URL to a share sheet / file viewer.
+    func exportData() async throws -> URL {
+        guard let url = URL(string: "\(baseURL)/api/export") else { throw APIError.invalidURL }
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        if let token = token {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let (tempUrl, response) = try await session.download(for: req)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.networkError(URLError(.badServerResponse))
+        }
+        switch http.statusCode {
+        case 200...299:
+            // Move out of URLSession's auto-cleanup directory and into our own temp file
+            // with a stable name, so the share sheet shows a friendly filename.
+            let stamp = ISO8601DateFormatter().string(from: Date()).prefix(10).replacingOccurrences(of: "-", with: "")
+            let dest = FileManager.default.temporaryDirectory
+                .appendingPathComponent("noteone-export-\(stamp).zip")
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.moveItem(at: tempUrl, to: dest)
+            return dest
+        case 401:
+            NotificationCenter.default.post(name: .unauthorized, object: nil)
+            throw APIError.unauthorized
+        default:
+            throw APIError.serverError(http.statusCode)
+        }
     }
 
     // MARK: - Chat

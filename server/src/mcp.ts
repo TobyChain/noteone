@@ -7,6 +7,7 @@ import { notes, noteTags, tags } from "./db/schema.js";
 import { eq, and, desc, inArray, ne, sql } from "drizzle-orm";
 import { processNote } from "./services/pipeline.js";
 import { generateEmbedding } from "./services/llm.js";
+import { attachPromptTags } from "./services/prompt-tagging.js";
 
 const server = new McpServer({
   name: "noteone",
@@ -90,24 +91,54 @@ ${note.content}`;
   }
 );
 
+/**
+ * Reusable note-creation routine used by the MCP `create_note` tool. Extracted so that
+ * integration tests can drive it directly without standing up the stdio MCP transport.
+ *
+ * When `source_app` is present, the note is treated as a prompt capture: it gets the
+ * caller's app name written into `notes.source_app` AND two format-dimension tags
+ * (`#prompt` + `#{source_app}`) attached synchronously, before pipeline tagging runs.
+ * Read paths (list_notes / get_note / search_notes) need no special handling — these
+ * are still regular text notes.
+ */
+export async function mcpCreateNote(
+  userId: string,
+  args: { content: string; source_url?: string; title?: string; source_app?: string },
+): Promise<{ id: string }> {
+  const [note] = await db.insert(notes).values({
+    userId,
+    content: args.content,
+    sourceUrl: args.source_url,
+    sourceApp: args.source_app,
+    title: args.title,
+    contentType: "text",
+  }).returning();
+
+  if (args.source_app) {
+    // Synchronous so the tags are present the moment the note is read back.
+    await attachPromptTags(note.id, userId, args.source_app);
+  }
+
+  // Pipeline (URL fetch / enrichment / topic-domain-module tagging) runs asynchronously.
+  processNote(note.id, userId, args.content, "text", args.source_url).catch(console.error);
+  return { id: note.id };
+}
+
 server.tool(
   "create_note",
-  "创建新笔记，AI 会自动生成标题、摘要和标签",
+  "创建新笔记，AI 会自动生成标题、摘要和标签。也可用来记录用户的 prompt：传入 source_app（如 'Claude' / 'Cursor' / 'Codex'）会自动在笔记上打 #prompt + #{source_app} 两个 format 标签，便于用户后续回看。",
   {
-    content: z.string().describe("笔记内容"),
+    content: z.string().describe("笔记内容（记录 prompt 时即填 prompt 全文）"),
     source_url: z.string().optional().describe("来源链接"),
     title: z.string().optional().describe("手动指定标题，否则 AI 自动生成"),
+    source_app: z.string().max(64).optional().describe("调用方应用名；记录 prompt 时强烈建议传入，如 'Claude' 、 'Cursor' 、 'Codex'"),
   },
-  async ({ content, source_url, title }) => {
-    const [note] = await db.insert(notes).values({
-      userId: USER_ID,
-      content,
-      sourceUrl: source_url,
-      title,
-      contentType: "text",
-    }).returning();
-    processNote(note.id, USER_ID, content, "text", source_url).catch(console.error);
-    return { content: [{ type: "text" as const, text: `笔记已创建: ${note.id}\nAI 正在后台分析生成标题和标签...` }] };
+  async ({ content, source_url, title, source_app }) => {
+    const { id } = await mcpCreateNote(USER_ID, { content, source_url, title, source_app });
+    const tail = source_app
+      ? `\n已打上 #prompt + #${source_app.trim().toLowerCase()} 标签。`
+      : "\nAI 正在后台分析生成标题和标签...";
+    return { content: [{ type: "text" as const, text: `笔记已创建: ${id}${tail}` }] };
   }
 );
 
@@ -212,4 +243,10 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch(console.error);
+// Only start the stdio transport when this file is executed directly
+// (`tsx src/mcp.ts`). When the module is imported by tests, we just expose
+// `mcpCreateNote` and friends without trying to grab stdio.
+const entryUrl = process.argv[1] ? new URL(`file://${process.argv[1]}`).href : "";
+if (import.meta.url === entryUrl) {
+  main().catch(console.error);
+}

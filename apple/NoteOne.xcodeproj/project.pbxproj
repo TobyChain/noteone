@@ -27,16 +27,20 @@
 		339AF008D8024E6745D78291 /* NottyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9509847332E1CD6E94D93766 /* NottyView.swift */; };
 		37554AF0D24204D3657B6399 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */; };
 		3F0CCA0684CF8A06E2D1BA95 /* NottyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9509847332E1CD6E94D93766 /* NottyView.swift */; };
+		42CC348E8287CFB43DE32808 /* DropPayloadStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09673A90D04295D8ADE17C3E /* DropPayloadStore.swift */; };
 		42EB627D9FCCA905E02A9744 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */; };
 		44C8046955AC4D6D3DE2DD6B /* CaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73BC93FEB9429E19B23B5E29 /* CaptureView.swift */; };
+		47C9A03ECAFB28A15047D880 /* DropPayloadStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09673A90D04295D8ADE17C3E /* DropPayloadStore.swift */; };
 		5802ECF1F8EF845155DFD2C4 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76C21DFC46974BFDA55F2506 /* Tag.swift */; };
 		5E37CEDE27F2B3C18154E873 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */; };
 		62B3E429A88D8775DCFA5CB6 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B602EDB986B9E9A44D794F /* ChatMessage.swift */; };
 		6AE477980D253F7C5E90C276 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CA362CA9A0DEF17406F4EB /* FloatingPanel.swift */; };
 		704AD0EFD6A50EF4E1FE7E24 /* NoteListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D0A97460BE3D35B5B5E39C /* NoteListView.swift */; };
 		706218EFE6D537894BBA5531 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = E127F96E2FB02EA2DA6E6483 /* KeychainHelper.swift */; };
+		71EEC1DDB69116CF9E39ED4C /* NoteDragPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83FCC5C0224750CD7B2821EC /* NoteDragPayload.swift */; };
 		752867F30AE0200A5275A792 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71CF96D60D564E9C8477248C /* ShareViewController.swift */; };
 		7900B47DAC5B115E6C8BC65D /* CaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73BC93FEB9429E19B23B5E29 /* CaptureView.swift */; };
+		8EF57FDC2D85A8B72B4E15ED /* NoteDragPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83FCC5C0224750CD7B2821EC /* NoteDragPayload.swift */; };
 		A276D326307511A5192F6C58 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09BC0033D2386FF0223874AF /* AuthService.swift */; };
 		A2800C9A83B55804E7753C0F /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F93BB424A479EE7F81E50F0 /* LoginView.swift */; };
 		A80FEA9ED8D0B7507FDBDB46 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A147139B5F8A558D8AB007CC /* APIClient.swift */; };
@@ -55,6 +59,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		09673A90D04295D8ADE17C3E /* DropPayloadStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropPayloadStore.swift; sourceTree = "<group>"; };
 		09BC0033D2386FF0223874AF /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		0F652DB919B58BC615BE4B57 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1079E75DF4BD08C37A84A968 /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
@@ -71,6 +76,7 @@
 		73BC93FEB9429E19B23B5E29 /* CaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureView.swift; sourceTree = "<group>"; };
 		76C21DFC46974BFDA55F2506 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
 		82FA9FA28AD13D36EB22561F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		83FCC5C0224750CD7B2821EC /* NoteDragPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteDragPayload.swift; sourceTree = "<group>"; };
 		93ED8FC56B2194277F2CB7C7 /* NoteOneShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = NoteOneShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9509847332E1CD6E94D93766 /* NottyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NottyView.swift; sourceTree = "<group>"; };
 		A147139B5F8A558D8AB007CC /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
@@ -99,6 +105,7 @@
 				A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */,
 				37B602EDB986B9E9A44D794F /* ChatMessage.swift */,
 				1079E75DF4BD08C37A84A968 /* Note.swift */,
+				83FCC5C0224750CD7B2821EC /* NoteDragPayload.swift */,
 				76C21DFC46974BFDA55F2506 /* Tag.swift */,
 			);
 			path = Models;
@@ -109,6 +116,7 @@
 			children = (
 				A147139B5F8A558D8AB007CC /* APIClient.swift */,
 				09BC0033D2386FF0223874AF /* AuthService.swift */,
+				09673A90D04295D8ADE17C3E /* DropPayloadStore.swift */,
 				E127F96E2FB02EA2DA6E6483 /* KeychainHelper.swift */,
 				14E6C7017395B182C0EB0733 /* SyncQueue.swift */,
 			);
@@ -318,6 +326,7 @@
 				7900B47DAC5B115E6C8BC65D /* CaptureView.swift in Sources */,
 				B71C4E81A9A2EEF6987D2B43 /* ChatMessage.swift in Sources */,
 				01AD1E853E8C7FD58AF576E9 /* ContentView.swift in Sources */,
+				47C9A03ECAFB28A15047D880 /* DropPayloadStore.swift in Sources */,
 				1AC8A13C778ED964BFC1C4D9 /* FloatingPanel.swift in Sources */,
 				E821B6AB0140CC645D83574C /* HotkeyManager.swift in Sources */,
 				706218EFE6D537894BBA5531 /* KeychainHelper.swift in Sources */,
@@ -325,6 +334,7 @@
 				1247B34F985FEF5628352116 /* MCPInstallView.swift in Sources */,
 				0704C59F11814237F711C53B /* Note.swift in Sources */,
 				0BA6C6E06F9D0E3229505304 /* NoteDetailView.swift in Sources */,
+				8EF57FDC2D85A8B72B4E15ED /* NoteDragPayload.swift in Sources */,
 				704AD0EFD6A50EF4E1FE7E24 /* NoteListView.swift in Sources */,
 				10F0F2F51DCD8A5B64EFB8DE /* NoteOneApp.swift in Sources */,
 				3F0CCA0684CF8A06E2D1BA95 /* NottyView.swift in Sources */,
@@ -354,6 +364,7 @@
 				44C8046955AC4D6D3DE2DD6B /* CaptureView.swift in Sources */,
 				62B3E429A88D8775DCFA5CB6 /* ChatMessage.swift in Sources */,
 				0ECBE548FC6E276B8B040258 /* ContentView.swift in Sources */,
+				42CC348E8287CFB43DE32808 /* DropPayloadStore.swift in Sources */,
 				6AE477980D253F7C5E90C276 /* FloatingPanel.swift in Sources */,
 				29B03C832D82CADE94C2F67B /* HotkeyManager.swift in Sources */,
 				3007C9B5986F112253CAE6F3 /* KeychainHelper.swift in Sources */,
@@ -361,6 +372,7 @@
 				2B8C5F1D4C871851581171BA /* MCPInstallView.swift in Sources */,
 				EC71192E9677EAA4E2F5A2C0 /* Note.swift in Sources */,
 				DF5D981F89DBB27AA09D34B5 /* NoteDetailView.swift in Sources */,
+				71EEC1DDB69116CF9E39ED4C /* NoteDragPayload.swift in Sources */,
 				2616763C45E756EEFFF3E380 /* NoteListView.swift in Sources */,
 				D2AB1E78DFD98BB543335A16 /* NoteOneApp.swift in Sources */,
 				339AF008D8024E6745D78291 /* NottyView.swift in Sources */,
@@ -382,8 +394,7 @@
 				CODE_SIGN_ENTITLEMENTS = NoteOne/NoteOne.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = NoteOne;
+				INFOPLIST_FILE = NoteOne/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -469,8 +480,7 @@
 				CODE_SIGN_ENTITLEMENTS = NoteOne/NoteOne.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = NoteOne;
+				INFOPLIST_FILE = NoteOne/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -580,8 +590,7 @@
 				CODE_SIGN_ENTITLEMENTS = NoteOne/NoteOne.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = NoteOne;
+				INFOPLIST_FILE = NoteOne/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -601,8 +610,7 @@
 				CODE_SIGN_ENTITLEMENTS = NoteOne/NoteOne.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = NoteOne;
+				INFOPLIST_FILE = NoteOne/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

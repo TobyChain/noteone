@@ -23,11 +23,40 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.noteone.app
-        GENERATE_INFOPLIST_FILE: YES
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
-        INFOPLIST_KEY_CFBundleDisplayName: NoteOne
         CODE_SIGN_ENTITLEMENTS: NoteOne/NoteOne.entitlements
+    info:
+      path: NoteOne/Info.plist
+      properties:
+        CFBundleDisplayName: NoteOne
+        # ATS: enforce HTTPS in release; allow plaintext localhost / Bonjour for dev only.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSExceptionDomains:
+            localhost:
+              NSExceptionAllowsInsecureHTTPLoads: true
+              NSIncludesSubdomains: true
+        # Advertise NoteOne as a legal Drag & Drop target for these UTIs (iPadOS Slide-Over /
+        # Dock drop, iOS share-sheet drop). Actual handling is via SwiftUI .onDrop on root.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Text
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.text
+              - public.plain-text
+          - CFBundleTypeName: URL
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.url
+          - CFBundleTypeName: Image
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.image
+          - CFBundleTypeName: Movie
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.movie
     entitlements:
       path: NoteOne/NoteOne.entitlements
       properties:

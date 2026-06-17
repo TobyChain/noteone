@@ -113,6 +113,29 @@ struct CaptureView: View {
             if let title = initialSourceTitle, !title.isEmpty, !content.isEmpty {
                 content = "[\(title)]\n\n\(content)"
             }
+            // Drain any drop payload first — a top-level Drop on App takes priority over
+            // explicit init args (used only by the macOS hotkey panel) and clipboard.
+            Task {
+                if let pending = await DropPayloadStore.shared.consume() {
+                    await MainActor.run {
+                        if let data = pending.imageData { imageData = data }
+                        if let text = pending.text, !text.isEmpty { content = text }
+                        if let src = pending.sourceUrl, !src.isEmpty { sourceUrl = src }
+                    }
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .droppedPayloadReady)) { _ in
+            // Triggered when a drop arrives while CaptureView is already on screen.
+            Task {
+                if let pending = await DropPayloadStore.shared.consume() {
+                    await MainActor.run {
+                        if let data = pending.imageData { imageData = data }
+                        if let text = pending.text, !text.isEmpty { content = text }
+                        if let src = pending.sourceUrl, !src.isEmpty { sourceUrl = src }
+                    }
+                }
+            }
         }
     }
 

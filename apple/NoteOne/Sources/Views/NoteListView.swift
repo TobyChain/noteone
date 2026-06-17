@@ -284,6 +284,16 @@ struct NoteRowView: View {
             .padding(.leading, 22)
         }
         .padding(.vertical, 4)
+        // Long-press to drag the note out as plain text — lets users re-use captured
+        // fragments in any app (Notes, Mail, a document) without copy/paste.
+        .draggable(NoteDragPayload(note: note)) {
+            Label(note.title ?? "无标题", systemImage: note.contentType.iconName)
+                .font(.caption)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.thinMaterial)
+                .clipShape(Capsule())
+        }
     }
 }
 
