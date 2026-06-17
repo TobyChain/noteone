@@ -44,4 +44,9 @@ export const config = {
     baseUrl: process.env.QWEN_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1",
     model: process.env.QWEN_MODEL || "gpt-5.4-mini",
   },
+  search: {
+    provider: (process.env.SEARCH_PROVIDER as "duckduckgo" | "tavily" | "bing") || "duckduckgo",
+    tavilyApiKey: process.env.TAVILY_API_KEY || "",
+    bingApiKey: process.env.BING_SEARCH_API_KEY || "",
+  },
 };

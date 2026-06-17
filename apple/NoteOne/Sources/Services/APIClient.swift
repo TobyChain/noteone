@@ -318,6 +318,35 @@ actor APIClient {
         return response.message
     }
 
+    // MARK: - Reports
+
+    /// Generate a daily report for the specified date (idempotent: returns existing if completed).
+    func generateDailyReport(date: String? = nil, style: ReportStyle = .minimal, depth: ReportDepth = .brief) async throws -> DailyReport {
+        struct Body: Encodable {
+            let date: String?
+            let style: String
+            let depth: String
+        }
+        return try await post("/api/reports/daily", body: Body(date: date, style: style.rawValue, depth: depth.rawValue))
+    }
+
+    /// List all daily reports for the current user.
+    func listReports() async throws -> [DailyReport] {
+        struct Resp: Decodable { let reports: [DailyReport] }
+        let response: Resp = try await get("/api/reports")
+        return response.reports
+    }
+
+    /// Get a single daily report by ID.
+    func getReport(id: String) async throws -> DailyReport {
+        return try await get("/api/reports/\(id)")
+    }
+
+    /// Delete a daily report.
+    func deleteReport(id: String) async throws {
+        let _: DeleteWrapper = try await delete("/api/reports/\(id)")
+    }
+
     // MARK: - HTTP Methods
 
     private func get<T: Decodable>(_ path: String) async throws -> T {

@@ -96,12 +96,20 @@ struct ContentView: View {
             .tag(2)
 
             NavigationStack {
+                ReportsView()
+            }
+            .tabItem {
+                Label("报告", systemImage: "chart.bar.doc.horizontal")
+            }
+            .tag(3)
+
+            NavigationStack {
                 SettingsView()
             }
             .tabItem {
                 Label("设置", systemImage: "gear")
             }
-            .tag(3)
+            .tag(4)
         }
         // Top-level drop target: when iOS routes a drag-from-another-app onto NoteOne,
         // stash the payload and jump to the capture tab so the user can confirm-and-save.
