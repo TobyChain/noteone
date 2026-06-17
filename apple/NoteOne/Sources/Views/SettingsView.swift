@@ -1,4 +1,9 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthService
@@ -12,6 +17,16 @@ struct SettingsView: View {
     @State private var llmHasApiKey = false
     @State private var llmSaving = false
     @State private var llmSaved = false
+
+    @State private var isExporting = false
+    @State private var exportError: String?
+    @State private var showDeleteConfirm = false
+    @State private var isDeletingAccount = false
+    @State private var deleteError: String?
+    #if !os(macOS)
+    @State private var exportedFileURL: URL?
+    @State private var showShareSheet = false
+    #endif
 
     private var theme: AppTheme {
         AppTheme(rawValue: selectedTheme) ?? .system
@@ -34,6 +49,40 @@ struct SettingsView: View {
                 }
                 Button("退出登录", role: .destructive) {
                     authService.signOut()
+                }
+
+                Button {
+                    exportMyData()
+                } label: {
+                    HStack {
+                        if isExporting {
+                            ProgressView().controlSize(.small)
+                            Text("正在生成导出…")
+                        } else {
+                            Label("导出我的数据", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                }
+                .disabled(isExporting)
+                if let exportError = exportError {
+                    Text(exportError).font(.caption).foregroundStyle(.red)
+                }
+
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    if isDeletingAccount {
+                        HStack {
+                            ProgressView().controlSize(.small)
+                            Text("正在注销…")
+                        }
+                    } else {
+                        Label("注销账号", systemImage: "person.crop.circle.badge.xmark")
+                    }
+                }
+                .disabled(isDeletingAccount)
+                if let deleteError = deleteError {
+                    Text(deleteError).font(.caption).foregroundStyle(.red)
                 }
             }
 
@@ -86,6 +135,19 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .navigationTitle("设置")
+        .confirmationDialog("注销账号？", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("永久注销", role: .destructive) { performDeleteAccount() }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("此操作不可撤销。所有笔记、标签、对话及上传的图片都会被永久删除。如需保留请先“导出我的数据”。")
+        }
+        #if !os(macOS)
+        .sheet(isPresented: $showShareSheet) {
+            if let url = exportedFileURL {
+                ShareSheet(items: [url])
+            }
+        }
+        #endif
         .task {
             do { stats = try await APIClient.shared.getStats() } catch {}
             do {
@@ -115,6 +177,49 @@ struct SettingsView: View {
                 }
             } catch {
                 await MainActor.run { llmSaving = false }
+            }
+        }
+    }
+
+    private func exportMyData() {
+        isExporting = true
+        exportError = nil
+        Task {
+            do {
+                let url = try await APIClient.shared.exportData()
+                await MainActor.run {
+                    isExporting = false
+                    #if os(macOS)
+                    NSWorkspace.shared.activateFileViewerSelecting([url])
+                    #else
+                    exportedFileURL = url
+                    showShareSheet = true
+                    #endif
+                }
+            } catch {
+                await MainActor.run {
+                    isExporting = false
+                    exportError = "导出失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private func performDeleteAccount() {
+        isDeletingAccount = true
+        deleteError = nil
+        Task {
+            do {
+                try await APIClient.shared.deleteAccount()
+                await MainActor.run {
+                    isDeletingAccount = false
+                    authService.signOut()
+                }
+            } catch {
+                await MainActor.run {
+                    isDeletingAccount = false
+                    deleteError = "注销失败: \(error.localizedDescription)"
+                }
             }
         }
     }
@@ -185,5 +290,17 @@ struct HotkeyRecorderField: View {
             self.monitor = nil
         }
     }
+}
+#endif
+
+#if !os(macOS)
+/// SwiftUI wrapper around UIActivityViewController so the user can save / share the
+/// exported zip file.
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 #endif

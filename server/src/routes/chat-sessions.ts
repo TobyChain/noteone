@@ -13,6 +13,10 @@ const router = Router();
 const MAX_MESSAGES_BEFORE_COMPACT = 30;
 const PROTECTION_ZONE = 6;
 
+// Per-process lock so a flurry of /messages requests can't trigger overlapping compactions
+// for the same session (which would risk duplicate summaries / half-deleted history).
+const compactingSessions = new Set<string>();
+
 router.get("/", async (req: AuthRequest, res) => {
   const sessions = await db.query.chatSessions.findMany({
     where: eq(chatSessions.userId, req.userId!),
@@ -257,40 +261,47 @@ ${note.content}`;
 });
 
 async function compactSession(sessionId: string) {
-  const messages = await db.query.chatMessages.findMany({
-    where: eq(chatMessages.sessionId, sessionId),
-    orderBy: [asc(chatMessages.createdAt)],
-  });
+  if (compactingSessions.has(sessionId)) return;
+  compactingSessions.add(sessionId);
+  try {
+    const messages = await db.query.chatMessages.findMany({
+      where: eq(chatMessages.sessionId, sessionId),
+      orderBy: [asc(chatMessages.createdAt)],
+    });
 
-  if (messages.length < MAX_MESSAGES_BEFORE_COMPACT) return;
+    if (messages.length < MAX_MESSAGES_BEFORE_COMPACT) return;
 
-  const cutoff = messages.length - PROTECTION_ZONE;
-  const toCompact = messages.slice(0, cutoff);
-  const summaryBoundary = toCompact.findIndex(m => m.isSummary);
-  const startIdx = summaryBoundary >= 0 ? summaryBoundary : 0;
-  const compactable = toCompact.slice(startIdx);
+    const cutoff = messages.length - PROTECTION_ZONE;
+    const toCompact = messages.slice(0, cutoff);
+    const summaryBoundary = toCompact.findIndex((m) => m.isSummary);
+    const startIdx = summaryBoundary >= 0 ? summaryBoundary : 0;
+    const compactable = toCompact.slice(startIdx);
 
-  if (compactable.length < 4) return;
+    if (compactable.length < 4) return;
 
-  const transcript = compactable.map(m => `${m.role}: ${m.content}`).join("\n\n");
+    const transcript = compactable.map((m) => `${m.role}: ${m.content}`).join("\n\n");
 
-  const summary = await chatCompletion([
-    { role: "system", content: "将以下对话历史压缩为一段简洁的摘要，保留关键信息、用户偏好和重要结论。用中文输出。" },
-    { role: "user", content: transcript },
-  ]);
+    // LLM call OUTSIDE the transaction (it's slow and idempotent on retry); only the
+    // "insert summary + delete originals" swap needs to be atomic.
+    const summary = await chatCompletion([
+      { role: "system", content: "将以下对话历史压缩为一段简洁的摘要，保留关键信息、用户偏好和重要结论。用中文输出。" },
+      { role: "user", content: transcript },
+    ]);
 
-  const idsToDelete = compactable.map(m => m.id);
+    const idsToDelete = compactable.map((m) => m.id);
 
-  await db.insert(chatMessages).values({
-    sessionId,
-    role: "assistant",
-    content: `[对话摘要]\n${summary}`,
-    isSummary: true,
-    createdAt: compactable[0].createdAt,
-  });
-
-  for (const id of idsToDelete) {
-    await db.delete(chatMessages).where(eq(chatMessages.id, id));
+    await db.transaction(async (tx) => {
+      await tx.insert(chatMessages).values({
+        sessionId,
+        role: "assistant",
+        content: `[对话摘要]\n${summary}`,
+        isSummary: true,
+        createdAt: compactable[0].createdAt,
+      });
+      await tx.delete(chatMessages).where(inArray(chatMessages.id, idsToDelete));
+    });
+  } finally {
+    compactingSessions.delete(sessionId);
   }
 }
 

@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:integration": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://noteone:noteone@localhost:5432/noteone_test} vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
@@ -16,6 +17,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "archiver": "^7.0.1",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.44.0",
@@ -30,12 +32,15 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/archiver": "^6.0.3",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/multer": "^1.4.12",
+    "@types/supertest": "^6.0.3",
     "@types/uuid": "^10.0.0",
     "drizzle-kit": "^0.31.0",
+    "supertest": "^7.1.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^3.2.0"

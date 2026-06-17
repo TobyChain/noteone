@@ -1,8 +1,11 @@
 # NoteOne（顺手记一条）— 产品设计文档
 
 > 创建日期：2026-06-08
-> 状态：已确认 ✅
-> 版本：v1.0
+> 更新日期：2026-06-15（迭代 6 后）
+> 状态：已确认 ✅ · 已实现并持续迭代
+> 版本：v2.0
+
+> **关于本文档**：以下「一～十」节为 2026-06-08 确认的原始产品设计与决策记录（保留原貌，作为愿景与决策依据）。代码经 6 轮迭代后部分内容已演进，请结合文末 **[十一、实现现状对照（v2.0）](#十一实现现状对照v20)** 阅读；**实现细节以代码为准**，权威实现文档见 [../ARCHITECTURE.md](../ARCHITECTURE.md)。
 
 ---
 
@@ -357,3 +360,63 @@ create_writing_draft(params: {
 - [ ] 用户自定义 API Key 的安全存储（加密方案）
 - [ ] Apple Sign In 的服务端验证流程
 - [ ] Embedding 模型选型（Qwen-Embedding / text-embedding-3-small）
+
+---
+
+## 十一、实现现状对照（v2.0）
+
+> 截至 2026-06-15（迭代 6 后）。✅ 已实现 · 🔁 已实现但与原设计有出入(drifted) · 🟡 部分实现 · ⛔ 未实现。
+> 权威实现细节见 [../ARCHITECTURE.md](../ARCHITECTURE.md)。
+
+### 11.1 总体落地度
+原始 v1.0 架构（多端客户端 + REST API + 双 MCP + pgvector + 异步 AI 流水线）**已基本落地并跑通**（两端 xcodebuild 通过、54 单测全绿）。主要演进集中在：默认模型、用户认证可用形态、以及一批 v1.0 未列出的新增能力（垃圾箱、失败重试、会话式 Notty、导出、注销、上传、SSRF 防护、拖拽、prompt 捕获）。
+
+### 11.2 关键差异（与设计文档不符之处）
+
+| 项 | 设计文档 (v1.0) | 实际实现 | 状态 |
+|----|------------------|----------|------|
+| 默认 Chat 模型 | Qwen-Turbo | `gpt-5.4-mini`（`config.ts` 缺省值，env 仍用 `QWEN_*` 命名、baseUrl 指向 DashScope） | 🔁drifted |
+| Embedding 模型 | Qwen-Embedding（待选型） | `text-embedding-3-small`（1536 维），且**恒走默认 provider** 不随用户切换 | 🔁drifted |
+| macOS 默认快捷键 | ⌘⇧N | 全局监听默认 **⌘⇧O**（可自定义）；⌘⇧N 为应用内菜单绑定 | 🔁drifted |
+| note_status 枚举 | pending_ai / active / archived | 增加 **trashed / failed**（共 5 态） | ✅扩展 |
+| tags 归属 | 全局四维度标签 | 改为 **user-scoped**（tags.user_id），旧全局标签兼容空 user_id | 🔁drifted |
+| 用户 API Key 存储 | 加密存储（待定方案） | 当前**明文**存 `users.settings`（GET/导出已脱敏，落库未加密） | 🟡缺口 |
+
+### 11.3 设计项 → 实现映射
+
+| 设计章节 | 能力 | 状态 | 说明 |
+|----------|------|------|------|
+| §4.1-1 | iOS Share Extension | ✅ | 离线写 App Group，主 App 补传 |
+| §2.3 / §6.1 | iOS 长按上滑即记 | 🟡 | 以**拖拽（onDrop/draggable）+ CFBundleDocumentTypes** 实现；iPhone 跨 App 受限，最完整入口仍是 Share Extension（iPad/visionOS 更完整） |
+| §4.1-2 / §6.2 | macOS 全局快捷键悬浮捕获 | ✅ | FloatingPanel + 浏览器 meta + 选中文本 + 剪贴板图片 |
+| §4.3 | REST API（认证/CRUD/打标/检索） | ✅ | Express 5 + Drizzle，端点见 ARCHITECTURE §4 |
+| §4.4 / §八 | MCP Server | ✅+ | **双实现**：内嵌(直连 DB,7 工具含 CRUD) + 独立(HTTP 代理,5 只读) |
+| §4.5 / §五 | pgvector + 四维标签数据模型 | ✅ | 另增 chat_sessions / chat_messages |
+| §七 | AI 自动打标 / 摘要 / 标题 / Embedding | ✅ | 异步 `Promise.allSettled`，失败置 failed |
+| §七 | 笔记总结 / 数据统计 / 读书记录 | 🟡 | 统计有 `/api/stats`；"总结/读书记录"由 Notty 会话承载，无独立 UI |
+| §六.3 / §八 | MCP 深度写作（带引用长文） | 🟡 | `get_topic_summary` + `get_note` 引用块就绪；`create_writing_draft` 未实现 |
+| §三 | Apple Sign In + JWT | ✅ | jose JWKS 验签；另有 dev-token 本地旁路 |
+| §七 | 用户自定义 API Key 切换供应商 | ✅ | `/api/settings` 每用户 LLM 覆盖（Embedding 除外） |
+| §九 | Docker 一键部署 | ✅ | docker-compose（pgvector + api） |
+
+### 11.4 v1.0 未列出、现已新增的能力
+- **垃圾箱体系**：软删 → 30 天 cron 硬删，恢复 / 立即永久删除。
+- **失败重试**：`failed` 状态 + `/api/notes/:id/retry` + 客户端「重试」。
+- **会话式 Notty**：持久化多会话 + 工具调用（read_note / search_notes / web_fetch）+ 历史压缩。
+- **链接正文抓取**：创建笔记自动抓 URL 正文并回填 meta（带 SSRF 防护）。
+- **图片上传**：`/api/uploads/image` + 静态服务 + 安全清理。
+- **数据主权**：`/api/export`（ZIP）+ `/api/account`（注销级联硬删）。
+- **prompt 捕获**：MCP `create_note(source_app)` → `#prompt` + `#{app}` 标签。
+- **安全加固**：SSRF guard、限流、helmet、上传路径防护、生产配置守卫。
+- **客户端**：主题系统、可自定义快捷键、MCP 一键安装、拖入/拖出。
+
+### 11.5 §十「待细化事项」结案
+- ✅ Apple Sign In 服务端验证流程（jose JWKS）
+- ✅ Embedding 模型选型（`text-embedding-3-small`）
+- ✅ 多用户数据隔离（全查询 user_id 限定 + tags 多租户）
+- ✅ API Rate Limiting 与安全防护（限流 + SSRF + helmet + 上传防护）
+- 🟡 用户 API Key 安全存储（已脱敏展示/导出，**落库仍明文**，待加密）
+- ⛔ 离线多端编辑冲突解决策略（当前离线仅"新建"入队，无编辑冲突合并）
+- 🟡 iOS Drag & Drop iPhone 降级（拖拽 + Share Extension 双路径，未做 iPhone 专门降级 UI）
+- ⛔ Qwen 模型版本选型与 Prompt 工程（属非开源部分，未在本仓沉淀）
+

@@ -13,6 +13,8 @@ import { chatRouter } from "./routes/chat.js";
 import { chatSessionsRouter } from "./routes/chat-sessions.js";
 import { uploadsRouter, UPLOAD_DIR } from "./routes/uploads.js";
 import { settingsRouter } from "./routes/settings.js";
+import { accountRouter } from "./routes/account.js";
+import { exportRouter } from "./routes/export.js";
 import { startTrashCleanup } from "./services/trash-cleanup.js";
 
 const app = express();
@@ -57,6 +59,8 @@ app.use("/api/chat", requireAuth, chatRouter);
 app.use("/api/chat-sessions", requireAuth, chatSessionsRouter);
 app.use("/api/uploads", requireAuth, uploadsRouter);
 app.use("/api/settings", requireAuth, settingsRouter);
+app.use("/api/account", requireAuth, accountRouter);
+app.use("/api/export", requireAuth, exportRouter);
 
 // Central error handler — never leak stack traces in production.
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
