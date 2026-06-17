@@ -26,6 +26,13 @@ struct SettingsView: View {
     #if !os(macOS)
     @State private var exportedFileURL: URL?
     @State private var showShareSheet = false
+    @State private var reportEnabled = UserDefaults.standard.reportEnabled
+    @State private var reportTime: Date = {
+        var comps = DateComponents()
+        comps.hour = UserDefaults.standard.reportHour
+        comps.minute = UserDefaults.standard.reportMinute
+        return Calendar.current.date(from: comps) ?? Date()
+    }()
     #endif
 
     private var theme: AppTheme {
@@ -118,6 +125,28 @@ struct SettingsView: View {
                 }
             }
 
+            #if !os(macOS)
+            Section {
+                Toggle("启用每日报告", isOn: $reportEnabled)
+                if reportEnabled {
+                    DatePicker("推送时间", selection: $reportTime, displayedComponents: .hourAndMinute)
+                        .onChange(of: reportTime) { _, _ in saveReportSchedule() }
+                }
+            } header: {
+                Text("每日报告")
+            } footer: {
+                Text("Notty 会在指定时间提醒你生成今日灵感报告。报告风格和深度可在"报告"页面调整。")
+            }
+            .onChange(of: reportEnabled) { _, newValue in
+                UserDefaults.standard.reportEnabled = newValue
+                if newValue {
+                    Task { await ReportScheduler.shared.schedule(hour: reportHour, minute: reportMinute) }
+                } else {
+                    ReportScheduler.shared.cancel()
+                }
+            }
+            #endif
+
             if let stats = stats {
                 Section("统计") {
                     LabeledContent("总笔记数", value: "\(stats.totalNotes)")
@@ -156,6 +185,12 @@ struct SettingsView: View {
                 llmModel = settings.llm.model ?? ""
                 llmHasApiKey = settings.llm.hasApiKey
             } catch {}
+            #if !os(macOS)
+            // Schedule report notification on first load if enabled
+            if reportEnabled {
+                await ReportScheduler.shared.schedule(hour: reportHour, minute: reportMinute)
+            }
+            #endif
         }
     }
 
@@ -223,6 +258,24 @@ struct SettingsView: View {
             }
         }
     }
+
+    #if !os(macOS)
+    private var reportHour: Int {
+        Calendar.current.component(.hour, from: reportTime)
+    }
+
+    private var reportMinute: Int {
+        Calendar.current.component(.minute, from: reportTime)
+    }
+
+    private func saveReportSchedule() {
+        UserDefaults.standard.reportHour = reportHour
+        UserDefaults.standard.reportMinute = reportMinute
+        Task {
+            await ReportScheduler.shared.schedule(hour: reportHour, minute: reportMinute)
+        }
+    }
+    #endif
 }
 
 #if os(macOS)

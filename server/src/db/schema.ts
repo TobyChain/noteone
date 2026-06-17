@@ -92,3 +92,42 @@ export const chatMessages = pgTable("chat_messages", {
 }, (table) => [
   index("chat_messages_session_id_idx").on(table.sessionId),
 ]);
+
+// --- Daily Reports ---
+
+export const reportStyleEnum = pgEnum("report_style", [
+  "minimal",     // 极简杂志风
+  "academic",    // 学术报告风
+  "dashboard",   // 仪表盘数据可视化风
+  "handwritten", // 手写笔记风
+]);
+
+export const reportDepthEnum = pgEnum("report_depth", [
+  "brief",      // 速览版 (5 min)
+  "deep",       // 深度版 (20 min)
+  "action",     // 行动清单版 (TODO only)
+]);
+
+export const reportStatusEnum = pgEnum("report_status", [
+  "generating",  // 生成中
+  "completed",   // 已完成
+  "failed",      // 生成失败
+]);
+
+export const dailyReports = pgTable("daily_reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: text("date").notNull(), // YYYY-MM-DD
+  style: reportStyleEnum("style").notNull().default("minimal"),
+  depth: reportDepthEnum("depth").notNull().default("brief"),
+  status: reportStatusEnum("status").notNull().default("generating"),
+  htmlContent: text("html_content"),
+  sourceNoteIds: jsonb("source_note_ids").default([]),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("daily_reports_user_id_idx").on(table.userId),
+  index("daily_reports_date_idx").on(table.date),
+  uniqueIndex("daily_reports_user_date_uniq").on(table.userId, table.date),
+]);

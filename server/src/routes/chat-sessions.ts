@@ -7,6 +7,7 @@ import { z } from "zod";
 import { chatCompletion, chatCompletionWithTools, ToolDefinition, generateEmbedding } from "../services/llm.js";
 import { getUserChatConfig } from "../services/user-config.js";
 import { fetchUrlContent } from "../services/web-fetch.js";
+import { searchWeb } from "../services/web-search.js";
 
 const router = Router();
 
@@ -118,6 +119,7 @@ ${noteIndex}
 - read_note：按索引序号([N] 里的数字)或笔记 id 读取某条笔记的完整正文与来源/作者信息。
 - search_notes：当用户的问题无法仅凭标题/摘要定位时，用语义检索找出最相关的笔记，再用 read_note 读取正文。
 - web_fetch：获取外部网页内容（用户分享链接或需要查看网页时）。
+- search_web：在互联网上搜索关键词，获取外部信息。当用户想了解笔记之外的知识时使用。
 
 规则：
 - 用中文回答
@@ -194,6 +196,21 @@ ${note.content}`;
         },
       },
     },
+    {
+      type: "function",
+      function: {
+        name: "search_web",
+        description: "在互联网上搜索关键词，返回相关网页的标题、URL 和摘要。当用户想了解笔记之外的外部信息时使用。",
+        parameters: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "搜索关键词" },
+            maxResults: { type: "number", description: "返回条数，默认 5" },
+          },
+          required: ["query"],
+        },
+      },
+    },
   ];
 
   const toolHandlers: Record<string, (args: any) => Promise<string>> = {
@@ -232,6 +249,15 @@ ${note.content}`;
       const result = await fetchUrlContent(url);
       if (result.error) return `获取失败: ${result.error}`;
       return `标题: ${result.title}\n\n${result.content}`;
+    },
+    search_web: async (args: Record<string, any>) => {
+      const query = args.query as string;
+      const maxResults = (args.maxResults as number) || 5;
+      const results = await searchWeb(query, { maxResults });
+      if (results.length === 0) return "未找到相关结果";
+      return results.map((r, i) =>
+        `${i + 1}. ${r.title}\n   URL: ${r.url}\n   ${r.snippet}`
+      ).join("\n\n");
     },
   };
 
