@@ -57,3 +57,33 @@ struct ServerChatMessage: Codable, Identifiable, Sendable {
     let isSummary: Bool
     let createdAt: Date
 }
+
+// MARK: - Writer-mode chat (Notty acting on the local markdown document)
+
+struct WriterSelectionRange: Codable, Sendable {
+    let start: Int
+    let end: Int
+}
+
+struct WriterChatRequest: Encodable {
+    let message: String
+    let documentText: String
+    let selection: WriterSelectionRange?
+}
+
+enum WriterActionType: String, Codable, Sendable {
+    case insertText = "insert_text"
+    case appendText = "append_text"
+    case replaceSelection = "replace_selection"
+    case rewriteDocument = "rewrite_document"
+}
+
+struct WriterAction: Codable, Sendable {
+    let type: WriterActionType
+    let text: String
+}
+
+struct WriterChatResponse: Decodable, Sendable {
+    let message: ChatResponseMessage
+    let action: WriterAction?
+}

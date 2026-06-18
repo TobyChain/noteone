@@ -124,7 +124,11 @@ struct ReportsView: View {
             .disabled(isGenerating)
         }
         .padding()
+        #if os(iOS)
         .background(Color(.systemGroupedBackground))
+        #else
+        .background(Color(nsColor: .windowBackgroundColor))
+        #endif
         .onChange(of: selectedStyle) { _, new in UserDefaults.standard.reportStyle = new }
         .onChange(of: selectedDepth) { _, new in UserDefaults.standard.reportDepth = new }
     }
@@ -231,10 +235,18 @@ struct ReportDetailView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
+            #if os(iOS)
             .background(Color(.systemBackground))
+            #else
+            .background(Color(nsColor: .textBackgroundColor))
+            #endif
 
             if let html = report.htmlContent {
+                #if os(iOS)
                 WebView(htmlContent: html)
+                #elseif os(macOS)
+                WebViewMac(htmlContent: html)
+                #endif
             } else {
                 Spacer()
                 VStack(spacing: 12) {
@@ -263,7 +275,7 @@ struct ReportDetailView: View {
 }
 
 // MARK: - WKWebView Wrapper
-
+#if os(iOS)
 struct WebView: UIViewRepresentable {
     let htmlContent: String
 
@@ -281,6 +293,7 @@ struct WebView: UIViewRepresentable {
         webView.loadHTMLString(htmlContent, baseURL: nil)
     }
 }
+#endif
 
 // MARK: - macOS WebView variant
 #if os(macOS)

@@ -10,65 +10,14 @@ extension Notification.Name {
 struct ContentView: View {
     #if os(macOS)
     @EnvironmentObject var authService: AuthService
-    @State private var showNotty = false
-    @State private var showMCPInstall = false
-    @State private var showTrash = false
-    @State private var selectedNoteId: String?
-    @State private var notes: [Note] = []
     #else
     @State private var selectedTab = 0
     #endif
 
     var body: some View {
         #if os(macOS)
-        NavigationSplitView {
-            NoteListView(selectedNoteId: $selectedNoteId, notes: $notes)
-        } detail: {
-            if showTrash {
-                TrashView()
-            } else if let noteId = selectedNoteId {
-                NoteDetailView(noteId: noteId, initialNote: notes.first { $0.id == noteId })
-            } else {
-                Text("选择一条笔记")
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .overlay(alignment: .bottomTrailing) {
-            Button { showNotty = true } label: {
-                Image("NottyAvatar")
-                    .resizable()
-                    .frame(width: 44, height: 44)
-                    .clipShape(Circle())
-                    .shadow(color: Color.accent.opacity(0.3), radius: 4, y: 2)
-            }
-            .buttonStyle(.plain)
-            .padding(20)
-        }
-        .sheet(isPresented: $showNotty) {
-            NottyView()
-                .frame(width: 420, height: 560)
-        }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button { showMCPInstall = true } label: {
-                    Image(systemName: "puzzlepiece.extension")
-                }
-                .help("MCP 一键安装")
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showTrash.toggle()
-                    if showTrash { selectedNoteId = nil }
-                } label: {
-                    Image(systemName: showTrash ? "trash.fill" : "trash")
-                }
-                .help("垃圾箱")
-            }
-        }
-        .sheet(isPresented: $showMCPInstall) {
-            MCPInstallView()
-                .environmentObject(authService)
-        }
+        MainSplitView()
+            .environmentObject(authService)
         #else
         TabView(selection: $selectedTab) {
             NavigationStack {
@@ -95,13 +44,19 @@ struct ContentView: View {
             }
             .tag(2)
 
+            WriterView()
+                .tabItem {
+                    Label("写作", systemImage: "pencil.and.outline")
+                }
+                .tag(3)
+
             NavigationStack {
                 ReportsView()
             }
             .tabItem {
                 Label("报告", systemImage: "chart.bar.doc.horizontal")
             }
-            .tag(3)
+            .tag(4)
 
             NavigationStack {
                 SettingsView()
@@ -109,7 +64,7 @@ struct ContentView: View {
             .tabItem {
                 Label("设置", systemImage: "gear")
             }
-            .tag(4)
+            .tag(5)
         }
         // Top-level drop target: when iOS routes a drag-from-another-app onto NoteOne,
         // stash the payload and jump to the capture tab so the user can confirm-and-save.
