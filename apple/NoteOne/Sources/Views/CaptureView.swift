@@ -90,9 +90,13 @@ struct CaptureView: View {
                 .buttonStyle(.borderedProminent)
             }
         }
-        .padding()
         #if os(macOS)
+        .padding(.top, 28)
+        .padding(.horizontal)
+        .padding(.bottom)
         .frame(width: 460)
+        #else
+        .padding()
         #endif
         .navigationTitle("记一条")
         .onDrop(of: [.image, .url, .plainText], isTargeted: $isDropTargeted) { providers in

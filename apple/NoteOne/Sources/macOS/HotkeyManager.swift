@@ -103,6 +103,22 @@ class HotkeyManager: ObservableObject {
             return CapturedSelection()
         }
 
+        // The hotkey is typically ⌘⇧O / ⌘⌥X / etc — when togglePanel runs, the user's
+        // shift/control/option keys may still be physically held. Some apps (notably Electron
+        // / web shells like Yuque, Notion, Obsidian) read the *real* hardware modifier state
+        // when interpreting our synthetic ⌘C, so the keystroke arrives as ⌘⇧C and gets
+        // misrouted. Wait briefly for the non-command modifiers to be released before
+        // synthesizing the copy.
+        let extraneousMask: NSEvent.ModifierFlags = [.shift, .control, .option]
+        let modifierDeadline = Date().addingTimeInterval(0.5)
+        while !NSEvent.modifierFlags.intersection(extraneousMask).isEmpty && Date() < modifierDeadline {
+            Thread.sleep(forTimeInterval: 0.02)
+        }
+        if !NSEvent.modifierFlags.intersection(extraneousMask).isEmpty {
+            // User is still holding modifiers — bail rather than fire a misinterpreted ⌘+...+C.
+            return CapturedSelection()
+        }
+
         let originalChangeCount = pasteboard.changeCount
         let originalContent = pasteboard.string(forType: .string)
 
@@ -116,8 +132,9 @@ class HotkeyManager: ObservableObject {
         keyDown.post(tap: .cgSessionEventTap)
         keyUp.post(tap: .cgSessionEventTap)
 
-        // Poll for the pasteboard to update instead of a fixed sleep (handles slow apps).
-        let deadline = Date().addingTimeInterval(0.6)
+        // Poll for the pasteboard to update instead of a fixed sleep. 1s gives slower
+        // Electron-based apps (Yuque, Notion, etc.) enough time to round-trip the copy.
+        let deadline = Date().addingTimeInterval(1.0)
         while pasteboard.changeCount == originalChangeCount && Date() < deadline {
             Thread.sleep(forTimeInterval: 0.02)
         }
