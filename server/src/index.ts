@@ -17,6 +17,7 @@ import { accountRouter } from "./routes/account.js";
 import { exportRouter } from "./routes/export.js";
 import { reportsRouter } from "./routes/reports.js";
 import { startTrashCleanup } from "./services/trash-cleanup.js";
+import { requestLogger } from "./middleware/logger.js";
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use(
   }),
 );
 app.use(express.json({ limit: "10mb" }));
+app.use(requestLogger);
 
 // Tighter limit on auth endpoints to blunt brute-force / token-replay attempts.
 const authLimiter = rateLimit({
