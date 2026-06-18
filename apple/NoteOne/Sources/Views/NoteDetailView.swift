@@ -34,7 +34,7 @@ struct NoteDetailView: View {
                 ScrollView {
                     // LazyVStack so long notes only lay out the paragraphs near the viewport,
                     // instead of rendering the whole body up front (the source of switch lag).
-                    LazyVStack(alignment: .leading, spacing: 16) {
+                    LazyVStack(alignment: .leading, spacing: 6) {
                         if note.status == .trashed {
                             TrashedBanner(onRestore: restoreNote, onPermanentDelete: permanentDeleteNote)
                         } else if note.status == .pendingAi {
@@ -47,13 +47,14 @@ struct NoteDetailView: View {
                             editingSection(note)
                         } else {
                             noteHeader(note)
+                                .padding(.bottom, 8)
 
                             Divider()
 
                             // Chunked content as direct children of the LazyVStack → only the
                             // visible chunks of a long note are laid out.
                             ForEach(contentChunks(note.content)) { chunk in
-                                Text(chunk.text.isEmpty ? " " : chunk.text)
+                                Text(chunk.text)
                                     .font(.body)
                                     .foregroundStyle(Color.ink)
                                     .textSelection(.enabled)
@@ -61,6 +62,7 @@ struct NoteDetailView: View {
                             }
 
                             Divider()
+                                .padding(.top, 8)
 
                             MetaSection(note: note)
                         }
@@ -156,24 +158,32 @@ struct NoteDetailView: View {
         let text: String
     }
 
-    /// Splits note content into bounded chunks (by paragraph, then by length at a whitespace
-    /// boundary when possible) so a long body renders as many small, lazily-laid-out Texts.
+    /// Splits note content into paragraph-level chunks (split on blank lines, i.e. `\n\n`+)
+    /// so only real paragraph breaks get the LazyVStack spacing. Single `\n` is preserved
+    /// within each chunk and rendered by Text as a normal line break.
     private func contentChunks(_ content: String, maxLen: Int = 800) -> [ContentChunk] {
+        // Collapse 3+ consecutive newlines into exactly 2 (one paragraph break).
+        let normalized = content.replacingOccurrences(
+            of: "\\n{3,}", with: "\n\n", options: .regularExpression
+        )
+        let paragraphs = normalized.components(separatedBy: "\n\n")
         var chunks: [ContentChunk] = []
         var idx = 0
-        for paragraph in content.components(separatedBy: "\n") {
-            if paragraph.count <= maxLen {
-                chunks.append(ContentChunk(id: idx, text: paragraph)); idx += 1
+        for paragraph in paragraphs {
+            let trimmed = paragraph.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty { continue }
+            if trimmed.count <= maxLen {
+                chunks.append(ContentChunk(id: idx, text: trimmed)); idx += 1
                 continue
             }
-            var remainder = Substring(paragraph)
+            var remainder = Substring(trimmed)
             while remainder.count > maxLen {
                 let limit = remainder.index(remainder.startIndex, offsetBy: maxLen)
-                // Prefer breaking at the last space before the limit; CJK text has none, so
-                // fall back to a hard cut at the character boundary.
-                let splitAt = remainder[..<limit].lastIndex(of: " ") ?? limit
+                let splitAt = remainder[..<limit].lastIndex(of: " ")
+                    ?? remainder[..<limit].lastIndex(of: "\n")
+                    ?? limit
                 chunks.append(ContentChunk(id: idx, text: String(remainder[..<splitAt]))); idx += 1
-                remainder = remainder[splitAt...].drop(while: { $0 == " " })
+                remainder = remainder[splitAt...].drop(while: { $0 == " " || $0 == "\n" })
             }
             if !remainder.isEmpty {
                 chunks.append(ContentChunk(id: idx, text: String(remainder))); idx += 1

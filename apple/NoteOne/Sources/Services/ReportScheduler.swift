@@ -82,8 +82,8 @@ extension UserDefaults {
 
     var reportHour: Int {
         get {
-            let v = integer(forKey: Keys.reportHour)
-            return v == 0 ? 20 : v  // default 20:00
+            if object(forKey: Keys.reportHour) == nil { return 20 }
+            return integer(forKey: Keys.reportHour)
         }
         set { set(newValue, forKey: Keys.reportHour) }
     }
