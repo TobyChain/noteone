@@ -92,7 +92,7 @@ router.get("/", async (req: AuthRequest, res) => {
   res.json({ notes: notesWithTags, limit, offset });
 });
 
-// GET /api/notes/trash
+// GET /api/notes/trash — must be before /:id so Express doesn't match "trash" as a UUID
 router.get("/trash", async (req: AuthRequest, res) => {
   const result = await db.query.notes.findMany({
     columns: NOTE_COLUMNS,

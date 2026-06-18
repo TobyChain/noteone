@@ -225,7 +225,9 @@ server.tool(
   "列出所有标签，按维度分组",
   { dimension: z.enum(["format", "topic", "domain", "module"]).optional() },
   async ({ dimension }) => {
-    const where = dimension ? eq(tags.dimension, dimension) : undefined;
+    const where = dimension
+      ? and(eq(tags.userId, USER_ID), eq(tags.dimension, dimension))
+      : eq(tags.userId, USER_ID);
     const result = await db.query.tags.findMany({ where });
     const grouped: Record<string, string[]> = {};
     for (const t of result) {
