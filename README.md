@@ -1,185 +1,156 @@
 # NoteOne · 顺手记一条
 
-> 顺手把看到的文本 / 图片 / 链接收进口袋，AI 静默打标、摘要、向量化；写作时让 Claude / Cursor 等 AI 通过 MCP 直连你的笔记，带来源、带引用地复盘与创作。
+> **NoteOne** is an AI-powered personal knowledge system: capture text / images / links from anywhere, let AI silently tag, summarize, and embed them, then write deep, well-cited articles with Notty (your AI co-writer) and bring your notes into Claude / Cursor via MCP.
+>
+> 顺手把看到的文本 / 图片 / 链接收进口袋，AI 静默打标、摘要、向量化；写作时让 Claude / Cursor 等 AI 通过 MCP 直连你的笔记；内置本地 Markdown 编辑器和 AI 写作助手，带来源、带引用地复盘与创作。
 
-NoteOne 是一个**多端碎片捕获 + AI 静默整理 + MCP 深度复用**的个人知识系统：
-
-- **顺手捕获**：iOS Share Extension / 拖拽、macOS 全局快捷键悬浮窗，一步入档文本、图片、链接，自动带上来源、作者、页面 meta。
-- **静默整理**：后端异步流水线自动抓取链接正文、生成标题与一句话摘要、四维度打标、生成向量。
-- **深度复用**：内置 AI 助手 **Notty**（带工具调用），以及对外的 **MCP Server**，让外部 AI 客户端直接检索、读取、创建笔记。
+[English](#english) · [中文](#中文) · [License](#license)
 
 ---
 
-## 目录
+## 中文
 
-- [整体架构](#整体架构)
-- [核心功能](#核心功能)
-- [仓库结构](#仓库结构)
-- [技术栈](#技术栈)
-- [快速开始](#快速开始)
-- [MCP 接入](#mcp-接入)
-- [API 一览](#api-一览)
-- [安全设计](#安全设计)
-- [文档索引](#文档索引)
+### ✨ 核心功能
 
-> 更详细的实现现状见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)；产品设计与决策记录见 [docs/design/2026-06-08-noteone-design.md](docs/design/2026-06-08-noteone-design.md)。
+| 模块 | 能力 |
+|---|---|
+| **顺手捕获** | macOS 全局快捷键悬浮窗（默认 ⌘⇧O）/ iOS Share Extension / 拖拽。自动抓取浏览器 URL+标题、选中文本、剪贴板图片 |
+| **AI 静默整理** | 异步流水线：抓链接正文 → 生成标题/一句话摘要 → 四维度打标（format/topic/domain/module）→ 1536 维向量入库 |
+| **本地写作模式** | Obsidian 风格的 `.md` 编辑器（macOS 三栏内联，iOS 独立 Tab）；编辑/预览/并排切换；自动保存；右栏可常驻 Notty 写作助手 |
+| **Notty 写作助手** | 看见你的整篇文档和当前选区，可执行 4 种结构化操作：插入到光标 / 替换选中 / 追加末尾 / 整篇重写；可在过程中检索笔记和联网取材 |
+| **笔记参考** | 写作时左栏笔记列表自动显示「插入引用」按钮，一键插入带摘要、作者、来源的 markdown blockquote |
+| **MCP Server** | 让 Claude / Cursor / Codex 等 AI 直连笔记数据库：检索、读取、创建、更新、软删、恢复 |
+| **每日报告** | Notty 读取当天笔记 → 联网检索关键词 → 抓取扩展知识 → 生成 4 种风格 × 3 种深度的 HTML 报告 |
+| **数据主权** | 完整 ZIP 导出（笔记/标签/对话/图片）；级联硬删账户；垃圾箱 30 天自动清理 |
 
----
-
-## 整体架构
+### 🏗 架构
 
 ```
 ┌──────────────────────── 客户端 ────────────────────────┐
-│  iOS App        macOS App        Share Extension        │
-│  (SwiftUI)      (SwiftUI)        (iOS 离线入队)          │
-│   · 拖拽          · ⌘⇧ 全局快捷键   · 写入 App Group       │
-│   · Share Sheet   · 悬浮捕获窗      共享容器,主 App 联网补传 │
-│   · Notty Tab     · Notty Sheet                          │
-└───────────────┬───────────────────────┬─────────────────┘
+│  iOS App        macOS App        Share Extension       │
+│  (SwiftUI)      (SwiftUI)        (iOS 离线入队)         │
+│   · 拖拽          · ⌘⇧ 全局快捷键   · 写入 App Group      │
+│   · Share Sheet   · 三栏主界面      共享容器，主 App 联网补传│
+│   · Notty Tab     · 内联 Markdown 写作 + Notty 写作助手    │
+└───────────────┬───────────────────────┬────────────────┘
                 │ HTTPS (JWT)            │ stdio
                 ▼                        ▼
 ┌──────────── REST API (server/) ──────┐  ┌─ MCP Servers ─────────┐
 │ Express 5 + Drizzle ORM              │  │ server/src/mcp.ts      │
-│  auth / notes / tags / search        │◄─┤  (直连 DB,7 工具,本机)  │
-│  chat-sessions / uploads / stats     │  │ mcp-server/            │
-│  settings / account / export         │  │  (HTTP 代理,5 工具,外接) │
+│  auth / notes / tags / search        │◄─┤  (直连 DB, 7 工具)      │
+│  chat-sessions / writer-messages     │  │ mcp-server/            │
+│  uploads / settings / account / export│  │  (HTTP 代理, 5 只读工具) │
 │            │                         │  └────────────────────────┘
 │            ▼  异步流水线               │
 │  抓取链接正文 → 打标 → 摘要/标题 → 向量  │
 │            │                         │
 │            ▼                         │
-│  PostgreSQL + pgvector               │
-│  notes / tags / note_tags / users    │
-│  chat_sessions / chat_messages       │
+│  PostgreSQL 16 + pgvector            │
+│  notes / tags / chat / reports       │
 │            │                         │
 │            ▼                         │
-│  LLM (OpenAI 兼容 API,默认 DashScope) │
+│  LLM (任意 OpenAI 兼容 API,自带 Key) │
 └──────────────────────────────────────┘
 ```
 
----
+### 🚀 安装
 
-## 核心功能
-
-### 捕获
-- **macOS 全局快捷键悬浮窗**：默认 `⌘⇧O`（应用内菜单 `⌘⇧N`），可在设置中自定义。唤起时自动抓取：前台浏览器 URL+标题（Safari / Chromium 系 / Firefox via AppleScript）、选中文本（合成 `⌘C`）、剪贴板图片。
-- **iOS Share Extension**：任意 App 分享菜单一步入档；离线写入 App Group 共享容器，主 App 激活时自动补传。
-- **iOS 拖拽闭环**：从其他 App 拖内容到 NoteOne（注册了 `CFBundleDocumentTypes` 作为合法落点），也可把笔记 `.draggable` 拖到备忘录/邮件（导出标题+摘要+正文+引用）。
-- **剪贴板图片**（macOS）、**多模态**内容类型：`text / image / video / link / mixed`。
-
-### AI 静默整理（异步流水线）
-- **链接正文抓取**：检测笔记中的 URL，抓取并清洗正文（去 script/style/nav，HTML 实体解码，截断 15k 字符），提取标题/作者/站点名/发布日期回填（不覆盖用户已填字段）。
-- **四维度打标**：`format`（格式）/ `topic`（主题）/ `domain`（领域）/ `module`（模块），带置信度，用户隔离去重。
-- **摘要 + 标题**：≤100 字一句话摘要、≤30 字标题（用户未填时才生成）。
-- **向量化**：`text-embedding-3-small`（1536 维）写入 pgvector，供语义检索。
-- **失败可重试**：抓取失败且正文过短 → 标记 `failed`，客户端「重试」按钮重跑流水线。
-
-### Notty —— 内置 AI 助手
-- 持久化会话（`chat_sessions` / `chat_messages`），支持多会话切换、历史压缩（满 30 条自动摘要保留最近 6 条）。
-- **工具调用**：`read_note`（按序号/UUID 读全文+引用）、`search_notes`（pgvector 语义检索）、`web_fetch`（带 SSRF 防护抓网页）。
-- 客户端：iOS 独立 Tab，macOS 右下角悬浮按钮 → Sheet；笔记处理中显示「Notty 正在细品…」。
-
-### 管理与数据主权
-- **垃圾箱**：软删 → 30 天后自动硬删（每小时 cron），可恢复/立即永久删除。
-- **数据导出**：`GET /api/export` 打包 ZIP（笔记/标签/会话/图片，剔除 API Key）。
-- **账户注销**：`DELETE /api/account` 级联硬删 + 清理上传文件（GDPR / App Store 合规）。
-- **个性化**：每用户可配置自定义 LLM（apiKey / baseUrl / model）；主题（跟随系统/浅色/深色）。
-
----
-
-## 仓库结构
-
-```
-noteone/
-├── apple/                  # iOS + macOS SwiftUI 客户端（Swift 6,iOS 17 / macOS 14）
-│   ├── NoteOne/Sources/    #   Models / Views / Services / macOS / Theme
-│   ├── NoteOneShareExtension/  # iOS 分享扩展(离线入队)
-│   ├── NoteOne.xcodeproj/  #   实际构建工程
-│   ├── Project.swift       #   Tuist 清单(与 project.yml 等价)
-│   └── project.yml         #   XcodeGen 清单
-├── server/                 # REST API + 内嵌 MCP（Node.js / TypeScript / Express 5）
-│   ├── src/routes/         #   auth notes tags search chat chat-sessions uploads settings account export stats
-│   ├── src/services/       #   pipeline enrichment tagging llm web-fetch url-guard 等
-│   ├── src/db/             #   Drizzle schema + client
-│   ├── src/mcp.ts          #   内嵌 MCP(直连 DB,7 工具)
-│   └── drizzle/            #   迁移(0000–0004)
-├── mcp-server/             # 独立 MCP（HTTP 代理 REST API,5 只读向工具,供外部 AI 接入）
-├── docs/                   # 设计文档 / 架构文档 / 迭代记录
-├── docker-compose.yml      # pgvector + api 一键部署
-└── README.md
-```
-
----
-
-## 技术栈
-
-| 层 | 选型 |
-|----|------|
-| 客户端 | SwiftUI（iOS 17 / macOS 14，Swift 6 严格并发），Sign in with Apple |
-| 后端 | Node.js + TypeScript，Express 5，Drizzle ORM |
-| 数据库 | PostgreSQL 16 + pgvector（向量检索 + JSONB 多维标签） |
-| AI | OpenAI 兼容 API（默认 DashScope `compatible-mode`），chat 温度 0.3；Embedding `text-embedding-3-small`(1536) |
-| MCP | `@modelcontextprotocol/sdk`（stdio） |
-| 认证 | Apple Sign In（JWKS 验签） + JWT（30 天） |
-| 测试 | Vitest + Supertest（7 个测试文件，含 SSRF/上传/打标/集成） |
-
-> ⚠️ **默认模型说明**：环境变量沿用 `QWEN_*` 命名、`baseUrl` 指向 DashScope，但 `config.ts` 中 `QWEN_MODEL` 的缺省值当前为 `gpt-5.4-mini`（见 [server/src/config.ts](server/src/config.ts)）。Embedding 始终走默认 provider，**不随用户自定义 LLM 切换**，以保证向量空间一致。
-
----
-
-## 快速开始
-
-### 1. 后端 + 数据库（Docker，推荐）
+#### 后端 + 数据库（推荐 Docker）
 
 ```bash
+git clone https://github.com/TobyChain/noteone.git
 cd noteone
-cp server/.env.example server/.env   # 至少填 JWT_SECRET(≥16 位) 与 QWEN_API_KEY
-# docker-compose 通过环境变量注入 POSTGRES_PASSWORD / JWT_SECRET,二者缺失会 fail-fast
-POSTGRES_PASSWORD=xxx JWT_SECRET=$(openssl rand -hex 24) docker compose up -d
+
+cp server/.env.example server/.env
+# 至少填 JWT_SECRET（≥16 位）
+
+POSTGRES_PASSWORD=your-strong-pwd \
+JWT_SECRET=$(openssl rand -hex 24) \
+docker compose up -d
 ```
 
-数据库映射在 `127.0.0.1:5432`（仅本机），API 在 `:3000`。
+API 监听 `127.0.0.1:3000`，PostgreSQL 仅监听本机 `127.0.0.1:5432`。
 
-### 2. 本地开发后端
+#### 后端本地开发
 
 ```bash
 cd server
-cp .env.example .env       # 填 DATABASE_URL / JWT_SECRET / QWEN_API_KEY
+cp .env.example .env       # 填 DATABASE_URL / JWT_SECRET
 npm install
-npm run db:migrate         # 应用 drizzle 迁移(需先建库并启用 pgvector 扩展)
-npm run dev                # tsx watch,默认 :3000
-npm run test               # Vitest;集成用例需 TEST_DATABASE_URL,缺省自动 skip
+npm run db:migrate         # 应用迁移（需先建库 + 启用 pgvector 扩展）
+npm run dev                # 默认 :3000
+npm test                   # Vitest（集成用例需 TEST_DATABASE_URL）
 ```
 
-本地联调可在 `.env` 设 `ENABLE_DEV_LOGIN=true`，用 `POST /auth/dev-token`（仅非生产生效）跳过 Apple 登录。
+可在 `.env` 设 `ENABLE_DEV_LOGIN=true`，用 `POST /auth/dev-token` 跳过 Apple 登录（仅非生产生效）。
 
-### 3. Apple 客户端
+#### Apple 客户端
 
 ```bash
-open apple/NoteOne.xcodeproj   # 直接用 Xcode 构建工程
+open apple/NoteOne.xcodeproj
 ```
 
-- DEBUG 构建默认连 `http://localhost:3000`，Release 连 `https://api.noteone.app`，也可在「设置」里改服务器地址。
-- DEBUG 登录页提供「开发者快速登录」按钮（走 dev-token）。
-- macOS 选中文本捕获需授予「辅助功能」权限（首次会弹系统授权）。
+要求 **Xcode 16 / iOS 17 / macOS 14 / Swift 6**。
 
----
+- DEBUG 默认连 `http://localhost:3000`，Release 连 `https://api.noteone.app`，可在「设置 → 服务器」修改
+- DEBUG 登录页提供「开发者快速登录」
+- macOS 选中文本捕获需「辅助功能」权限（首次会弹）
 
-## MCP 接入
+### 📖 使用
 
-两套 MCP 实现，用途不同：
+#### 1. 配置 LLM（必填）
 
-| | `server/src/mcp.ts`（内嵌） | `mcp-server/`（独立） |
-|---|---|---|
-| 连接方式 | **直连数据库** | **HTTP 代理 REST API** |
-| 工具数 | 7（含增删改 CRUD） | 5（只读向） |
-| 鉴权 | `MCP_USER_ID` 环境变量 | `NOTEONE_TOKEN`（Bearer JWT） |
-| 适用 | 本机个人自托管 | 外部 AI 客户端接入 |
-| 工具 | `list_notes` `get_note` `create_note` `update_note` `delete_note` `restore_note` `search_notes` `list_tags` | `search_notes` `get_note` `list_tags` `list_notes` `get_topic_summary` |
+NoteOne 是开源项目，**不内置 LLM 服务**，所有 AI 功能（自动打标、摘要、Notty 聊天、写作助手、报告）需要你自带 API Key。打开「设置 → AI 模型」：
 
-> `create_note` 支持 `source_app` 入参：传值时会同步打 `#prompt` + `#{规范化的来源应用}` 两个 format 标签，可把 Claude/Cursor 的对话 prompt 沉淀为笔记。
+| 字段 | 示例 |
+|---|---|
+| API Key | 你的 OpenAI / DashScope / 自部署 vLLM 的 key |
+| Base URL | `https://dashscope.aliyuncs.com/compatible-mode/v1` 或 `https://api.openai.com/v1` |
+| Model | `qwen-turbo` / `gpt-4o-mini` / 任意 OpenAI 兼容模型 |
 
-macOS 客户端「设置 → MCP」提供一键安装（写入 `~/.claude/settings.json` 或 `~/.cursor/mcp.json`）。手动配置示例（内嵌 MCP）：
+未配置时笔记仍可正常保存，AI 步骤会自动跳过。
+
+#### 2. 顺手记一条
+
+- **macOS**: 默认 `⌘⇧O` 唤起悬浮窗（菜单中可改快捷键）。会自动抓取前台浏览器 URL+标题、选中文本、剪贴板图片
+- **iOS**: 在任意 App 里点「分享 → NoteOne」一步入档，离线时入队，下次联网自动补传
+- **拖拽**: iOS 把内容拖到 NoteOne / macOS 拖入主窗口都会唤起捕获页
+
+笔记保存后会自动进入 AI 流水线（抓链接正文 → 打标 → 摘要 → 向量）。
+
+#### 3. 主界面（macOS）
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 写作文件 (md)             │                       │ Notty   │
+│  ├ 周末灵感整理           │   笔记详情 / Markdown │ 写作助手 │
+│  ├ 2026-06 思考           │   编辑器             │  ▌      │
+├──────────────────────────┤   (自动切换)         │ 让我帮你 │
+│ 笔记                      │                       │ 续写… │
+│  🔎 搜索  🎯 类型筛选      │                       │         │
+│  · 今天 · 昨天 · 本月      │                       │         │
+│  ↪ 插入引用 (写作中可见)   │                       │         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+- 点笔记 → 中间显示笔记详情
+- 点 md 文件 → 中间变成 Markdown 编辑器，右侧 Notty 自动切换为「写作助手」模式
+- 写作时左栏笔记每条多一个 ↪️ 按钮，点击直接插入 markdown 引用块到光标处
+
+#### 4. Notty 写作助手
+
+写作页打开时，右栏 Notty 会自动看到你的整篇文档和当前选区。试试这些指令：
+
+- 「帮我把第二段改得更专业一些」（替换选中段落）
+- 「在光标处续写一段对照案例」（光标处插入）
+- 「在文末加上参考文献」（追加到末尾）
+- 「先帮我搜一下笔记里关于 RAG 的，再用一段话总结」（先 search_notes 再 insert）
+
+整篇重写会要求二次确认。
+
+#### 5. MCP 接入（让 Claude / Cursor 直连笔记）
+
+macOS「设置 → MCP 一键安装」可以一键写入 Claude Code / Cursor 配置。手动配置示例（内嵌 MCP，直连 DB）：
 
 ```jsonc
 {
@@ -188,55 +159,113 @@ macOS 客户端「设置 → MCP」提供一键安装（写入 `~/.claude/settin
       "command": "npx",
       "args": ["tsx", "src/mcp.ts"],
       "cwd": "/path/to/noteone/server",
-      "env": { "DATABASE_URL": "...", "MCP_USER_ID": "<你的用户 UUID>", "QWEN_API_KEY": "..." }
+      "env": {
+        "DATABASE_URL": "postgresql://...",
+        "MCP_USER_ID": "<你的用户 UUID>",
+        "QWEN_API_KEY": "...",
+        "QWEN_BASE_URL": "...",
+        "QWEN_MODEL": "..."
+      }
     }
   }
 }
 ```
 
+工具：`list_notes` `get_note` `create_note` `update_note` `delete_note` `restore_note` `search_notes` `list_tags`。`create_note` 接受 `source_app` 入参，会自动打 `#prompt + #{app}` 标签——可把 Claude / Cursor 的对话沉淀为笔记。
+
+### 🔒 安全
+
+- Apple `identityToken` 经 jose 对 Apple JWKS 验签
+- SSRF 防护：链接抓取过滤私网/回环/CGNAT/链路本地/云元数据，逐跳重定向校验
+- `/auth/*` 20 次/15 分；`/api/*` 300 次/分
+- helmet 加固 / 上传 UUID 命名 + 扩展名白名单 / 路径穿越校验
+- 多租户隔离：所有查询按 `user_id` 限定
+- 生产环境拒绝弱 `JWT_SECRET`，`ENABLE_DEV_LOGIN` 在生产恒不生效
+
+### 📂 仓库结构
+
+```
+noteone/
+├── apple/                  # iOS + macOS SwiftUI 客户端
+│   ├── NoteOne/Sources/    #   Models / Views / Services / macOS / Theme
+│   └── NoteOneShareExtension/  # iOS 分享扩展
+├── server/                 # REST API + 内嵌 MCP（Node.js + TS + Express 5）
+│   ├── src/routes/         #   auth notes tags search chat reports …
+│   ├── src/services/       #   pipeline enrichment tagging llm web-fetch
+│   ├── src/middleware/     #   auth logger
+│   ├── src/db/             #   Drizzle schema + client
+│   └── src/mcp.ts          #   内嵌 MCP（直连 DB, 7 工具）
+├── mcp-server/             # 独立 MCP（HTTP 代理 REST API, 5 只读工具）
+├── docs/                   # 设计文档 / 架构文档 / 迭代记录
+├── docker-compose.yml
+└── README.md
+```
+
 ---
 
-## API 一览
+## English
 
-所有 `/api/*` 需 `Authorization: Bearer <JWT>`；`/auth/*` 公开但限流。
+### ✨ Highlights
 
-| 分组 | 端点 |
-|------|------|
-| Auth | `POST /auth/apple`、`POST /auth/dev-token`(dev) |
-| Notes | `POST/GET /api/notes`、`GET /api/notes/:id`、`PATCH /api/notes/:id`、`DELETE /api/notes/:id`、`/restore`、`/permanent`、`/retry`、`/tags`、`GET /api/notes/trash` |
-| Tags | `POST/GET /api/tags`、`DELETE /api/tags/:id` |
-| Search | `POST /api/search`（pgvector 语义检索） |
-| Notty | `GET/POST /api/chat-sessions`、`GET/DELETE /api/chat-sessions/:id`、`POST /api/chat-sessions/:id/messages`；`POST /api/chat`(无状态,旧) |
-| 其他 | `POST /api/uploads/image`、`GET /api/stats`、`GET/PATCH /api/settings`、`GET /api/export`、`DELETE /api/account` |
+- **Hands-free capture** — macOS global hotkey (default ⌘⇧O) and iOS Share Extension. Grabs browser URL + title, selected text, clipboard image, and even DnD targets in one step.
+- **Silent AI organization** — async pipeline fetches the linked article, generates a 30-char title and 100-char summary, tags it across four dimensions, and writes a 1536-d embedding for semantic search.
+- **Local Markdown writer** — Obsidian-style `.md` editor lives at `~/Documents/NoteOne/`, never synced to the server. Edit / preview / split-pane modes with auto-save.
+- **Notty co-writer** — sees your whole document + current selection, and can `insert_text` / `replace_selection` / `append_text` / `rewrite_document`. It can also search your notes or fetch web pages mid-flight to ground its writing.
+- **Notes-as-references in writer** — when you're editing a markdown file, every note in the sidebar shows an "insert citation" button that drops a clean markdown blockquote (title + summary + author/source) at the caret.
+- **MCP for external AIs** — let Claude / Cursor / Codex talk to your notes through `@modelcontextprotocol/sdk`. Eight tools cover read + write + soft-delete + restore.
+- **Daily reports** — Notty reads today's notes, web-searches the keywords, fetches related pages, and renders an HTML report in one of four styles (minimal / academic / dashboard / handwritten) × three depths (brief / deep / action).
+- **Bring-your-own LLM** — open-source builds ship without a bundled provider. Plug in any OpenAI-compatible endpoint (DashScope, OpenAI, self-hosted vLLM, ...). When unconfigured, AI steps are simply skipped — notes still save fine.
+- **Data sovereignty** — full ZIP export (notes / tags / chats / images), GDPR-compliant cascade account deletion, 30-day trash auto-purge.
 
-完整字段与流水线细节见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+### 🚀 Quick start
 
----
+```bash
+git clone https://github.com/TobyChain/noteone.git
+cd noteone
 
-## 安全设计
+cp server/.env.example server/.env
+POSTGRES_PASSWORD=your-strong-pwd \
+JWT_SECRET=$(openssl rand -hex 24) \
+docker compose up -d
 
-- **认证**：Apple `identityToken` 经 `jose` 对 Apple JWKS 验签 + 校验 iss/aud，仅取 `sub` 为 `apple_id`（忽略 body 传入，防注入）。
-- **SSRF 防护**：链接抓取 / `web_fetch` 经 `url-guard` 拦截私网/回环/CGNAT/链路本地/云元数据地址，逐跳重定向校验，DNS 解析全记录检查。
-- **限流**：`/auth/*` 20 次 / 15 分钟；`/api/*` 300 次 / 分钟。
-- **HTTP 加固**：helmet、关闭 `x-powered-by`、CORS 允许名单、10MB body 上限。
-- **上传安全**：扩展名白名单（PNG/JPEG/GIF/WebP/HEIC/HEIF）、UUID 文件名、路径穿越校验。
-- **数据隔离**：所有查询按 `user_id` 限定；标签关联前校验同属一人。
-- **配置守卫**：生产环境弱/默认 `JWT_SECRET` 拒绝启动；`ENABLE_DEV_LOGIN` 在生产恒不生效。
-- **已知缺口**：用户自定义 LLM `apiKey` 当前以**明文**存于 `users.settings`（GET/导出已脱敏，但落库未加密）；内嵌 MCP 的 `list_tags` 缺 `user_id` 过滤。详见架构文档「待办」。
+open apple/NoteOne.xcodeproj   # Xcode 16, iOS 17, macOS 14, Swift 6
+```
 
----
+Then in **Settings → AI Model**, paste your API key, base URL, and model. Done.
 
-## 文档索引
+### 🧰 Tech stack
 
-| 文档 | 说明 |
-|------|------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | **实现现状权威文档**（架构 / 数据模型 / API / MCP / 流水线 / 安全） |
-| [docs/design/2026-06-08-noteone-design.md](docs/design/2026-06-08-noteone-design.md) | 产品设计与技术决策记录（v2.0，含实现现状对照） |
-| [docs/plans/](docs/plans/) | 早期实现计划 |
-| [docs/](docs/) | 各轮迭代实施记录（iteration 1–6、code review、修复记录） |
+| Layer | Choice |
+|-------|--------|
+| Client | SwiftUI (iOS 17 / macOS 14, Swift 6 strict concurrency), Sign in with Apple |
+| Backend | Node.js + TypeScript, Express 5, Drizzle ORM |
+| DB | PostgreSQL 16 + pgvector |
+| AI | Any OpenAI-compatible API (chat temp 0.3, `text-embedding-3-small` 1536-d) |
+| MCP | `@modelcontextprotocol/sdk` (stdio) |
+| Auth | Apple Sign In (JWKS-verified) + JWT (30 d) |
+| Tests | Vitest + Supertest |
+
+### 🛠 API surface
+
+All `/api/*` need `Authorization: Bearer <JWT>`. `/auth/*` is public but rate-limited.
+
+| Group | Endpoints |
+|-------|-----------|
+| Auth | `POST /auth/apple`, `POST /auth/dev-token` (dev) |
+| Notes | `POST/GET /api/notes`, `GET/PATCH/DELETE /api/notes/:id`, `/restore`, `/permanent`, `/retry`, `/tags`, `GET /api/notes/trash` |
+| Tags | `POST/GET /api/tags`, `DELETE /api/tags/:id` |
+| Search | `POST /api/search` (pgvector) |
+| Notty | `GET/POST /api/chat-sessions`, `GET/DELETE /api/chat-sessions/:id`, `POST /api/chat-sessions/:id/messages`, `POST /api/chat-sessions/:id/writer-messages` |
+| Reports | `GET /api/reports`, `POST /api/reports/daily`, `GET/DELETE /api/reports/:id` |
+| Misc | `POST /api/uploads/image`, `GET /api/stats`, `GET/PATCH /api/settings`, `GET /api/export`, `DELETE /api/account` |
+
+### 🔍 Architecture details
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full data model, async pipeline, security posture, and MCP tool surface.
 
 ---
 
 ## License
 
-见 [LICENSE](LICENSE)。半开源策略：客户端、MCP Server、Schema/迁移、部署配置开源；AI 打标 Prompt 工程、高级检索、运营模块不在开源范围。
+See [LICENSE](LICENSE). Half-open-source: client / MCP servers / schema / migrations / deploy configs are open-source. Advanced AI tagging prompts, advanced retrieval, and ops modules are not in scope. /
+半开源策略：客户端、MCP Server、Schema/迁移、部署配置开源；AI 打标 Prompt 工程、高级检索、运营模块不在开源范围。
