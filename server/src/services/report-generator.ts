@@ -43,12 +43,16 @@ export async function generateDailyReport(
   style: ReportStyle = "minimal",
   depth: ReportDepth = "brief",
 ): Promise<{ id: string; status: string; htmlContent: string | null }> {
+  const start = Date.now();
+  console.log(`[report] start userId=${userId.slice(0, 8)} date=${date} style=${style} depth=${depth}`);
+
   // Check for existing report (idempotent)
   const existing = await db.query.dailyReports.findFirst({
     where: and(eq(dailyReports.userId, userId), eq(dailyReports.date, date)),
   });
 
   if (existing && existing.status === "completed") {
+    console.log(`[report] cached userId=${userId.slice(0, 8)} date=${date} duration=${Date.now() - start}ms`);
     return { id: existing.id, status: existing.status, htmlContent: existing.htmlContent };
   }
 
@@ -97,9 +101,10 @@ export async function generateDailyReport(
       })
       .where(eq(dailyReports.id, report.id));
 
+    console.log(`[report] done userId=${userId.slice(0, 8)} date=${date} duration=${Date.now() - start}ms noteCount=${todayNotes.length} sections=${reportData.sections.length}`);
     return { id: report.id, status: "completed", htmlContent: html };
   } catch (err: any) {
-    console.error(`[report-generator] Failed for ${date}:`, err);
+    console.error(`[report] failed userId=${userId.slice(0, 8)} date=${date} duration=${Date.now() - start}ms error=${err?.message}`);
     await db.update(dailyReports)
       .set({
         status: "failed",
@@ -521,8 +526,7 @@ function renderSection(section: ReportSection): string {
       ).join("、")}</div>`
     : "";
 
-  // Simple markdown-to-html: bold, lists, blockquotes
-  const contentHtml = markdownToHtml(section.content);
+  const contentHtml = markdownToHtml(escapeHtml(section.content));
 
   return `<section class="report-section type-${section.type}">
     <h2>${icon} ${escapeHtml(section.title)}</h2>

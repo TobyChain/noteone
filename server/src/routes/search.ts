@@ -25,10 +25,13 @@ router.post("/", async (req: AuthRequest, res) => {
     : null;
 
   try {
+    const embedStart = Date.now();
     const queryEmbedding = await generateEmbedding(query);
+    const embedDuration = Date.now() - embedStart;
     const vectorStr = `[${queryEmbedding.join(",")}]`;
     const typeFilter = contentType ? sql`AND content_type = ${contentType}` : sql``;
 
+    const searchStart = Date.now();
     const results = await db.execute(sql`
       SELECT
         id, title, content, content_type, source_url,
@@ -43,6 +46,9 @@ router.post("/", async (req: AuthRequest, res) => {
       ORDER BY embedding <=> ${vectorStr}::vector
       LIMIT ${limit}
     `);
+    const searchDuration = Date.now() - searchStart;
+    const resultCount = Array.isArray(results) ? results.length : (results as any).rows?.length ?? 0;
+    console.log(`[search] queryLen=${query.length} embedDuration=${embedDuration}ms searchDuration=${searchDuration}ms results=${resultCount}`);
 
     res.json({ results });
   } catch (error: any) {

@@ -34,6 +34,7 @@ async function readBodyLimited(res: Response, maxBytes: number): Promise<string>
 }
 
 export async function fetchUrlContent(url: string, maxLength = 15000): Promise<FetchResult> {
+  const start = Date.now();
   try {
     let currentUrl = url;
     let res: Response | undefined;
@@ -92,6 +93,7 @@ export async function fetchUrlContent(url: string, maxLength = 15000): Promise<F
     return { url, title, content, author, siteName, publishedDate };
   } catch (err: any) {
     const msg = err.name === "AbortError" ? "Timeout after 10s" : err.message;
+    console.log(`[web-fetch] url=${url.slice(0, 80)} duration=${Date.now() - start}ms status=error error=${msg}`);
     return { url, title: "", content: "", error: msg };
   }
 }
