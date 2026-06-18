@@ -107,10 +107,10 @@ struct SettingsView: View {
             }
             #endif
 
-            Section("AI 模型（留空则用服务端默认）") {
+            Section {
                 SecureField(llmHasApiKey ? "API Key（已设置，输入可替换）" : "API Key", text: $llmApiKey)
-                TextField("Base URL", text: $llmBaseUrl)
-                TextField("模型名", text: $llmModel)
+                TextField("Base URL（如 https://dashscope.aliyuncs.com/compatible-mode/v1）", text: $llmBaseUrl)
+                TextField("模型名（如 qwen-turbo / gpt-4o-mini）", text: $llmModel)
                 HStack {
                     if llmSaved {
                         Label("已保存", systemImage: "checkmark.circle.fill")
@@ -123,6 +123,10 @@ struct SettingsView: View {
                     }
                     .disabled(llmSaving)
                 }
+            } header: {
+                Text("AI 模型（自带 API Key）")
+            } footer: {
+                Text("NoteOne 开源版不内置 LLM 服务，请填写任一 OpenAI 兼容的 API（DashScope / OpenAI / 自部署 vLLM 等）启用 AI 功能。未配置时笔记仍可正常保存，但 Notty 聊天、自动打标、摘要、报告等功能将不可用。")
             }
 
             #if !os(macOS)
@@ -135,7 +139,7 @@ struct SettingsView: View {
             } header: {
                 Text("每日报告")
             } footer: {
-                Text("Notty 会在指定时间提醒你生成今日灵感报告。报告风格和深度可在"报告"页面调整。")
+                Text("Notty 会在指定时间提醒你生成今日灵感报告。报告风格和深度可在报告页面调整。")
             }
             .onChange(of: reportEnabled) { _, newValue in
                 UserDefaults.standard.reportEnabled = newValue

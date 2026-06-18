@@ -18,6 +18,7 @@ export async function tagNote(
   contentType: string,
   llmConfig?: LLMConfig,
 ): Promise<TagResult[]> {
+  const start = Date.now();
   const prompt = `分析以下内容，返回 JSON 数组格式的多维度标签。
 
 每个标签需包含：
@@ -87,5 +88,6 @@ export async function tagNote(
     }).onConflictDoNothing();
   }
 
+  console.log(`[tagging] noteId=${noteId} duration=${Date.now() - start}ms parsedTags=${parsed.length}`);
   return parsed;
 }

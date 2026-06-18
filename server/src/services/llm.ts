@@ -6,6 +6,21 @@ export interface LLMConfig {
   model: string;
 }
 
+export class LLMNotConfiguredError extends Error {
+  constructor() {
+    super("LLM not configured: set apiKey + baseUrl + model in user settings or QWEN_* env vars");
+    this.name = "LLMNotConfiguredError";
+  }
+}
+
+export function isLLMConfigured(cfg: LLMConfig): boolean {
+  return cfg.apiKey.trim() !== "" && cfg.baseUrl.trim() !== "" && cfg.model.trim() !== "";
+}
+
+function assertConfigured(cfg: LLMConfig): void {
+  if (!isLLMConfigured(cfg)) throw new LLMNotConfiguredError();
+}
+
 export function getDefaultLLMConfig(): LLMConfig {
   return {
     apiKey: config.qwen.apiKey,
@@ -19,6 +34,8 @@ export async function chatCompletion(
   llmConfig?: LLMConfig,
 ): Promise<string> {
   const cfg = llmConfig ?? getDefaultLLMConfig();
+  assertConfigured(cfg);
+  const start = Date.now();
 
   const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
     method: "POST",
@@ -34,10 +51,15 @@ export async function chatCompletion(
   });
 
   if (!res.ok) {
-    throw new Error(`LLM API error: ${res.status} ${await res.text()}`);
+    const body = await res.text();
+    console.error(`[llm] chat-completion model=${cfg.model} duration=${Date.now() - start}ms status=error code=${res.status}`);
+    throw new Error(`LLM API error: ${res.status} ${body}`);
   }
 
   const data: any = await res.json();
+  const duration = Date.now() - start;
+  const usage = data.usage;
+  console.log(`[llm] chat-completion model=${cfg.model} duration=${duration}ms tokens=${usage?.total_tokens ?? "?"}`);
   return data.choices[0].message.content;
 }
 
@@ -60,9 +82,13 @@ export async function chatCompletionWithTools(
   maxIterations = 3,
 ): Promise<string> {
   const cfg = llmConfig ?? getDefaultLLMConfig();
+  assertConfigured(cfg);
   const conversationMessages = [...messages];
+  const totalStart = Date.now();
+  let toolCallCount = 0;
 
   for (let i = 0; i < maxIterations; i++) {
+    const iterStart = Date.now();
     const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -78,13 +104,17 @@ export async function chatCompletionWithTools(
     });
 
     if (!res.ok) {
-      throw new Error(`LLM API error: ${res.status} ${await res.text()}`);
+      const body = await res.text();
+      console.error(`[llm] tool-completion iter=${i} model=${cfg.model} duration=${Date.now() - iterStart}ms status=error code=${res.status}`);
+      throw new Error(`LLM API error: ${res.status} ${body}`);
     }
 
     const data: any = await res.json();
     const choice = data.choices[0];
+    console.log(`[llm] tool-completion iter=${i} model=${cfg.model} duration=${Date.now() - iterStart}ms tools=${choice.message.tool_calls?.length ?? 0}`);
 
     if (!choice.message.tool_calls || choice.message.tool_calls.length === 0) {
+      console.log(`[llm] tool-completion-done iterations=${i + 1} toolCalls=${toolCallCount} totalDuration=${Date.now() - totalStart}ms`);
       return choice.message.content ?? "";
     }
 
@@ -92,15 +122,28 @@ export async function chatCompletionWithTools(
 
     for (const toolCall of choice.message.tool_calls) {
       const fnName = toolCall.function.name;
-      const fnArgs = JSON.parse(toolCall.function.arguments);
+      let fnArgs: Record<string, any>;
+      try {
+        fnArgs = JSON.parse(toolCall.function.arguments);
+      } catch {
+        conversationMessages.push({
+          role: "tool",
+          content: `Error: malformed arguments for tool "${fnName}"`,
+          tool_call_id: toolCall.id,
+        });
+        continue;
+      }
       const handler = toolHandlers[fnName];
 
       let result: string;
       if (handler) {
+        const fnStart = Date.now();
         result = await handler(fnArgs);
+        console.log(`[llm] tool-exec name=${fnName} duration=${Date.now() - fnStart}ms`);
       } else {
         result = `Error: unknown tool "${fnName}"`;
       }
+      toolCallCount++;
 
       conversationMessages.push({
         role: "tool",
@@ -136,6 +179,8 @@ export async function generateEmbedding(
   llmConfig?: LLMConfig,
 ): Promise<number[]> {
   const cfg = llmConfig ?? getDefaultLLMConfig();
+  assertConfigured(cfg);
+  const start = Date.now();
 
   const res = await fetch(`${cfg.baseUrl}/embeddings`, {
     method: "POST",
@@ -151,9 +196,12 @@ export async function generateEmbedding(
   });
 
   if (!res.ok) {
-    throw new Error(`Embedding API error: ${res.status} ${await res.text()}`);
+    const body = await res.text();
+    console.error(`[llm] embedding duration=${Date.now() - start}ms status=error code=${res.status}`);
+    throw new Error(`Embedding API error: ${res.status} ${body}`);
   }
 
   const data: any = await res.json();
+  console.log(`[llm] embedding duration=${Date.now() - start}ms inputLen=${text.length}`);
   return data.data[0].embedding;
 }

@@ -9,12 +9,13 @@ export async function enrichNote(
   contentType: string,
   llmConfig?: LLMConfig,
 ): Promise<void> {
+  const start = Date.now();
   const [summary, title, embedding] = await Promise.all([
     generateSummary(content, llmConfig),
     generateTitle(content, llmConfig),
-    // Embeddings always use the default provider to keep the stored vector space consistent.
     generateEmbedding(content),
   ]);
+  console.log(`[enrichment] noteId=${noteId} duration=${Date.now() - start}ms summaryLen=${summary.length} titleLen=${title.length}`);
 
   await db.update(notes)
     .set({

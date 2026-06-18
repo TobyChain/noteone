@@ -1,6 +1,6 @@
 import { tagNote } from "./tagging.js";
 import { enrichNote } from "./enrichment.js";
-import { LLMConfig } from "./llm.js";
+import { LLMConfig, isLLMConfigured, LLMNotConfiguredError } from "./llm.js";
 import { getUserChatConfig } from "./user-config.js";
 import { fetchUrlContent } from "./web-fetch.js";
 import { db } from "../db/client.js";
@@ -12,6 +12,13 @@ async function markFailed(noteId: string, aiSummary: string): Promise<void> {
     .set({ status: "failed", aiSummary, updatedAt: new Date() })
     .where(eq(notes.id, noteId))
     .catch((e) => console.error(`[pipeline] failed to mark note ${noteId} as failed:`, e));
+}
+
+async function markActiveNoAI(noteId: string): Promise<void> {
+  await db.update(notes)
+    .set({ status: "active", updatedAt: new Date() })
+    .where(eq(notes.id, noteId))
+    .catch((e) => console.error(`[pipeline] failed to mark note ${noteId} as active (no-AI):`, e));
 }
 
 // Pull the first http(s) URL out of free text, so pasted/shared links still get
@@ -29,32 +36,32 @@ export async function processNote(
   sourceUrl?: string | null,
   llmConfig?: LLMConfig,
 ): Promise<void> {
+  const start = Date.now();
+  console.log(`[pipeline] start noteId=${noteId} userId=${userId.slice(0, 8)} contentType=${contentType} contentLen=${content.length}`);
   try {
-    // Use the note owner's custom chat model if configured, else the global default.
     const chatConfig = llmConfig ?? (await getUserChatConfig(userId));
+    if (!isLLMConfigured(chatConfig)) {
+      await markActiveNoAI(noteId);
+      console.log(`[pipeline] done noteId=${noteId} duration=${Date.now() - start}ms status=active reason=llm-not-configured`);
+      return;
+    }
     let effectiveContent = content;
     let effectiveContentType = contentType;
 
-    // For link/text notes we go "inside" the link: fetch the page so that the
-    // title / summary / tags describe the actual article, not the bare URL.
-    // image/video notes point at the media itself, so they are never fetched.
     const isMedia = contentType === "image" || contentType === "video";
-    // For "mixed" notes the sourceUrl is an uploaded image (not a fetchable page), so only
-    // consider a real link found inside the user's text; for text/link notes use sourceUrl too.
     const linkSource = contentType === "mixed" ? extractFirstUrl(content) : (sourceUrl || extractFirstUrl(content));
     const fetchUrl = isMedia ? null : linkSource;
-    // The note is "essentially a link" when its body is just the URL (no commentary).
     const userText = fetchUrl ? content.replace(fetchUrl, "").trim() : content.trim();
 
     if (fetchUrl) {
+      const fetchStart = Date.now();
       const fetched = await fetchUrlContent(fetchUrl);
+      console.log(`[pipeline] url-fetch noteId=${noteId} url=${fetchUrl.slice(0, 80)} duration=${Date.now() - fetchStart}ms status=${fetched.error ? "error" : "ok"}`);
       if (!fetched.error && fetched.content) {
-        // A bare-link note is really a link: reclassify so the format tag + UI match.
         if (contentType === "text" && userText.length === 0) {
           effectiveContentType = "link";
         }
 
-        // Backfill source/author metadata for citations, only where not already set.
         const meta: Record<string, unknown> = {
           contentType: effectiveContentType,
           rawContent: {
@@ -64,7 +71,6 @@ export async function processNote(
             fetchedAt: new Date().toISOString(),
           },
         };
-        // Record the link we actually fetched if the note didn't carry one.
         if (!sourceUrl) meta.sourceUrl = fetchUrl;
         if (fetched.author) meta.author = sql`COALESCE(${notes.author}, ${fetched.author})`;
         if (fetched.siteName) meta.authorOrg = sql`COALESCE(${notes.authorOrg}, ${fetched.siteName})`;
@@ -74,41 +80,45 @@ export async function processNote(
           .set(meta)
           .where(eq(notes.id, noteId));
 
-        // Page content leads so the LLM titles/summarizes/tags the article itself;
-        // any user commentary is kept as secondary context.
         effectiveContent = userText.length > 0
           ? `用户笔记：${userText}\n\n来源页面「${fetched.title}」内容：\n${fetched.content}`
           : `来源页面「${fetched.title}」内容：\n${fetched.content}`;
       } else {
-        console.error(`[pipeline] URL fetch failed for ${fetchUrl}:`, fetched.error);
-        // A note that is nothing but an unreachable link has no salvageable content.
+        console.error(`[pipeline] url-fetch-failed noteId=${noteId} url=${fetchUrl} error=${fetched.error}`);
         if (userText.length < 10) {
           await markFailed(noteId, "内容获取失败，请检查链接或重新输入");
+          console.log(`[pipeline] done noteId=${noteId} duration=${Date.now() - start}ms status=failed reason=url-fetch-empty`);
           return;
         }
       }
     }
 
+    const aiStart = Date.now();
     const results = await Promise.allSettled([
       tagNote(noteId, userId, effectiveContent, effectiveContentType, chatConfig),
       enrichNote(noteId, effectiveContent, effectiveContentType, chatConfig),
     ]);
+    console.log(`[pipeline] ai-parallel noteId=${noteId} duration=${Date.now() - aiStart}ms tagging=${results[0].status} enrichment=${results[1].status}`);
 
-    // Enrichment is the critical step (it sets status -> active). If it failed, the note failed.
     if (results[1].status === "rejected") {
-      console.error(`[pipeline] enrichment failed for note ${noteId}:`, results[1].reason);
+      console.error(`[pipeline] enrichment-failed noteId=${noteId}:`, results[1].reason);
       await markFailed(noteId, "AI 处理失败");
+      console.log(`[pipeline] done noteId=${noteId} duration=${Date.now() - start}ms status=failed reason=enrichment`);
       return;
     }
 
-    // Tagging failure is non-fatal — the note is still usable.
     if (results[0].status === "rejected") {
-      console.error(`[pipeline] tagging failed for note ${noteId}:`, results[0].reason);
-    } else {
-      console.log(`[pipeline] Note ${noteId} processed successfully`);
+      console.error(`[pipeline] tagging-failed noteId=${noteId}:`, results[0].reason);
     }
+
+    console.log(`[pipeline] done noteId=${noteId} duration=${Date.now() - start}ms status=active`);
   } catch (err) {
-    console.error(`[pipeline] unexpected error for note ${noteId}:`, err);
+    if (err instanceof LLMNotConfiguredError) {
+      await markActiveNoAI(noteId);
+      console.log(`[pipeline] done noteId=${noteId} duration=${Date.now() - start}ms status=active reason=llm-not-configured`);
+      return;
+    }
+    console.error(`[pipeline] unexpected-error noteId=${noteId} duration=${Date.now() - start}ms:`, err);
     await markFailed(noteId, "AI 处理失败");
   }
 }

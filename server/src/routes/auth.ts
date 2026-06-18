@@ -36,12 +36,14 @@ router.post("/apple", async (req, res) => {
       audience: config.apple.clientIds,
     });
     if (!payload.sub) {
+      console.log(`[auth] apple-login status=failed reason=missing-subject`);
       res.status(401).json({ error: "Invalid Apple token: missing subject" });
       return;
     }
     appleId = payload.sub;
     if (typeof payload.email === "string") tokenEmail = payload.email;
   } catch {
+    console.log(`[auth] apple-login status=failed reason=invalid-token`);
     res.status(401).json({ error: "Invalid Apple identity token" });
     return;
   }
@@ -50,10 +52,10 @@ router.post("/apple", async (req, res) => {
     where: eq(users.appleId, appleId),
   });
 
+  const isNewUser = !user;
   if (!user) {
     const [created] = await db.insert(users).values({
       appleId,
-      // prefer the verified email from the token; fall back to client-provided on first sign-in
       email: tokenEmail || email || null,
       name: name || null,
     }).returning();
@@ -61,6 +63,7 @@ router.post("/apple", async (req, res) => {
   }
 
   const token = issueToken(user.id);
+  console.log(`[auth] apple-login status=ok userId=${user.id.slice(0, 8)} newUser=${isNewUser}`);
   res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
 });
 
@@ -88,6 +91,7 @@ router.post("/dev-token", async (req, res) => {
   }
 
   const token = issueToken(user.id);
+  console.log(`[auth] dev-login status=ok userId=${user.id.slice(0, 8)} name=${name}`);
   res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
 });
 

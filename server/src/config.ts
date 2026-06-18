@@ -39,10 +39,14 @@ export const config = {
   },
   // CORS allow-list; empty => reflect request origin (dev convenience)
   allowedOrigins: list("ALLOWED_ORIGINS"),
+  // LLM defaults intentionally empty — open-source NoteOne ships without a bundled provider.
+  // Users supply their own apiKey / baseUrl / model via PATCH /api/settings (per-user) or
+  // QWEN_* env vars (server-wide). When unconfigured, AI features (tagging / summary / Notty
+  // / report) are skipped gracefully and notes still save as plain text.
   qwen: {
     apiKey: process.env.QWEN_API_KEY || "",
-    baseUrl: process.env.QWEN_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    model: process.env.QWEN_MODEL || "gpt-5.4-mini",
+    baseUrl: process.env.QWEN_BASE_URL || "",
+    model: process.env.QWEN_MODEL || "",
   },
   search: {
     provider: (process.env.SEARCH_PROVIDER as "duckduckgo" | "tavily" | "bing") || "duckduckgo",
