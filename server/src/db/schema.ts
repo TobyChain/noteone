@@ -88,6 +88,8 @@ export const chatMessages = pgTable("chat_messages", {
   role: text("role").notNull(),
   content: text("content").notNull(),
   isSummary: boolean("is_summary").notNull().default(false),
+  toolCalls: jsonb("tool_calls"),
+  toolCallId: text("tool_call_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index("chat_messages_session_id_idx").on(table.sessionId),

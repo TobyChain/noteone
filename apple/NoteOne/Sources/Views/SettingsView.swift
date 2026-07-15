@@ -8,7 +8,7 @@ import UIKit
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthService
     @AppStorage("appTheme") private var selectedTheme: String = AppTheme.system.rawValue
-    @State private var serverURL = "http://localhost:3000"
+    @State private var serverPort = "3000"
     @State private var stats: StatsResponse?
 
     @State private var llmApiKey = ""
@@ -94,7 +94,26 @@ struct SettingsView: View {
             }
 
             Section("服务器") {
-                TextField("API 地址", text: $serverURL)
+                HStack {
+                    Text("端口")
+                    TextField("3000", text: $serverPort)
+                        .frame(width: 80)
+                    #if os(macOS)
+                        .onChange(of: serverPort) { _, newValue in
+                            let filtered = newValue.filter { $0.isNumber }
+                            if filtered != newValue { serverPort = filtered }
+                            if let p = Int(filtered), p < 1 || p > 65535 {
+                                serverPort = String(filtered.prefix(5))
+                            }
+                            if let port = Int(serverPort) {
+                                Task { await APIClient.shared.setPort(port) }
+                            }
+                        }
+                    #endif
+                    Text("本地服务端口，默认 3000")
+                        .font(.caption)
+                        .foregroundStyle(Color.inkTertiary)
+                }
             }
 
             #if os(macOS)
@@ -109,8 +128,8 @@ struct SettingsView: View {
 
             Section {
                 SecureField(llmHasApiKey ? "API Key（已设置，输入可替换）" : "API Key", text: $llmApiKey)
-                TextField("Base URL（如 https://dashscope.aliyuncs.com/compatible-mode/v1）", text: $llmBaseUrl)
-                TextField("模型名（如 qwen-turbo / gpt-4o-mini）", text: $llmModel)
+                TextField("Base URL", text: $llmBaseUrl)
+                TextField("模型名", text: $llmModel)
                 HStack {
                     if llmSaved {
                         Label("已保存", systemImage: "checkmark.circle.fill")
@@ -296,12 +315,16 @@ struct HotkeyRecorderField: View {
     @State private var monitor: Any?
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             Text("快捷键")
             Spacer()
             Text(displayString)
                 .font(.system(.body, design: .monospaced))
                 .foregroundStyle(recording ? Color.accent : Color.ink)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.canvasSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
             Button(recording ? "按下组合键…(Esc 取消)" : "修改") {
                 recording ? stopRecording() : startRecording()
             }

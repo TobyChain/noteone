@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ascan-20260611</title>
+  <style>/* ── Notion-inspired Design System for Ascan Daily Report ── */
+:root {
+  color-scheme: light;
+  /* Surface & Canvas */
+  --canvas: #ffffff;
+  --surface: #f7f7f5;
+  --surface-soft: #f1f1ef;
+  /* Borders */
+  --hairline: #e8e7e4;
+  --hairline-soft: #eeeeed;
+  --hairline-strong: #d3d1cb;
+  /* Text */
+  --ink-deep: #0f0f0f;
+  --ink: #191919;
+  --charcoal: #37352f;
+  --slate: #6b6b6b;
+  --steel: #9b9a97;
+  --stone: #b4b3af;
+  --muted: #c4c3bf;
+  /* Brand Accents */
+  --primary: #6c47ff;
+  --primary-pressed: #5a3ad6;
+  --link-blue: #2383e2;
+  /* Semantic Tints */
+  --tint-lavender: #e8deee;
+  --tint-peach: #faebdd;
+  --tint-mint: #dbeddb;
+  --tint-sky: #d3e5ef;
+  --tint-yellow: #fdecc8;
+  --brand-purple-800: #4a2d8a;
+  --brand-orange-deep: #b05c1a;
+  --brand-green: #2d7d46;
+  /* Elevation */
+  --shadow-subtle: rgba(15, 15, 15, 0.04) 0px 1px 2px 0px;
+  --shadow-card: rgba(15, 15, 15, 0.06) 0px 3px 8px 0px;
+  /* Spacing base unit: 4px */
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 12px;
+  --sp-lg: 16px;
+  --sp-xl: 24px;
+  --sp-xxl: 32px;
+  --sp-section: 48px;
+  /* Radius */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-full: 9999px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--canvas);
+  color: var(--charcoal);
+  font-family: Inter, -apple-system, system-ui, "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--link-blue); text-decoration: none; transition: color 0.15s ease; }
+a:hover { text-decoration: underline; color: #1a6dc2; }
+
+/* ── Page Container ── */
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--sp-xxl) var(--sp-xl) var(--sp-section);
+}
+
+/* ── Hero / Header ── */
+.hero {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xxl) var(--sp-xl);
+  margin-bottom: var(--sp-section);
+}
+.hero h1 {
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-sm);
+}
+.hero p {
+  font-size: 16px;
+  color: var(--slate);
+  line-height: 1.55;
+}
+
+/* ── Section Headings ── */
+.report-section { margin-top: var(--sp-section); }
+.report-section > h2 {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-lg);
+  padding-bottom: var(--sp-sm);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xl);
+  margin-bottom: var(--sp-lg);
+  transition: box-shadow 0.15s ease;
+}
+.card:hover { box-shadow: var(--shadow-card); }
+.card h3 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-sm);
+}
+.card h4 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+  margin-bottom: var(--sp-xs);
+}
+
+/* ── Meta & Muted Text ── */
+.meta {
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.5;
+  margin-bottom: var(--sp-sm);
+}
+.muted, .section-note, .empty-state {
+  font-size: 14px;
+  color: var(--steel);
+  line-height: 1.5;
+}
+.empty-state {
+  padding: var(--sp-xl);
+  text-align: center;
+  background: var(--surface);
+  border-radius: var(--r-md);
+}
+
+/* ── Lead (one-liner emphasis) ── */
+.lead {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.55;
+  margin-bottom: var(--sp-sm);
+}
+
+/* ── Tags ── */
+.tags { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin: var(--sp-sm) 0; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--r-sm);
+  background: var(--tint-lavender);
+  color: var(--brand-purple-800);
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ── Recommendation Callout ── */
+.recommendation {
+  border-left: 3px solid var(--primary);
+  background: var(--surface);
+  padding: var(--sp-md) var(--sp-lg);
+  border-radius: var(--r-md);
+  margin-top: var(--sp-md);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--charcoal);
+}
+
+/* ── Summary Block ── */
+.summary-block {
+  margin-top: var(--sp-md);
+  padding-top: var(--sp-md);
+  border-top: 1px solid var(--hairline-soft);
+}
+.summary-block h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--sp-xs);
+}
+.summary-block p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--charcoal);
+}
+
+/* ── Links Row ── */
+.links {
+  font-size: 14px;
+  font-weight: 500;
+  margin: var(--sp-sm) 0;
+}
+.links a { margin-right: var(--sp-xs); }
+
+/* ── Tables ── */
+.table-wrapper { overflow-x: auto; margin: var(--sp-lg) 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  font-size: 14px;
+}
+th {
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--ink);
+  padding: var(--sp-md) var(--sp-lg);
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+}
+td {
+  padding: var(--sp-md) var(--sp-lg);
+  border-bottom: 1px solid var(--hairline-soft);
+  color: var(--charcoal);
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: none; }
+
+/* ── Meta List (repo details) ── */
+.meta-list {
+  padding-left: var(--sp-xl);
+  margin: var(--sp-sm) 0;
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.6;
+}
+.meta-list li { margin-bottom: var(--sp-xs); }
+.meta-list strong { color: var(--charcoal); font-weight: 500; }
+
+/* ── Footer ── */
+.footer {
+  margin-top: var(--sp-section);
+  padding-top: var(--sp-lg);
+  border-top: 1px solid var(--hairline);
+  color: var(--steel);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .page { padding: var(--sp-lg) var(--sp-md) var(--sp-xxl); }
+  .hero { padding: var(--sp-xl) var(--sp-lg); }
+  .hero h1 { font-size: 28px; }
+  .report-section > h2 { font-size: 22px; }
+  .card { padding: var(--sp-lg); }
+  .card h3 { font-size: 18px; }
+  th, td { padding: var(--sp-sm) var(--sp-md); }
+}/* ── TOC Outline Card ── */
+.toc-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-section);
+  overflow: hidden;
+}
+.toc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-md) var(--sp-lg);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+.toc-card-header:hover { background: var(--surface-soft); }
+.toc-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.3px;
+}
+.toc-card-toggle {
+  font-size: 13px;
+  color: var(--steel);
+  transition: transform 0.2s ease;
+}
+.toc-card.collapsed .toc-card-toggle { transform: rotate(-90deg); }
+.toc-list {
+  list-style: none;
+  padding: 0 var(--sp-lg) var(--sp-md);
+  margin: 0;
+}
+.toc-card.collapsed .toc-list { display: none; }
+.toc-entry {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  color: var(--charcoal);
+  transition: background 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+}
+.toc-entry:hover { background: var(--surface-soft); text-decoration: none; color: var(--ink); }
+.toc-entry.active { background: var(--tint-lavender); color: var(--brand-purple-800); font-weight: 500; }
+.toc-entry-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-full);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+  margin-right: var(--sp-sm);
+  flex-shrink: 0;
+}
+.toc-entry.active .toc-entry-num { background: var(--primary); border-color: var(--primary); color: #fff; }
+.toc-entry-text { flex: 1; }
+.toc-entry-count {
+  font-size: 12px;
+  color: var(--steel);
+  margin-left: var(--sp-sm);
+  flex-shrink: 0;
+}
+
+/* ── Floating Side Navigator (desktop only) ── */
+.toc-floating {
+  position: fixed;
+  left: calc(50% - 500px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-md);
+  padding: var(--sp-md);
+}
+.toc-floating-label {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--charcoal);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: 4px 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  box-shadow: var(--shadow-subtle);
+}
+.toc-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-full);
+  background: var(--muted);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+.toc-dot:hover { background: var(--steel); }
+.toc-dot:hover .toc-floating-label { opacity: 1; }
+.toc-dot.active { background: var(--primary); border-color: var(--primary); transform: scale(1.3); }
+@media (max-width: 1100px) { .toc-floating { display: none; } }
+</style>
+</head>
+<body>
+  <div class="toc-floating">
+  <span class="toc-dot" data-target="arxiv-papers"><span class="toc-floating-label">Part 1 · arXiv 论文精选</span></span>
+  <span class="toc-dot" data-target="github-repos"><span class="toc-floating-label">Part 2 · GitHub 项目挖掘</span></span>
+  <span class="toc-dot" data-target="official-tracker"><span class="toc-floating-label">Part 3 · 官方动态跟踪</span></span>
+  <span class="toc-dot" data-target="blog-subs"><span class="toc-floating-label">Part 4 · 独立博客订阅</span></span>
+  </div>
+  <main class="page">
+    <header class="hero">
+      <h1>Ascan-20260611</h1>
+      <p>科技前沿日报 · 2026-06-11 · arXiv 论文精选 + GitHub 项目挖掘 + 官方动态跟踪</p>
+    </header>
+
+    <nav class="toc-card" id="toc-card">
+      <div class="toc-card-header">
+        <span class="toc-card-title">📑 大纲</span>
+        <span class="toc-card-toggle">▼</span>
+      </div>
+      <div class="toc-list">
+      <a href="#arxiv-papers" class="toc-entry" data-target="arxiv-papers"><span class="toc-entry-num">Part 1</span><span class="toc-entry-text">arXiv 论文精选</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#github-repos" class="toc-entry" data-target="github-repos"><span class="toc-entry-num">Part 2</span><span class="toc-entry-text">GitHub 项目挖掘</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#official-tracker" class="toc-entry" data-target="official-tracker"><span class="toc-entry-num">Part 3</span><span class="toc-entry-text">官方动态跟踪</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#blog-subs" class="toc-entry" data-target="blog-subs"><span class="toc-entry-num">Part 4</span><span class="toc-entry-text">独立博客订阅</span><span class="toc-entry-count">无</span></a>
+      </div>
+    </nav>
+
+    <section class="report-section" id="arxiv-papers">
+      <h2>Part 1 — arXiv 论文精选</h2>
+      <div class="report-list arxiv-list" data-date="2026-06-10">
+<article class="card paper-card">
+<h3>1. Atomic Intent Reasoning: Bringing LLM Semantics to Industrial Cross-Domain Recommendations</h3>
+<p class="meta"><strong>作者：</strong>Zhuohang Jiang, Yuxin Chen, Shijie Wang, Haohao Qu, Zhou Jindong, Wenqi Fan, Li Qing, Dongxu Liang, Jun Wang</p>
+<div class="tags"><span class="tag">product_recommend</span><span class="tag">intent_understand</span></div>
+<p><strong>一句话总结：</strong>用大模型理解用户在不同平台的行为意图，帮电商平台更准确预测用户想买什么。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.10357" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.10357.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>跨域推荐是内容到电商的核心问题，目标是利用用户内容互动推断购买意图。现实场景面临语义差异大、行为序列噪声多等挑战。尽管大语言模型具有强大语义理解能力，但毫秒级延迟使其难以直接应用于在线推荐系统。本文提出AIR框架，在离线阶段迁移LLM推理，通过高效检索和组合动态构建用户意图表示，实现约400倍推理加速并保持语义一致性。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>为电商跨域推荐提供新思路，通过离线预处理大模型语义理解提升在线推荐效率，可应用于内容到商品的智能推荐、用户意图识别等场景。</p>
+</article>
+</div>
+    </section>
+
+    <section class="report-section" id="github-repos">
+      <h2>Part 2 — GitHub 项目挖掘</h2>
+      <div class="report-list github-list" data-date="20260610">
+<p class="section-note">聚焦电商 AI 应用相关项目（数字员工/商品推荐/商品巡检/电商客服/智能体框架/意图理解），共发现 80 个仓库。</p>
+<h3>今日精选（高度相关，共 8 个）</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>项目</th><th>语言</th><th>Stars</th><th>一句话描述</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/MemoriLabs/Memori" target="_blank" rel="noopener noreferrer">MemoriLabs/Memori</a></td><td>Python</td><td>⭐15k</td><td>让AI助手记住对话和操作历史，变成有记忆的智能服务</td></tr>
+<tr><td><a href="https://github.com/2FastLabs/agent-squad" target="_blank" rel="noopener noreferrer">2FastLabs/agent-squad</a></td><td>Python</td><td>⭐7.6k</td><td>管理多个AI助手协同工作的框架，让它们一起处理复杂对话任务</td></tr>
+<tr><td><a href="https://github.com/plastic-labs/honcho" target="_blank" rel="noopener noreferrer">plastic-labs/honcho</a></td><td>Python</td><td>⭐5.0k</td><td>为AI智能体提供记忆存储和管理功能，让AI记住对话历史和用户信息</td></tr>
+<tr><td><a href="https://github.com/SciSharp/BotSharp" target="_blank" rel="noopener noreferrer">SciSharp/BotSharp</a></td><td>C#</td><td>⭐3.1k</td><td>让.NET开发者轻松构建AI聊天机器人和多智能体系统</td></tr>
+<tr><td><a href="https://github.com/AlibabaResearch/DAMO-ConvAI" target="_blank" rel="noopener noreferrer">AlibabaResearch/DAMO-ConvAI</a></td><td>Python</td><td>⭐1.6k</td><td>阿里达摩院对话AI平台，让机器具备多轮对话和智能交互能力</td></tr>
+<tr><td><a href="https://github.com/777genius/agent-teams-ai" target="_blank" rel="noopener noreferrer">777genius/agent-teams-ai</a></td><td>TypeScript</td><td>⭐1.3k</td><td>让AI代理团队自主协作完成任务，用户只需看看板下指令</td></tr>
+<tr><td><a href="https://github.com/inkeep/agents" target="_blank" rel="noopener noreferrer">inkeep/agents</a></td><td>TypeScript</td><td>⭐1.2k</td><td>用可视化拖拽或TypeScript代码创建AI助手，支持双向同步编辑</td></tr>
+<tr><td><a href="https://github.com/openshiporg/openship" target="_blank" rel="noopener noreferrer">openshiporg/openship</a></td><td>TypeScript</td><td>⭐1.2k</td><td>多渠道订单自动路由到不同仓储物流商的系统</td></tr>
+</tbody></table></div>
+<h3>精选项目深度解析</h3>
+<article class="card repo-card">
+<h4><a href="https://github.com/MemoriLabs/Memori" target="_blank" rel="noopener noreferrer">MemoriLabs/Memori</a></h4>
+<p class="lead">让AI助手记住对话和操作历史，变成有记忆的智能服务</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐15k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">agent-memory</span><span class="tag">ai</span><span class="tag">ai-memory</span><span class="tag">aiagent</span><span class="tag">awesome</span></div>
+<p><strong>定位：</strong>为生产系统提供结构化的AI助手记忆基础设施，解决LLM无状态问题。面向需要持久化记忆能力的AI应用开发者。</p>
+<p><strong>核心技术：</strong>LLM无关的通用记忆层，支持多种数据存储和框架集成。将代理执行和对话转换为结构化持久状态。</p>
+<p><strong>使用场景：</strong>AI客服需要记住用户历史交互记录，智能助手需要记忆操作行为轨迹。</p>
+<p><strong>对比同类：</strong>相比AutoGen/LangGraph等框架更专注于记忆存储，提供零配置云服务方案。</p>
+<p><strong>值得关注：</strong>解决AI记忆痛点需求强烈，1.5万stars显示市场认可度高。产品化程度好，提供云端和本地部署双选项。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/2FastLabs/agent-squad" target="_blank" rel="noopener noreferrer">2FastLabs/agent-squad</a></h4>
+<p class="lead">管理多个AI助手协同工作的框架，让它们一起处理复杂对话任务</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐7.6k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">agentic-ai</span><span class="tag">agents</span><span class="tag">ai-agents</span><span class="tag">ai-agents-framework</span><span class="tag">anthropic</span><span class="tag">anthropic-claude</span></div>
+<p><strong>定位：</strong>解决多AI代理协作和复杂对话管理的问题，面向需要构建多智能体系统的开发者和企业用户。</p>
+<p><strong>核心技术：</strong>支持多种AI模型提供商的灵活框架，具备强大的多代理编排能力，提供轻量级但功能完整的代理管理系统。</p>
+<p><strong>使用场景：</strong>适用于需要多个AI助手协同完成复杂任务的场景，如客户服务、智能对话系统、多角色协作应用等。</p>
+<p><strong>对比同类：</strong>相比AutoGen等同类框架，提供了更灵活的代理管理和对话编排能力，支持AWS Bedrock等多种后端服务。</p>
+<p><strong>值得关注：</strong>项目从AWS实验室迁移至新维护者但仍保持活跃开发，具备良好的扩展性和多云支持特性，社区关注度高。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/plastic-labs/honcho" target="_blank" rel="noopener noreferrer">plastic-labs/honcho</a></h4>
+<p class="lead">为AI智能体提供记忆存储和管理功能，让AI记住对话历史和用户信息</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐5.0k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">agent-memory</span><span class="tag">ai</span><span class="tag">ai-agents</span><span class="tag">ai-memory</span><span class="tag">anthropic</span><span class="tag">context-engineering</span></div>
+<p><strong>定位：</strong>解决AI代理缺乏长期记忆的问题，为构建有状态的AI应用提供内存基础设施。面向需要持久化记忆能力的AI开发者和研究人员。</p>
+<p><strong>核心技术：</strong>提供专门的内存库来存储和检索AI代理的对话历史、上下文信息和用户数据。支持向量嵌入和语义搜索技术，实现高效的记忆存取和关联。</p>
+<p><strong>使用场景：</strong>适用于需要记住用户偏好、对话历史和上下文信息的AI助手、聊天机器人和自动化工作流应用。</p>
+<p><strong>对比同类：</strong>相比AutoGen和LangGraph等通用AI框架，Honcho专注于记忆管理这一垂直领域，提供更专业的状态持久化解决方案。</p>
+<p><strong>值得关注：</strong>AI记忆管理是构建真正智能代理的关键基础设施，市场需求明确且技术门槛较高，具有良好的发展前景。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/SciSharp/BotSharp" target="_blank" rel="noopener noreferrer">SciSharp/BotSharp</a></h4>
+<p class="lead">让.NET开发者轻松构建AI聊天机器人和多智能体系统</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐3.1k</li>
+<li><strong>语言：</strong>C#</li>
+</ul>
+<div class="tags"><span class="tag">ai-agent</span><span class="tag">chatbot</span><span class="tag">multi-agent</span></div>
+<p><strong>定位：</strong>为.NET生态提供AI代理应用开发框架，连接大语言模型到业务应用。主要面向.NET开发者和企业技术团队。</p>
+<p><strong>核心技术：</strong>基于C#的多智能体框架，支持LLM集成和对话管理。采用模块化架构设计，便于扩展和定制。</p>
+<p><strong>使用场景：</strong>可用于构建客服机器人、业务流程自动化、企业级AI助手等应用场景。</p>
+<p><strong>对比同类：</strong>相比AutoGen等Python框架，专注于.NET生态，更适合微软技术栈团队使用。</p>
+<p><strong>值得关注：</strong>填补了.NET领域AI代理框架空白，结合了成熟的.NET生态和新兴AI能力，社区活跃度较高。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/AlibabaResearch/DAMO-ConvAI" target="_blank" rel="noopener noreferrer">AlibabaResearch/DAMO-ConvAI</a></h4>
+<p class="lead">阿里达摩院对话AI平台，让机器具备多轮对话和智能交互能力</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐1.6k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">conversational-ai</span><span class="tag">deep-learning</span><span class="tag">dialog</span><span class="tag">natural-language-processing</span></div>
+<p><strong>定位：</strong>解决自然语言对话理解和生成问题，面向需要构建对话系统的开发者和企业用户。提供完整的对话AI技术栈和工具链。</p>
+<p><strong>核心技术：</strong>基于深度学习的对话模型训练框架，支持多模态交互和自进化训练。包含多个子项目如EvoTrainer、FlowBench等专门针对对话优化的技术组件。</p>
+<p><strong>使用场景：</strong>可用于构建智能客服、虚拟助手、对话机器人等应用场景。适用于需要复杂多轮对话理解的业务场景。</p>
+<p><strong>对比同类：</strong>相比AutoGen等通用框架，更专注于对话AI领域，提供针对性的对话优化技术和阿里巴巴实际应用经验。在电商对话场景可能具有更强的专业性。</p>
+<p><strong>值得关注：</strong>阿里达摩院官方出品，技术实力强且有实际产业应用验证。Star增长快反映业界对高质量对话AI技术的需求和认可。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/777genius/agent-teams-ai" target="_blank" rel="noopener noreferrer">777genius/agent-teams-ai</a></h4>
+<p class="lead">让AI代理团队自主协作完成任务，用户只需看看板下指令</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐1.3k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">agent-teams</span><span class="tag">ai</span><span class="tag">ai-agents</span><span class="tag">ai-assistant</span><span class="tag">ai-tools</span><span class="tag">anthropic</span></div>
+<p><strong>定位：</strong>构建多AI代理协作系统，解决复杂任务需要多人配合的问题。面向需要AI团队协作的开发者和企业用户。</p>
+<p><strong>核心技术：</strong>支持200+模型和75+LLM提供商，包含Claude/Codex等主流模型。实现AI代理间自主通信、任务分配和互相审查机制。</p>
+<p><strong>使用场景：</strong>构建虚拟AI公司团队处理复杂业务流程，自动化软件开发和代码审查工作流。</p>
+<p><strong>对比同类：</strong>相比AutoGen等同类项目，提供更完整的团队管理和看板界面，强调代理间的自主协作和相互监督能力。</p>
+<p><strong>值得关注：</strong>概念新颖的AI团队协作模式，支持多种主流模型且包含免费选项，Star增长快速反映市场需求。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/inkeep/agents" target="_blank" rel="noopener noreferrer">inkeep/agents</a></h4>
+<p class="lead">用可视化拖拽或TypeScript代码创建AI助手，支持双向同步编辑</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐1.2k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">agent-builder</span><span class="tag">agent-framework</span><span class="tag">agents-sdk</span><span class="tag">ai</span><span class="tag">ai-agent</span></div>
+<p><strong>定位：</strong>为技术与非技术人员提供统一的AI代理构建平台，解决AI应用开发门槛高的问题。面向需要快速构建AI助手和多代理工作流的企业团队。</p>
+<p><strong>核心技术：</strong>支持无代码可视化构建器和TypeScript SDK两种开发方式，具备完整的双向同步功能。提供类型安全、智能提示等开发工具链支持。</p>
+<p><strong>使用场景：</strong>适用于构建AI客服、自动化工作流、多代理协作系统等场景。</p>
+<p><strong>对比同类：</strong>相比AutoGen/LangGraph等传统代码框架，提供了无代码可视化界面，降低了非技术用户的使用门槛。同时保持了代码开发的灵活性。</p>
+<p><strong>值得关注：</strong>No-code+code双模式满足不同用户需求，全栈AI代理解决方案具有市场吸引力。1194星显示社区关注度较高，增长潜力大。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/openshiporg/openship" target="_blank" rel="noopener noreferrer">openshiporg/openship</a></h4>
+<p class="lead">多渠道订单自动路由到不同仓储物流商的系统</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐1.2k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">3pl</span><span class="tag">e-commerce</span><span class="tag">fulfillment</span><span class="tag">marketplace-api</span><span class="tag">netlify</span><span class="tag">nextjs</span></div>
+<p><strong>定位：</strong>解决跨境电商多销售渠道和多仓储履约之间的订单分发问题，让商家统一管理订单流向。面向有多个销售平台和仓储合作的电商企业。</p>
+<p><strong>核心技术：</strong>基于Next.js构建的全栈应用，支持多渠道API集成和智能订单路由算法。采用TypeScript开发，具备完整的OMS订单管理系统功能。</p>
+<p><strong>使用场景：</strong>电商卖家同时在Shopify、Amazon等多平台销售，需要将订单自动分配给不同地区的仓储进行发货。跨境贸易商整合多家第三方物流服务商的库存和配送能力。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>电商履约自动化是刚性需求，开源方案填补市场空白。1164星显示社区认可度高，部署便捷性强。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/open-webui/open-webui" target="_blank" rel="noopener noreferrer">open-webui/open-webui</a></h4>
+<p class="lead">提供友好的AI聊天界面，支持本地和云端多种大模型接入</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐141k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">ai</span><span class="tag">llm</span><span class="tag">llm-ui</span><span class="tag">llm-webui</span><span class="tag">llms</span><span class="tag">mcp</span></div>
+<p><strong>定位：</strong>解决用户与AI模型交互门槛高的问题，为开发者和普通用户提供统一的AI对话界面。面向需要使用不同AI服务的个人用户和团队。</p>
+<p><strong>核心技术：</strong>支持Ollama、OpenAI API等多种后端模型接入，前端采用React+TypeScript构建。提供完整的Docker部署方案和MCP协议支持。</p>
+<p><strong>使用场景：</strong>个人和企业用户进行AI对话、文档分析、代码辅助等日常AI应用。作为AI服务的统一前端界面管理多个模型后端。</p>
+<p><strong>对比同类：</strong>相比AutoGen/LangGraph等编排框架，Open WebUI更专注用户界面体验，不涉及复杂的多智能体协作流程。</p>
+<p><strong>值得关注：</strong>Star数快速增长反映市场对AI界面工具的强烈需求，支持多种模型部署方式适应不同用户场景。活跃的社区贡献和持续的功能更新保证了项目生命力。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/evolution-foundation/evolution-api" target="_blank" rel="noopener noreferrer">evolution-foundation/evolution-api</a></h4>
+<p class="lead">让开发者轻松集成WhatsApp消息功能的开源API服务</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐8.6k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">chatbot</span><span class="tag">chatwoot</span><span class="tag">cloud-api</span><span class="tag">dify</span><span class="tag">evolution</span><span class="tag">n8n</span></div>
+<p><strong>定位：</strong>为开发者提供WhatsApp和多渠道消息的REST API接口，简化聊天机器人和客服系统开发。面向需要集成即时通讯功能的企业和开发者。</p>
+<p><strong>核心技术：</strong>基于TypeScript构建的REST API服务，支持多渠道消息集成。提供了完整的WhatsApp消息处理能力，包括发送接收文本、媒体等。</p>
+<p><strong>使用场景：</strong>电商客服系统、聊天机器人、多渠道客户沟通平台的后端消息处理服务。</p>
+<p><strong>对比同类：</strong>专注于WhatsApp消息API集成，与AutoGen等AI智能体框架不同，更偏向于通讯渠道的基础设施服务。</p>
+<p><strong>值得关注：</strong>WhatsApp作为全球主流通讯工具，其API集成需求巨大。项目star增长快体现了市场对WhatsApp集成方案的强烈需求。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/vynect/venom" target="_blank" rel="noopener noreferrer">vynect/venom</a></h4>
+<p class="lead">用JavaScript创建WhatsApp机器人，支持客服、媒体发送和AI对话</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐6.6k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">ai</span><span class="tag">ai-bot</span><span class="tag">bot</span><span class="tag">bot-javascript</span><span class="tag">bot-typescript</span><span class="tag">chat</span></div>
+<p><strong>定位：</strong>为开发者提供WhatsApp自动化解决方案，支持构建各种交互式聊天机器人。面向需要在WhatsApp平台上实现自动化的个人开发者和企业。</p>
+<p><strong>核心技术：</strong>基于TypeScript开发的高性能WhatsApp机器人框架，支持AI驱动的对话识别。完全重建的第6代架构，提供完整的WhatsApp API封装。</p>
+<p><strong>使用场景：</strong>主要用于构建WhatsApp客服机器人、自动营销推广、客户互动和消息自动化处理。</p>
+<p><strong>对比同类：</strong>专注于WhatsApp平台的机器人开发，与通用AI智能体框架如AutoGen、LangGraph等相比更垂直化。</p>
+<p><strong>值得关注：</strong>作为高星项目，持续更新维护，社区活跃度高，具有实际商业应用场景。Star增长主要来自WhatsApp自动化需求的广泛性。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/apache/hamilton" target="_blank" rel="noopener noreferrer">apache/hamilton</a></h4>
+<p class="lead">让数据科学家和工程师轻松定义可测试、模块化的数据流，自动记录数据血缘和元数据</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐2.5k</li>
+<li><strong>语言：</strong>Jupyter Notebook</li>
+</ul>
+<div class="tags"><span class="tag">dag</span><span class="tag">data-analysis</span><span class="tag">data-engineering</span><span class="tag">data-science</span><span class="tag">dataframe</span><span class="tag">etl</span></div>
+<p><strong>定位：</strong>解决数据工程中数据流难以管理、测试和追踪的问题，面向数据科学家和数据工程师。提供声明式的数据处理框架，让复杂的数据管道变得清晰可控。</p>
+<p><strong>核心技术：</strong>采用函数式编程范式定义数据流，自动生成DAG执行图。内置数据血缘追踪和元数据管理，支持在任何Python环境中运行和扩展。</p>
+<p><strong>使用场景：</strong>适用于ETL数据管道开发、数据分析流程自动化、机器学习特征工程流水线构建等场景。</p>
+<p><strong>对比同类：</strong>相比LangGraph等AI编排框架，Hamilton专注于传统数据工程领域，更侧重于数据处理的血缘追踪和可测试性。</p>
+<p><strong>值得关注：</strong>Apache顶级项目，解决了数据工程的核心痛点，star增长迅速反映其在数据科学领域的实用价值。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Capsize-Games/airunner" target="_blank" rel="noopener noreferrer">Capsize-Games/airunner</a></h4>
+<p class="lead">在本地电脑上运行AI绘画、聊天机器人和语音对话的桌面应用</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐1.3k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">ai</span><span class="tag">ai-art</span><span class="tag">art</span><span class="tag">asset-generator</span><span class="tag">chatbot</span><span class="tag">deep-learning</span></div>
+<p><strong>定位：</strong>解决云端AI服务成本高、隐私安全问题，提供离线AI能力。面向需要本地化部署AI功能的个人用户和企业开发者。</p>
+<p><strong>核心技术：</strong>支持多种AI模型本地推理，包含Web GUI界面，可运行LLM、图像生成、语音处理。采用边缘计算架构，完全在用户硬件上运行。</p>
+<p><strong>使用场景：</strong>本地AI绘画创作、私有化聊天机器人、离线语音助手、企业内部AI工作流自动化。</p>
+<p><strong>对比同类：</strong>相比AutoGen/LangGraph等框架更注重桌面应用体验，提供完整GUI界面而非纯代码库。功能集成度更高但扩展性相对受限。</p>
+<p><strong>值得关注：</strong>AI本地化部署需求旺盛，项目star增长反映市场对离线AI解决方案的关注。完整生态覆盖多种AI应用场景。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/proma-ai/Proma" target="_blank" rel="noopener noreferrer">proma-ai/Proma</a></h4>
+<p class="lead">让AI代理无缝集成到日常工作流中，支持多模型和企业协作工具</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐1.2k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">agent-sdk</span><span class="tag">agents</span><span class="tag">chatbot</span><span class="tag">chatgpt</span><span class="tag">claude</span></div>
+<p><strong>定位：</strong>解决AI代理难以融入实际工作流程的问题，面向需要将AI能力整合到日常办公的专业用户。提供本地优先的桌面应用，让AI助手真正运行在用户每天使用的环境中。</p>
+<p><strong>核心技术：</strong>基于Claude Agent SDK构建，支持多大模型供应商接入，原生集成飞书等企业通讯工具。采用TypeScript开发，提供完整的开源Agent实践经验。</p>
+<p><strong>使用场景：</strong>企业团队协作中的AI助手调用，多模型对话处理复杂工作任务，通过群聊工具直接访问AI能力。</p>
+<p><strong>对比同类：</strong>相比AutoGen/LangGraph等框架更注重企业级集成和用户体验，提供现成的桌面应用而非仅开发框架。</p>
+<p><strong>值得关注：</strong>紧跟AI代理发展趋势，专注实用性和企业集成能力，star增长反映市场对AI工作流整合方案的需求。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/nrslib/takt" target="_blank" rel="noopener noreferrer">nrslib/takt</a></h4>
+<p class="lead">用YAML配置多个AI助手协作完成任务，人类可介入审查和干预</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐1.1k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">agent-orchestration</span><span class="tag">agent-team</span><span class="tag">ai-agents</span><span class="tag">claude-code</span><span class="tag">codex</span><span class="tag">multi-agent</span></div>
+<p><strong>定位：</strong>解决多AI代理协调工作缺乏结构化管理的问题，面向需要AI团队协作的开发者和企业用户。通过预定义的工作流确保任务按计划执行，避免完全依赖AI自主决策。</p>
+<p><strong>核心技术：</strong>采用YAML定义AI代理协调拓扑，支持Claude Code、Codex等多种AI模型协作。内置规划-实现-审查-修复循环机制，提供结构化的任务队列管理和人工介入控制能力。</p>
+<p><strong>使用场景：</strong>主要用于AI编程工作流，多个AI助手分工完成代码开发任务。也适用于任何需要多AI代理协调、人工审查反馈的业务场景。</p>
+<p><strong>对比同类：</strong>相比AutoGen/LangGraph等更注重编码工作流优化，提供更细粒度的人工干预和审查机制。在AI编码团队协作方面功能更专门化。</p>
+<p><strong>值得关注：</strong>AI代理编排领域创新方案，解决多AI协作的实际工程问题。Star增长快因填补了结构化AI团队协作工具的市场空白。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/siyuan-note/siyuan" target="_blank" rel="noopener noreferrer">siyuan-note/siyuan</a></h4>
+<p class="lead">个人知识管理软件，支持本地存储和自托管，可构建个人知识图谱</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>一般</li>
+<li><strong>Stars：</strong>⭐44k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">ai-agent</span><span class="tag">digital-garden</span><span class="tag">electron</span><span class="tag">knowledge-base</span><span class="tag">knowledge-graph</span><span class="tag">local-first</span></div>
+<p><strong>定位：</strong>解决个人知识碎片化管理和隐私保护问题，面向需要整理个人知识体系的用户。提供完全开源、本地优先的知识管理解决方案。</p>
+<p><strong>核心技术：</strong>采用TypeScript和Go开发，支持本地优先架构，内置知识图谱功能。基于Electron桌面应用，支持Markdown编辑和双向链接。</p>
+<p><strong>使用场景：</strong>个人笔记整理、知识库构建、数字花园建设、研究资料管理。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>Star数高达4万+，社区活跃度高，持续更新维护。隐私优先理念符合当前数据安全趋势，功能完整且开源免费。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/obra/superpowers" target="_blank" rel="noopener noreferrer">obra/superpowers</a></h4>
+<p class="lead">为AI编程助手提供一套可组合技能框架和开发方法论</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐223k (+1104 今日)</li>
+<li><strong>语言：</strong>Shell</li>
+</ul>
+<p><strong>定位：</strong>解决AI编程代理缺乏标准化技能体系和开发流程的问题，面向使用AI进行软件开发的团队和个人开发者。提供完整的AI编程方法论。</p>
+<p><strong>核心技术：</strong>基于可组合技能模块的框架设计，支持多种AI编程工具集成。通过规范化的交互流程确保AI代理按正确方式使用技能。</p>
+<p><strong>使用场景：</strong>AI编程助手增强、自动化软件开发流程、提升AI代码生成质量。</p>
+<p><strong>对比同类：</strong>与AutoGen/LangGraph等相比更专注于编程技能框架，提供具体的工具集成方案和开发方法论指导。</p>
+<p><strong>值得关注：</strong>高星项目反映AI编程领域关注度极高，方法论加工具的完整解决方案具有实用价值。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/soxoj/maigret" target="_blank" rel="noopener noreferrer">soxoj/maigret</a></h4>
+<p class="lead">通过用户名在3000多个网站上搜索个人信息，生成用户档案</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐32k (+318 今日)</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<p><strong>定位：</strong>解决在线身份追踪和信息收集问题，面向安全研究人员、渗透测试人员和需要进行网络调查的用户。帮助用户快速了解目标在各个平台的账号分布情况。</p>
+<p><strong>核心技术：</strong>支持3000+网站的分布式查询系统，具备并发处理和结果聚合能力。采用模块化设计，可扩展性强，支持多种报告格式输出。</p>
+<p><strong>使用场景：</strong>网络安全渗透测试中的信息收集阶段，个人隐私保护自查，品牌监控和声誉管理。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>功能实用性强，覆盖网站数量庞大，开源社区活跃度高，安全工具领域需求稳定。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/apple/container" target="_blank" rel="noopener noreferrer">apple/container</a></h4>
+<p class="lead">在Mac上创建和运行Linux容器的工具</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐29k (+1611 今日)</li>
+<li><strong>语言：</strong>Swift</li>
+</ul>
+<p><strong>定位：</strong>解决在Apple Silicon Mac上运行Linux容器的需求，提供轻量级虚拟机方案。面向开发者和运维人员。</p>
+<p><strong>核心技术：</strong>基于Swift开发，优化Apple Silicon架构，使用Containerization Swift包进行底层管理。支持OCI兼容容器镜像标准。</p>
+<p><strong>使用场景：</strong>开发测试环境搭建，跨平台容器化应用部署。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>Apple官方开源项目，针对Apple Silicon优化，Star增长迅速。填补了Mac平台容器化工具的空白。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/CaviraOSS/PageLM" target="_blank" rel="noopener noreferrer">CaviraOSS/PageLM</a></h4>
+<p class="lead">把学习资料自动转换成互动式学习资源的AI教育平台</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐1.7k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">ai</span><span class="tag">docker</span><span class="tag">edtech</span><span class="tag">education</span><span class="tag">flashcards</span><span class="tag">javascript</span></div>
+<p><strong>定位：</strong>解决传统学习材料枯燥乏味的问题，让学习更有趣高效。面向学生、教师和自学者。</p>
+<p><strong>核心技术：</strong>基于TypeScript开发，集成LangChain等AI技术栈，支持多种输出格式如测验、闪卡、播客等。</p>
+<p><strong>使用场景：</strong>将PDF、文档等学习材料转换为交互式学习工具，提升学习体验和效果。</p>
+<p><strong>对比同类：</strong>类似NotebookLM但开源免费，专注于教育领域的内容转化，比商业产品更灵活可控。</p>
+<p><strong>值得关注：</strong>教育AI赛道热门项目，社区驱动发展快，Star增长迅速，有实用价值。</p>
+</article>
+</div>
+    </section>
+
+    
+    <section class="report-section" id="official-tracker">
+      <h2>Part 3 — 官方动态跟踪</h2>
+      <p class="meta-note">共发现 179 条官方动态，来自 datawhale、anthropic、openai。</p>
+<div class="detail-cards">
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/2e57a0067d268b463962ccf57e8028d443dad389" target="_blank">add pdf download</a></h3>
+<p class="meta-list"><span>📅 2026-06-10</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/f74df1ec67a7b83c5735a0a24901c2d8252b9fb1" target="_blank">Add PDF download link to READMEs pointing to GitHub Releases</a></h3>
+<p class="meta-list"><span>📅 2026-06-10</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/cb4c5b0c04a5d91a97cf0e4fa47eeefe776356bb" target="_blank">Merge pull request #66 from 1iyouzhen/main</a></h3>
+<p class="meta-list"><span>📅 2026-06-10</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/d7ce1c355cd6450c5eefabbf75f2097754600b2b" target="_blank">修复公式显示问题</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 1iyouzhen</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/369d55261c2a85c9529ccea7cfa26e995967974c" target="_blank">修复公式显示问题</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 1iyouzhen</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/5f7b4170fec3e42a94f58d35b8adc05b89a94227" target="_blank">Fix Ch15 description in docs/README.md to include author names</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/89b3da073f729f4a97c1ba5b277065c4a9aed88e" target="_blank">Sync improved course table descriptions to docs/README.md and fix broken image path</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/319ff96e8adcd3adccc12878325a20e06176481a" target="_blank">Remove duplicate docs/images dir and improve course table descriptions</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/d7febae4559907c356394e8204199e8226f4296e" target="_blank">Fix image paths in zh docs chapters 3,4,6,7,8,9,12,13,14</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/cd84d6a923793beaeffedbd9b1bb6a7bc3070631" target="_blank">Change deployment branch from dual-deploy-setup to main</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/153e2471906d10ee5e71a3e5ba06f355f11b370e" target="_blank">Update zhNav chapter 15 item labels</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/7341991add9f43a278e92d5bbbea39c0d3c14525" target="_blank">Nest enSidebar Ch15 items and clean up zhSidebar labels</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/e82a64700c389bf1dc29cb8209344ea2826519bc" target="_blank">Use rewrites approach to separate zh/en content into own directories</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/751dd2ba76a31686e1fed7269183092402979b17" target="_blank">Restore docs/zh/ content for GitHub browsing, fix all nav link prefixes</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/22f5b6ebc8ab3d8c951967f0e94e4e85cef034b0" target="_blank">Fix nav links and sidebar structure</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/40204ed6b673be9f5b3cd3daadde8aab784946ce" target="_blank">Swap default locale to Chinese, fix Ch15 nav, update README paths</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/00c7d788436aba4239ab903e6a49020864305871" target="_blank">Fix backtick-escaping for </w> on line 476 and remove duplicate docs/ chapter files</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/00bcee620afd8dad1f44918f27613bee2a0f5ca3" target="_blank">Fix remaining unescaped </w> in chapter2 blockquotes across all locales</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/0b0f33faa5f44a1e0aa1829e31e3ba039a757f58" target="_blank">Sync root README.md from main, fix Vue parsing issues across all locales</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+<div class="card commit-card">
+<h3><a href="https://github.com/datawhalechina/diy-llm/commit/1a0c26d8e788230e3d8b6d57387d02d242cb1af6" target="_blank">Rebase onto vitepress branch, sync content with main</a></h3>
+<p class="meta-list"><span>📅 2026-06-09</span><span>👤 xuhu0115</span><span>🔧 GitHub 更新</span></p>
+</div>
+</div>
+    </section>
+    
+
+    
+    <section class="report-section" id="blog-subs">
+      <h2>Part 4 — 独立博客订阅</h2>
+      <p class="empty-state">今日无独立博客更新。</p>
+    </section>
+    
+
+    <footer class="footer">Generated by Ascan</footer>
+  </main>
+
+  <script>
+(function() {
+  // ── TOC card collapse/expand ──
+  var tocHeader = document.querySelector('.toc-card-header');
+  var tocCard = document.querySelector('.toc-card');
+  if (tocHeader && tocCard) {
+    tocHeader.addEventListener('click', function() {
+      tocCard.classList.toggle('collapsed');
+    });
+  }
+
+  // ── Scroll-spy: highlight active section in TOC ──
+  var sections = document.querySelectorAll('.report-section[id]');
+  var tocEntries = document.querySelectorAll('.toc-entry[data-target]');
+  var tocDots = document.querySelectorAll('.toc-dot[data-target]');
+
+  function setActive(id) {
+    tocEntries.forEach(function(el) {
+      el.classList.toggle('active', el.getAttribute('data-target') === id);
+    });
+    tocDots.forEach(function(el) {
+      el.classList.toggle('active', el.getAttribute('data-target') === id);
+    });
+  }
+
+  if ('IntersectionObserver' in window && sections.length > 0) {
+    setActive(sections[0].id);
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          setActive(entry.target.id);
+        }
+      });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+    sections.forEach(function(s) { observer.observe(s); });
+  }
+
+  // ── Smooth scroll on TOC click ──
+  document.querySelectorAll('a[href^="#"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      var href = this.getAttribute('href');
+      if (href.length > 1) {
+        var target = document.getElementById(href.slice(1));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', href);
+        }
+      }
+    });
+  });
+
+  // ── Floating dot click → scroll to section ──
+  tocDots.forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      var id = this.getAttribute('data-target');
+      var target = document.getElementById(id);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

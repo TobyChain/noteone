@@ -260,7 +260,7 @@ struct NoteRowView: View {
                 } else if note.status == .failed {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.caption)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Color.danger)
                 }
             }
             Text(note.aiSummary ?? String(note.content.prefix(100)))
@@ -268,12 +268,10 @@ struct NoteRowView: View {
                 .foregroundStyle(Color.inkSecondary)
                 .lineLimit(2)
                 .padding(.leading, 22)
-            HStack(spacing: 6) {
+            HStack(spacing: DG.sp4) {
                 if let tags = note.tags {
                     ForEach(tags.prefix(3), id: \.tagId) { tag in
-                        Text("#\(tag.name)")
-                            .font(.caption2)
-                            .foregroundStyle(Color.accent)
+                        TagPill(text: "#\(tag.name)", color: TagDimension.color(fromDimension: tag.dimension))
                     }
                 }
                 Spacer()

@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ascan-20260713</title>
+  <style>/* ── Notion-inspired Design System for Ascan Daily Report ── */
+:root {
+  color-scheme: light;
+  /* Surface & Canvas */
+  --canvas: #ffffff;
+  --surface: #f7f7f5;
+  --surface-soft: #f1f1ef;
+  /* Borders */
+  --hairline: #e8e7e4;
+  --hairline-soft: #eeeeed;
+  --hairline-strong: #d3d1cb;
+  /* Text */
+  --ink-deep: #0f0f0f;
+  --ink: #191919;
+  --charcoal: #37352f;
+  --slate: #6b6b6b;
+  --steel: #9b9a97;
+  --stone: #b4b3af;
+  --muted: #c4c3bf;
+  /* Brand Accents */
+  --primary: #6c47ff;
+  --primary-pressed: #5a3ad6;
+  --link-blue: #2383e2;
+  /* Semantic Tints */
+  --tint-lavender: #e8deee;
+  --tint-peach: #faebdd;
+  --tint-mint: #dbeddb;
+  --tint-sky: #d3e5ef;
+  --tint-yellow: #fdecc8;
+  --brand-purple-800: #4a2d8a;
+  --brand-orange-deep: #b05c1a;
+  --brand-green: #2d7d46;
+  /* Elevation */
+  --shadow-subtle: rgba(15, 15, 15, 0.04) 0px 1px 2px 0px;
+  --shadow-card: rgba(15, 15, 15, 0.06) 0px 3px 8px 0px;
+  /* Spacing base unit: 4px */
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 12px;
+  --sp-lg: 16px;
+  --sp-xl: 24px;
+  --sp-xxl: 32px;
+  --sp-section: 48px;
+  /* Radius */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-full: 9999px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--canvas);
+  color: var(--charcoal);
+  font-family: Inter, -apple-system, system-ui, "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--link-blue); text-decoration: none; transition: color 0.15s ease; }
+a:hover { text-decoration: underline; color: #1a6dc2; }
+
+/* ── Page Container ── */
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--sp-xxl) var(--sp-xl) var(--sp-section);
+}
+
+/* ── Hero / Header ── */
+.hero {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xxl) var(--sp-xl);
+  margin-bottom: var(--sp-section);
+}
+.hero h1 {
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-sm);
+}
+.hero p {
+  font-size: 16px;
+  color: var(--slate);
+  line-height: 1.55;
+}
+
+/* ── Section Headings ── */
+.report-section { margin-top: var(--sp-section); }
+.report-section > h2 {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-lg);
+  padding-bottom: var(--sp-sm);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xl);
+  margin-bottom: var(--sp-lg);
+  transition: box-shadow 0.15s ease;
+}
+.card:hover { box-shadow: var(--shadow-card); }
+.card h3 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-sm);
+}
+.card h4 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+  margin-bottom: var(--sp-xs);
+}
+
+/* ── Meta & Muted Text ── */
+.meta {
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.5;
+  margin-bottom: var(--sp-sm);
+}
+.muted, .section-note, .empty-state {
+  font-size: 14px;
+  color: var(--steel);
+  line-height: 1.5;
+}
+.empty-state {
+  padding: var(--sp-xl);
+  text-align: center;
+  background: var(--surface);
+  border-radius: var(--r-md);
+}
+
+/* ── Lead (one-liner emphasis) ── */
+.lead {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.55;
+  margin-bottom: var(--sp-sm);
+}
+
+/* ── Tags ── */
+.tags { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin: var(--sp-sm) 0; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--r-sm);
+  background: var(--tint-lavender);
+  color: var(--brand-purple-800);
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ── Recommendation Callout ── */
+.recommendation {
+  border-left: 3px solid var(--primary);
+  background: var(--surface);
+  padding: var(--sp-md) var(--sp-lg);
+  border-radius: var(--r-md);
+  margin-top: var(--sp-md);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--charcoal);
+}
+
+/* ── Summary Block ── */
+.summary-block {
+  margin-top: var(--sp-md);
+  padding-top: var(--sp-md);
+  border-top: 1px solid var(--hairline-soft);
+}
+.summary-block h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--sp-xs);
+}
+.summary-block p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--charcoal);
+}
+
+/* ── Links Row ── */
+.links {
+  font-size: 14px;
+  font-weight: 500;
+  margin: var(--sp-sm) 0;
+}
+.links a { margin-right: var(--sp-xs); }
+
+/* ── Tables ── */
+.table-wrapper { overflow-x: auto; margin: var(--sp-lg) 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  font-size: 14px;
+}
+th {
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--ink);
+  padding: var(--sp-md) var(--sp-lg);
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+}
+td {
+  padding: var(--sp-md) var(--sp-lg);
+  border-bottom: 1px solid var(--hairline-soft);
+  color: var(--charcoal);
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: none; }
+
+/* ── Meta List (repo details) ── */
+.meta-list {
+  padding-left: var(--sp-xl);
+  margin: var(--sp-sm) 0;
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.6;
+}
+.meta-list li { margin-bottom: var(--sp-xs); }
+.meta-list strong { color: var(--charcoal); font-weight: 500; }
+
+/* ── Footer ── */
+.footer {
+  margin-top: var(--sp-section);
+  padding-top: var(--sp-lg);
+  border-top: 1px solid var(--hairline);
+  color: var(--steel);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .page { padding: var(--sp-lg) var(--sp-md) var(--sp-xxl); }
+  .hero { padding: var(--sp-xl) var(--sp-lg); }
+  .hero h1 { font-size: 28px; }
+  .report-section > h2 { font-size: 22px; }
+  .card { padding: var(--sp-lg); }
+  .card h3 { font-size: 18px; }
+  th, td { padding: var(--sp-sm) var(--sp-md); }
+}/* ── TOC Outline Card ── */
+.toc-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-section);
+  overflow: hidden;
+}
+.toc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-md) var(--sp-lg);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+.toc-card-header:hover { background: var(--surface-soft); }
+.toc-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.3px;
+}
+.toc-card-toggle {
+  font-size: 13px;
+  color: var(--steel);
+  transition: transform 0.2s ease;
+}
+.toc-card.collapsed .toc-card-toggle { transform: rotate(-90deg); }
+.toc-list {
+  list-style: none;
+  padding: 0 var(--sp-lg) var(--sp-md);
+  margin: 0;
+}
+.toc-card.collapsed .toc-list { display: none; }
+.toc-entry {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  color: var(--charcoal);
+  transition: background 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+}
+.toc-entry:hover { background: var(--surface-soft); text-decoration: none; color: var(--ink); }
+.toc-entry.active { background: var(--tint-lavender); color: var(--brand-purple-800); font-weight: 500; }
+.toc-entry-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-full);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+  margin-right: var(--sp-sm);
+  flex-shrink: 0;
+}
+.toc-entry.active .toc-entry-num { background: var(--primary); border-color: var(--primary); color: #fff; }
+.toc-entry-text { flex: 1; }
+.toc-entry-count {
+  font-size: 12px;
+  color: var(--steel);
+  margin-left: var(--sp-sm);
+  flex-shrink: 0;
+}
+
+/* ── Floating Side Navigator (desktop only) ── */
+.toc-floating {
+  position: fixed;
+  left: calc(50% - 500px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-md);
+  padding: var(--sp-md);
+}
+.toc-floating-label {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--charcoal);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: 4px 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  box-shadow: var(--shadow-subtle);
+}
+.toc-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-full);
+  background: var(--muted);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+.toc-dot:hover { background: var(--steel); }
+.toc-dot:hover .toc-floating-label { opacity: 1; }
+.toc-dot.active { background: var(--primary); border-color: var(--primary); transform: scale(1.3); }
+@media (max-width: 1100px) { .toc-floating { display: none; } }
+</style>
+</head>
+<body>
+  <div class="toc-floating">
+  <span class="toc-dot" data-target="arxiv-papers"><span class="toc-floating-label">Part 1 · arXiv 论文精选</span></span>
+  <span class="toc-dot" data-target="github-repos"><span class="toc-floating-label">Part 2 · GitHub 项目挖掘</span></span>
+  <span class="toc-dot" data-target="official-tracker"><span class="toc-floating-label">Part 3 · 官方动态跟踪</span></span>
+  <span class="toc-dot" data-target="blog-subs"><span class="toc-floating-label">Part 4 · 独立博客订阅</span></span>
+  <span class="toc-dot" data-target="conference-papers"><span class="toc-floating-label">Part 5 · 会议论文追踪</span></span>
+  <span class="toc-dot" data-target="wechat-articles"><span class="toc-floating-label">Part 6 · 微信公众号</span></span>
+  </div>
+  <main class="page">
+    <header class="hero">
+      <h1>Ascan-20260713</h1>
+      <p>科技前沿日报 · 2026-07-13 · arXiv 论文精选 + GitHub 项目挖掘 + 官方动态跟踪 + 独立博客 + 会议论文追踪</p>
+    </header>
+
+    <nav class="toc-card" id="toc-card">
+      <div class="toc-card-header">
+        <span class="toc-card-title">📑 大纲</span>
+        <span class="toc-card-toggle">▼</span>
+      </div>
+      <div class="toc-list">
+      <a href="#arxiv-papers" class="toc-entry" data-target="arxiv-papers"><span class="toc-entry-num">Part 1</span><span class="toc-entry-text">arXiv 论文精选</span><span class="toc-entry-count">无</span></a>
+      <a href="#github-repos" class="toc-entry" data-target="github-repos"><span class="toc-entry-num">Part 2</span><span class="toc-entry-text">GitHub 项目挖掘</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#official-tracker" class="toc-entry" data-target="official-tracker"><span class="toc-entry-num">Part 3</span><span class="toc-entry-text">官方动态跟踪</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#blog-subs" class="toc-entry" data-target="blog-subs"><span class="toc-entry-num">Part 4</span><span class="toc-entry-text">独立博客订阅</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#conference-papers" class="toc-entry" data-target="conference-papers"><span class="toc-entry-num">Part 5</span><span class="toc-entry-text">会议论文追踪</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#wechat-articles" class="toc-entry" data-target="wechat-articles"><span class="toc-entry-num">Part 6</span><span class="toc-entry-text">微信公众号</span><span class="toc-entry-count">无</span></a>
+      </div>
+    </nav>
+
+    <section class="report-section" id="arxiv-papers">
+      <h2>Part 1 — arXiv 论文精选</h2>
+      <p class="empty-state">今日无 arXiv 数据。</p>
+    </section>
+
+    <section class="report-section" id="github-repos">
+      <h2>Part 2 — GitHub 项目挖掘</h2>
+      <div class="report-list github-list" data-date="20260710">
+<p class="section-note">聚焦大模型与智能体相关项目（大模型算法/Agent算法/智能体架构/智能体记忆/大模型前沿），共发现 27 个仓库。</p>
+<h3>今日精选（高度相关，共 7 个）</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>项目</th><th>语言</th><th>Stars</th><th>一句话描述</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/virattt/ai-hedge-fund" target="_blank" rel="noopener noreferrer">virattt/ai-hedge-fund</a></td><td>Python</td><td>⭐61k</td><td>AI扮演多位投资大师，开个分析会帮你判断股票买卖时机。</td></tr>
+<tr><td><a href="https://github.com/ConardLi/garden-skills" target="_blank" rel="noopener noreferrer">ConardLi/garden-skills</a></td><td>CSS</td><td>⭐9.4k</td><td>给AI编程助手装上现成的网页设计、检索等技能包</td></tr>
+<tr><td><a href="https://github.com/53AI/53AIHub" target="_blank" rel="noopener noreferrer">53AI/53AIHub</a></td><td>Go</td><td>⭐4.9k</td><td>帮你把企业知识、AI机器人、提示词集中管理起来</td></tr>
+<tr><td><a href="https://github.com/AlexAnys/awesome-openclaw-usecases-zh" target="_blank" rel="noopener noreferrer">AlexAnys/awesome-openclaw-usecases-zh</a></td><td>—</td><td>⭐4.4k</td><td>50个AI智能体实战场景，手把手教你搞定办公生活自动化</td></tr>
+<tr><td><a href="https://github.com/SamurAIGPT/llm-wiki-agent" target="_blank" rel="noopener noreferrer">SamurAIGPT/llm-wiki-agent</a></td><td>Python</td><td>⭐3.2k</td><td>自动把你的资料变成可搜索的互联维基</td></tr>
+<tr><td><a href="https://github.com/pinecone-io/examples" target="_blank" rel="noopener noreferrer">pinecone-io/examples</a></td><td>Jupyter Notebook</td><td>⭐3.0k</td><td>用现成的Jupyter笔记快速搞定Pinecone向量数据库的各种AI玩法</td></tr>
+<tr><td><a href="https://github.com/miantiao-me/hacker-podcast" target="_blank" rel="noopener noreferrer">miantiao-me/hacker-podcast</a></td><td>TypeScript</td><td>⭐2.6k</td><td>每日自动把Hacker News热帖变成中文播客，让你用听的追技术热点。</td></tr>
+</tbody></table></div>
+<h3>精选项目深度解析</h3>
+<article class="card repo-card">
+<h4><a href="https://github.com/virattt/ai-hedge-fund" target="_blank" rel="noopener noreferrer">virattt/ai-hedge-fund</a></h4>
+<p class="lead">AI扮演多位投资大师，开个分析会帮你判断股票买卖时机。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐61k (+115 今日)</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<p><strong>定位：</strong>这是一个面向开发者和量化学习者的教育项目，解决如何用多个AI代理模拟不同投资策略进行协作决策的问题。它把复杂的多智能体系统具象化为一个虚拟的AI对冲基金团队，让用户直观理解智能体协作的运作方式。</p>
+<p><strong>核心技术：</strong>采用多智能体架构，每个智能体化身特定投资大师（如价值投资、估值分析等风格），独立分析后协同决策。支持历史数据回测与模拟交易，底层可集成大语言模型辅助分析。</p>
+<p><strong>使用场景：</strong>供开发者学习多智能体系统如何应用于金融决策；用于回测不同AI投资策略组合的有效性。</p>
+<p><strong>对比同类：</strong>与AutoGen、CrewAI等通用多智能体框架不同，本项目是专为金融投资场景设计的垂直应用，侧重展示智能体在具体领域的落地形态而非构建通用框架。</p>
+<p><strong>值得关注：</strong>6万星的增长源于它完美结合了AI代理与量化投资两大热门话题，且以教育友好的方式呈现，降低了多智能体系统的理解门槛。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/ConardLi/garden-skills" target="_blank" rel="noopener noreferrer">ConardLi/garden-skills</a></h4>
+<p class="lead">给AI编程助手装上现成的网页设计、检索等技能包</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐9.4k</li>
+<li><strong>语言：</strong>CSS</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">claude</span><span class="tag">gpt-image-2</span><span class="tag">rag</span><span class="tag">skills</span><span class="tag">web-design</span></div>
+<p><strong>定位：</strong>这个项目解决了AI编程代理（如Claude Code、Cursor）在网页设计、知识检索等具体任务上能力缺失的问题。面向需要快速增强代理能力的开发者和设计师，让AI编程助手更全能。</p>
+<p><strong>核心技术：</strong>基于Claude的Agent Skills机制，把网页设计、RAG、图像生成等任务封装成可复用的技能模块。这些模块可直接被AI编程代理加载使用，无需修改代理本身，轻量且易于扩展。</p>
+<p><strong>使用场景：</strong>当使用AI编程代理进行网页设计、生成视频演示、搭建知识检索系统时，可以直接调用这些技能，快速获得专业效果。也可以作为学习Skill开发的参考模板。</p>
+<p><strong>对比同类：</strong>与AutoGen、LangGraph等侧重多代理协作的框架不同，garden-skills更像是单代理的“技能商店”，专注提供即插即用的垂直能力。</p>
+<p><strong>值得关注：</strong>随着Claude Code等AI编程工具的普及，用户急需高质量、开箱即用的技能包；该项目star破9k，证明了市场对实用Agent技能集的强烈需求。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/53AI/53AIHub" target="_blank" rel="noopener noreferrer">53AI/53AIHub</a></h4>
+<p class="lead">帮你把企业知识、AI机器人、提示词集中管理起来</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐4.9k</li>
+<li><strong>语言：</strong>Go</li>
+</ul>
+<div class="tags"><span class="tag">coze</span><span class="tag">dify</span><span class="tag">fastgpt</span><span class="tag">go</span><span class="tag">knowledge</span><span class="tag">maxkb</span></div>
+<p><strong>定位：</strong>解决企业内部知识分散、AI工具管理混乱的问题，面向需要快速落地大模型应用的非技术团队和IT管理员，让他们能用统一入口对接Dify、FastGPT等平台。</p>
+<p><strong>核心技术：</strong>用Go语言构建的高性能门户，原生集成Coze、Dify、FastGPT、RAGFlow等主流框架，支持MCP协议和Docker一键部署，实现知识库与智能体的统一调度。</p>
+<p><strong>使用场景：</strong>搭建企业内部的统一AI知识问答与工具中心，员工通过一个页面就能使用智能检索、智能客服和各类AI应用。</p>
+<p><strong>对比同类：</strong>与AutoGen、LangGraph这类面向开发者的智能体编排框架不同，53AI Hub是开箱即用的集成门户，让业务用户直接上手使用现成的AI平台。</p>
+<p><strong>值得关注：</strong>它把Dify、FastGPT等热门开源AI工具无缝串在一起，极大降低了企业构建AI门户的成本，直击中小团队的落地痛点，因此快速获得近5千星。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/AlexAnys/awesome-openclaw-usecases-zh" target="_blank" rel="noopener noreferrer">AlexAnys/awesome-openclaw-usecases-zh</a></h4>
+<p class="lead">50个AI智能体实战场景，手把手教你搞定办公生活自动化</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐4.4k</li>
+<li><strong>语言：</strong>—</li>
+</ul>
+<div class="tags"><span class="tag">ai-agent</span><span class="tag">ai-assistant</span><span class="tag">ai-automation</span><span class="tag">ai-tools</span><span class="tag">automation</span><span class="tag">awesome-list</span></div>
+<p><strong>定位：</strong>解决大模型和智能体落地的具体场景缺失问题，帮助用户找到可直接复用的自动化方案。面向对AI应用感兴趣的新手、上班族、内容创作者等普通用户。</p>
+<p><strong>核心技术：</strong>基于OpenClaw智能体收集50个真实用例，覆盖国内特色需求与海外案例本土化适配，以新手友好的指引组织内容，纯案例驱动学习。</p>
+<p><strong>使用场景：</strong>自动处理文档、生成内容、运维辅助、搭建个人AI助理、整理知识库等日常工作流。</p>
+<p><strong>对比同类：</strong>与AutoGen、LangGraph、CrewAI等智能体开发框架不同，本项目是应用场景案例集，聚焦使用而非开发，更适合无编程背景的用户快速上手。</p>
+<p><strong>值得关注：</strong>填补了中文环境下智能体实战案例的空白，贴近国内用户高频场景，因此快速获得关注，Star增长源于其低门槛和即查即用的特性。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/SamurAIGPT/llm-wiki-agent" target="_blank" rel="noopener noreferrer">SamurAIGPT/llm-wiki-agent</a></h4>
+<p class="lead">自动把你的资料变成可搜索的互联维基</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐3.2k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">ai-agent</span><span class="tag">ai-tools</span><span class="tag">automation</span><span class="tag">claude-code</span><span class="tag">codex</span><span class="tag">gemini</span></div>
+<p><strong>定位：</strong>解决个人知识管理的碎片化问题，让AI代理自动从文档中提取并结构化知识。面向需要整理大量资料的研究者、开发者和知识工作者。</p>
+<p><strong>核心技术：</strong>直接调用Claude Code、Codex等编码代理，无需额外API密钥；通过追加式日志和索引实现持久化知识库，自动交叉引用与矛盾标记。</p>
+<p><strong>使用场景：</strong>把论文、报告等放入文件夹，代理自动提炼要点生成维基页面，以后每次添加新资料都会智能关联和补充。</p>
+<p><strong>对比同类：</strong>与AutoGen等多代理协调框架不同，它专攻个人知识库的自动构建，更轻量且无需编排多个代理即可完成端到端任务。</p>
+<p><strong>值得关注：</strong>首创“零API密钥代理技能”模式，契合本地编码代理热潮，让个人知识库随资料增长而自我进化，因此快速涨星。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/pinecone-io/examples" target="_blank" rel="noopener noreferrer">pinecone-io/examples</a></h4>
+<p class="lead">用现成的Jupyter笔记快速搞定Pinecone向量数据库的各种AI玩法</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐3.0k</li>
+<li><strong>语言：</strong>Jupyter Notebook</li>
+</ul>
+<div class="tags"><span class="tag">ai</span><span class="tag">jupyter-notebook</span><span class="tag">llm</span><span class="tag">pinecone</span><span class="tag">python</span><span class="tag">rag</span></div>
+<p><strong>定位：</strong>解决开发者不知道如何将 Pinecone 向量数据库落地到实际 AI 项目的问题；面向想快速上手语义搜索、RAG 等应用的数据工程师与 AI 开发者，提供从学习到生产可用的范例。</p>
+<p><strong>核心技术：</strong>以可直接运行的 Jupyter Notebook 为主，覆盖语义搜索、 RAG、LLM 集成、Agent 记忆等主流模式；实现与 Pinecone 的无缝对接，并展示从数据入库到查询优化的完整流程。</p>
+<p><strong>使用场景：</strong>快速搭建文档问答、图片检索、长时记忆聊天机器人等 AI 应用，适合原型验证和教学演示。</p>
+<p><strong>对比同类：</strong>暂无直接同类，它本身是 Pinecone 官方示例集而非框架；但可与 AutoGen、LangGraph 等结合，作为这些工具的向量存储与记忆模块参考。</p>
+<p><strong>值得关注：</strong>Pinecone 官方出品，与产品更新同步，是学习向量数据库和 AI 记忆模式的权威素材；Star 多因其覆盖场景全、代码可直接复用且不断新增 LLM 相关示例。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/miantiao-me/hacker-podcast" target="_blank" rel="noopener noreferrer">miantiao-me/hacker-podcast</a></h4>
+<p class="lead">每日自动把Hacker News热帖变成中文播客，让你用听的追技术热点。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐2.6k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">ai</span><span class="tag">ai-agent</span><span class="tag">ai-workflow</span><span class="tag">cloudflare</span><span class="tag">cloudflare-workers</span><span class="tag">cloudflare-workflows</span></div>
+<p><strong>定位：</strong>解决Hacker News英文阅读门槛和筛选效率问题，面向追求高效获取海外技术动态的中文听众，将热门文章自动总结并转成音频。</p>
+<p><strong>核心技术：</strong>基于Cloudflare Workflows实现定时抓取与编排，调用AI模型生成中文摘要并合成语音，通过RSS和播客平台分发。</p>
+<p><strong>使用场景：</strong>通勤、运动或做家务时，像听新闻一样了解每日科技圈热门话题。</p>
+<p><strong>对比同类：</strong>暂无完全对口的开源对比项目，比LangGraph等Agent框架更偏具体应用，开箱即用，无需二次开发。</p>
+<p><strong>值得关注：</strong>精准切中信息焦虑与音频消费习惯的交集，全自动AI流水线体验流畅，因此上线后自然吸引大量关注。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/davila7/claude-code-templates" target="_blank" rel="noopener noreferrer">davila7/claude-code-templates</a></h4>
+<p class="lead">便捷配置和监控Claude Code的CLI工具</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐29k (+274 今日)</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<p><strong>定位：</strong>解决Claude Code用户手动配置繁琐、缺少监控的问题。面向希望快速搭建开箱即用Claude Code环境并实时掌握任务状态的开发者，降低上手和运维成本。</p>
+<p><strong>核心技术：</strong>基于Python和Claude Code插件机制，提供模板化项目配置；集成MCP协议，可灵活对接外部工具与数据源；内置监控，实时反馈任务进度与资源消耗。</p>
+<p><strong>使用场景：</strong>新建Claude Code项目时一键生成配置和插件；执行代码生成等长任务时实时监控进展。</p>
+<p><strong>对比同类：</strong>与AutoGen、LangGraph等多智能体编排框架不同，本项目专注单Agent（Claude Code）的配置与运维，不涉及多Agent协作逻辑，定位互补。</p>
+<p><strong>值得关注：</strong>伴随Claude Code的爆火，填补了其生态内配置管理和实时监控的空白，简单好用，因此快速积累了大量Star。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Dicklesworthstone/destructive_command_guard" target="_blank" rel="noopener noreferrer">Dicklesworthstone/destructive_command_guard</a></h4>
+<p class="lead">防止AI代理误执行危险命令，保护代码免遭删除</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐3.0k (+444 今日)</li>
+<li><strong>语言：</strong>Rust</li>
+</ul>
+<p><strong>定位：</strong>解决AI编程助手（如Claude Code）可能自动执行`rm -rf`等破坏性命令的问题。面向使用AI编码工具的开发者，提供一道安全闸门，避免代码被意外损毁。它作为命令执行前的钩子，在不影响工作效率的前提下确保操作安全。</p>
+<p><strong>核心技术：</strong>采用Rust编写，性能极高，以钩子形式嵌入系统，实时拦截危险命令。支持Claude Code、Cursor、Gemini CLI等主流AI代理，覆盖git和shell两种高危操作类型。</p>
+<p><strong>使用场景：</strong>当你在Claude Code中让AI助手清理文件时，它若想执行`rm -rf /`会被dcg直接拦下；或者在Cursor中AI自动提交代码时，`git push --force`等危险推送也会被阻止。</p>
+<p><strong>对比同类：</strong>与AutoGen、LangGraph等智能体编排框架不同，dcg不是构建智能体，而是为现有AI代理添加安全层，专注命令拦截，暂无完全同类的工具。</p>
+<p><strong>值得关注：</strong>AI编程工具易误操作，该工具直击开发者痛点，实用性强，因此在开发者社区中获得高关注和快速增长的star。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/hahahumble/speechgpt" target="_blank" rel="noopener noreferrer">hahahumble/speechgpt</a></h4>
+<p class="lead">一个能和ChatGPT语音聊天的网页应用，可练口语或闲聊。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐2.8k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">chat</span><span class="tag">chatbot</span><span class="tag">chatgpt</span><span class="tag">conversation</span><span class="tag">language-learning</span><span class="tag">speech</span></div>
+<p><strong>定位：</strong>面向语言学习者和普通用户，解决打字不便、需要模拟口语对话的问题。所有聊天记录本地存储，注重隐私。</p>
+<p><strong>核心技术：</strong>前端TypeScript实现，调用浏览器语音识别与合成API，对接ChatGPT。支持Docker部署，数据全放本地。</p>
+<p><strong>使用场景：</strong>打开网页即可与ChatGPT语音对话，用来练习英语口语或模拟面试。</p>
+<p><strong>对比同类：</strong>暂无，与AutoGen等智能体框架不同，本应用是终端用户工具。</p>
+<p><strong>值得关注：</strong>语音交互+ChatGPT组合实用，满足免提对话需求，在语言学习圈和AI圈受关注。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/PrefectHQ/prefect" target="_blank" rel="noopener noreferrer">PrefectHQ/prefect</a></h4>
+<p class="lead">把数据处理任务串成流水线，出错自动重试，还能监控运行状态。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>一般</li>
+<li><strong>Stars：</strong>⭐23k (+66 今日)</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<p><strong>定位：</strong>解决Python数据管道编排和弹性执行的问题，面向数据工程师、科学家和ML工程师，让他们用代码轻松构建可靠的工作流。</p>
+<p><strong>核心技术：</strong>以Python函数装饰器定义任务，动态DAG，支持本地与云混合执行；内置重试、失败转移、事件驱动调度和现代Web UI。</p>
+<p><strong>使用场景：</strong>ETL数据管道、ML模型训练流水线、定时报表生成、跨系统数据同步等。</p>
+<p><strong>对比同类：</strong>与AutoGen/LangGraph等AI Agent框架不同领域，Prefect专注传统数据工作流编排，暂无直接同类对比。</p>
+<p><strong>值得关注：</strong>作为Airflow的现代替代品，更Pythonic且易用，云原生设计，社区活跃，stars增速快。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Nutlope/hallmark" target="_blank" rel="noopener noreferrer">Nutlope/hallmark</a></h4>
+<p class="lead">让AI做网页时自动避开“AI味儿”，产出专业独特的设计。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>一般</li>
+<li><strong>Stars：</strong>⭐4.3k (+155 今日)</li>
+<li><strong>语言：</strong>CSS</li>
+</ul>
+<p><strong>定位：</strong>解决AI生成前端 UI 千篇一律、像模板变色的问题。面向使用 Claude Code、Cursor 等 AI 编码工具的前端开发者和设计师，让每次产出的页面真正拥有不同风格和个性。</p>
+<p><strong>核心技术：</strong>内置 57 项“slop-test”检测门与预生成自我批判，强制模型脱离默认分布；配合 20 种预设主题与 4 种操作动词，从宏观结构到细节注入变化。</p>
+<p><strong>使用场景：</strong>开发者在 Claude Code 里让 AI 生成公司官网，再生成另一个博客，两个网站看起来像完全不同的设计，而不是同一套模板换颜色。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>直击 AI 生成前端同质化痛点，推出后迅速获 4345 星，成为在 AI 编码助手中注入设计能力的明星项目。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/killop/anything_about_game" target="_blank" rel="noopener noreferrer">killop/anything_about_game</a></h4>
+<p class="lead">一份游戏开发资源大全，方便查找框架、AI工具和美术素材。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐4.0k</li>
+<li><strong>语言：</strong>—</li>
+</ul>
+<div class="tags"><span class="tag">2d-game-framework</span><span class="tag">ai-agent</span><span class="tag">awesome-list</span><span class="tag">csharp</span><span class="tag">ecs</span><span class="tag">ecs-libraries</span></div>
+<p><strong>定位：</strong>解决游戏开发者在学习或项目中难以系统搜集优质资源的问题，面向从初学者到资深从业者。通过精心分类的链接与文档，节省筛选时间，覆盖2D框架、AI集成、Unity优化等方向。</p>
+<p><strong>核心技术：</strong>以结构化目录和人工筛选为核心，聚合多个子领域（AI、ECS、Houdini）的最佳实践与工具链接。维护了包括《AI.md》等专题文档，部分内容配有思维导图，突出导航效率。</p>
+<p><strong>使用场景：</strong>开发新游戏时快速查找图形框架或AI middleware；用Unity开发遇到性能瓶颈时，翻看UnityTips.md获取优化集锦。</p>
+<p><strong>对比同类：</strong>暂无，本项目是游戏开发资源清单，与智能体编排框架不属同类。</p>
+<p><strong>值得关注：</strong>Star数高反映出游戏开发者对系统化资源索引的刚需，内容定期更新且涵盖AI Agent等新兴方向，是中文圈口碑很好的参考库。</p>
+</article>
+<h3>其他仓库</h3>
+<ul class="repo-link-list">
+<li><a href="https://github.com/ai4s-research/open-science" target="_blank" rel="noopener noreferrer">ai4s-research/open-science</a> <span class="repo-meta">⭐⭐670</span> <span class="repo-lang">TypeScript</span></li>
+<li><a href="https://github.com/ZimoLiao/scholaraio" target="_blank" rel="noopener noreferrer">ZimoLiao/scholaraio</a> <span class="repo-meta">⭐⭐544</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/Shubhamsaboo/awesome-llm-apps" target="_blank" rel="noopener noreferrer">Shubhamsaboo/awesome-llm-apps</a> <span class="repo-meta">⭐⭐118k</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/anthropics/claude-cookbooks" target="_blank" rel="noopener noreferrer">anthropics/claude-cookbooks</a> <span class="repo-meta">⭐⭐48k</span> <span class="repo-lang">Jupyter Notebook</span></li>
+<li><a href="https://github.com/Crosstalk-Solutions/project-nomad" target="_blank" rel="noopener noreferrer">Crosstalk-Solutions/project-nomad</a> <span class="repo-meta">⭐⭐33k</span> <span class="repo-lang">TypeScript</span></li>
+<li><a href="https://github.com/HKUDS/Vibe-Trading" target="_blank" rel="noopener noreferrer">HKUDS/Vibe-Trading</a> <span class="repo-meta">⭐⭐20k</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/wonderwhy-er/DesktopCommanderMCP" target="_blank" rel="noopener noreferrer">wonderwhy-er/DesktopCommanderMCP</a> <span class="repo-meta">⭐⭐8.0k</span> <span class="repo-lang">TypeScript</span></li>
+</ul>
+</div>
+    </section>
+
+    
+    <section class="report-section" id="official-tracker">
+      <h2>Part 3 — 官方动态跟踪</h2>
+      <p class="meta-note">共发现 6 条官方动态（30 天内），来自 anthropic、deepmind。</p>
+<div class="detail-cards">
+</div>
+    </section>
+    
+
+    
+    <section class="report-section" id="blog-subs">
+      <h2>Part 4 — 独立博客订阅</h2>
+      <p class="meta-note">共 11 篇新文章（30 天内）。</p>
+<h3 class="source-heading">阮一峰周刊</h3>
+<ul class="blog-list">
+<li><a href="http://www.ruanyifeng.com/blog/2026/07/weekly-issue-403.html" target="_blank">科技爱好者周刊（第 403 期）：为什么 Dropbox 不成功</a> <span class="blog-date">(2026-07-10)</span><br><span class="blog-summary">这里记录每周值得分享的科技内容，周五发布。...</span></li>
+</ul>
+<h3 class="source-heading">Simon Willison</h3>
+<ul class="blog-list">
+<li><a href="https://simonwillison.net/2026/Jul/12/directly-responsible-individuals/#atom-everything" target="_blank">Directly Responsible Individuals (DRI)</a> <span class="blog-date">(2026-07-12)</span><br><span class="blog-summary">Directly Responsible Individuals (DRI) I went looking for a definition of "Directly Responsible Individuals" and the...</span></li>
+<li><a href="https://simonwillison.net/2026/Jul/12/shot-scraper/#atom-everything" target="_blank">shot-scraper 1.11</a> <span class="blog-date">(2026-07-12)</span><br><span class="blog-summary">Release: shot-scraper 1.11 Some minor improvements, mainly around command option consistency and making the server:...</span></li>
+</ul>
+<h3 class="source-heading">OpenAI Blog</h3>
+<ul class="blog-list">
+<li><a href="https://openai.com/index/deutsche-telekom" target="_blank">How Deutsche Telekom is rewiring telecommunications with AI</a> <span class="blog-date">(Fri, 10 Ju)</span><br><span class="blog-summary">How Deutsche Telekom is becoming an AI-native telco with OpenAI-transforming customer service, employee workflows,...</span></li>
+</ul>
+<h3 class="source-heading">HuggingFace Blog</h3>
+<ul class="blog-list">
+<li><a href="https://huggingface.co/blog/torch-attention-profile" target="_blank">Profiling in PyTorch (Part 3): Attention is all you profile</a> <span class="blog-date">(Fri, 10 Ju)</span></li>
+</ul>
+<h3 class="source-heading">NVIDIA Tech Blog</h3>
+<ul class="blog-list">
+<li><a href="https://developer.nvidia.com/blog/how-to-evaluate-general-purpose-robot-policies-for-real-world-deployment/" target="_blank">How to Evaluate General-Purpose Robot Policies for Real-World Deployment</a> <span class="blog-date">(2026-07-12)</span><br><span class="blog-summary">Robotics foundation m</span></li>
+<li><a href="https://developer.nvidia.com/blog/reducing-high-bandwidth-memory-bottlenecks-in-jax-based-llm-training-with-host-offloading/" target="_blank">Reducing High-Bandwidth Memory Bottlenecks in JAX-Based LLM Training with Host O</a> <span class="blog-date">(2026-07-10)</span><br><span class="blog-summary">Large language model (LLM) traini</span></li>
+</ul>
+<h3 class="source-heading">AWS ML Blog</h3>
+<ul class="blog-list">
+<li><a href="https://aws.amazon.com/blogs/machine-learning/fine-tune-nvidia-nemotron-3-models-with-amazon-sagemaker-ai-serverless-model-customization/" target="_blank">Fine-tune NVIDIA Nemotron 3 models with Amazon SageMaker AI serverless model cus</a> <span class="blog-date">(2026-07-10)</span><br><span class="blog-summary">In this post, we explore what makes the Nemotron 3 architecture unique, walk through the fine-tuning techniques...</span></li>
+<li><a href="https://aws.amazon.com/blogs/machine-learning/real-time-dental-image-verification-with-amazon-sagemaker-ai-at-henry-schein-one/" target="_blank">Real-time dental image verification with Amazon SageMaker AI at Henry Schein One</a> <span class="blog-date">(2026-07-10)</span><br><span class="blog-summary">This post describes how Henry Schein One closed that gap by building Image Verify, an AI-powered quality verification...</span></li>
+</ul>
+<h3 class="source-heading">AWS 中国博客</h3>
+<ul class="blog-list">
+<li><a href="https://aws.amazon.com/cn/blogs/china/llm-semantic-clustering-massive-user-comments-refine-into-four-level-voc-tag-system/" target="_blank">用 LLM + 语义聚类，把海量用户评论提炼成四级 VOC 标签体系</a> <span class="blog-date">(2026-07-13)</span><br><span class="blog-summary">本文讲清楚一套把非结构化用户评论提炼成层级标签体系的 pipeline 是怎么设计的， 并在每个设计点交代对应的可调参数：它控制什么、往哪个方向调、对输出有何影响。...</span></li>
+<li><a href="https://aws.amazon.com/cn/blogs/china/based-on-agentcore-harness-build-efficient/" target="_blank">基于AgentCore harness构建高效、稳定的行程分配与优化多智能体系统</a> <span class="blog-date">(2026-07-13)</span><br><span class="blog-summary">本文以大型头部旅行社中“大规模集体出行任务”为案例，针对其现实场景中需求复杂、人员众多、涉及的资源量大的特点，结合“LLM的语义理解能力”与“运筹学求解器的确定性”，开发出了一套高效、稳定、可人工审核、可循环迭代的行程分配与优化Multi-...</span></li>
+</ul>
+    </section>
+    
+
+    
+    <section class="report-section" id="conference-papers">
+      <h2>Part 5 — 会议论文追踪</h2>
+      <div class="conf-stats"><span class="stat-chip">共 20 篇论文</span><span class="stat-chip stat-a">A 类 20 篇</span><span class="stat-chip stat-b">B 类 0 篇</span></div>
+<div class="report-list conf-list" data-date="20260710">
+<article class="card paper-card"><h3>1. Towards Sub-Second Molecular Docking as a Structural Primitive: A Quantized Consistency Diffusion Framework</h3><p class="meta"><strong>作者：</strong>Kexin Zhang, Weichen Qin, Yue Teng, Jiale Yu, Yuanyuan Ma 等 (9 人)</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">极度推荐</span></div><div class="tags"><span class="tag">分子对接</span><span class="tag">一致性扩散模型</span><span class="tag">量化加速</span><span class="tag">AI智能体</span><span class="tag">结构基元</span></div><p><strong>一句话总结：</strong>亚秒级分子对接成为实时结构基元</p><p class="links"><a href="https://openreview.net/forum?id=NyPHOtsJfE" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=NyPHOtsJfE" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出量化一致性扩散框架，将分子对接从离线生成器转变为亚秒级结构基元。核心贡献包括：渐进一致性正则化（PCR）将扩散动力学压缩为可靠少步推理；残差安全量化保留高保真残差流与几何敏感操作，仅量化计算密集线性层。在匹配信息级协议下达到最先进对接精度，256-token复合物单H20 GPU生成5构象仅需0.17秒，较AlphaFold3加速超300倍，支撑AI智能体高频药物发现循环。</p></section><p class="recommendation"><strong>核心推荐：</strong>将扩散模型、一致性训练与量化技术深度融合，实现亚秒级高精度对接，为AI智能体驱动的药物发现提供实时结构反馈，是AI for Science与智能体架构交叉的重要进展。</p></article>
+<article class="card paper-card"><h3>2. Are VLMs Seeing or Just Saying? Uncovering the Illusion of Visual Re-examination</h3><p class="meta"><strong>作者：</strong>Chufan Shi, Cheng Yang, Yaokang Wu, Linghao Jin, Bo Shui 等 (7 人)</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">极度推荐</span></div><div class="tags"><span class="tag">视觉语言模型</span><span class="tag">视觉复检幻觉</span><span class="tag">图像交换探测</span></div><p><strong>一句话总结：</strong>VLMs的“再看图”只是文字套路，并未真看</p><p class="links"><a href="https://openreview.net/forum?id=DdU1o2ZvWi" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=DdU1o2ZvWi" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>视觉语言模型常生成“让我再查一下图”等自省语句，是否真正触发视觉重审？本文提出图像交换探测框架VISUALSWAP，推理后秘密替换为相似但语义不同的图像，构建VS-BENCH（800对图像）。实验发现模型普遍忽视替换，准确率最高降60%。思考模型比指令模型脆弱近3倍，扩大规模无缓解。多轮用户指令可恢复视觉基础，但自反思语句不能。注意力分析揭示用户指令大幅提升视觉token注意力，自反思则否。VLM声称重看图时更偏向“说”而非“看”。核心贡献：揭示视觉复检幻觉，提供交换探测范式。</p></section><p class="recommendation"><strong>核心推荐：</strong>揭示VLMs自我反思语句实为文本幻觉，思考模型更脆弱且不可尺度化缓解，对多模态Agent可信视觉推理设计有重要警示。</p></article>
+<article class="card paper-card"><h3>3. Foundations of Equivariant Deep Learning: Unifying Graph and Sheaf Neural Networks</h3><p class="meta"><strong>作者：</strong>Yoshihiro Maruyama</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">等变深度学习</span><span class="tag">图神经网络</span><span class="tag">层神经网络</span><span class="tag">通用逼近定理</span><span class="tag">范畴对称性</span></div><p><strong>一句话总结：</strong>提出阶等变网络统一图与层神经网络</p><p class="links"><a href="https://openreview.net/forum?id=aIH1jyU37z" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=aIH1jyU37z" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出阶等变神经网络（OENN），利用面偏序集上的等变丛理论，统一了图消息传递与层神经网络。作者刻画了所有线性阶等变映射，构建了OENN层，并证明了连续阶等变映射的通用逼近定理（UAT），首次给出层神经网络的UAT。进一步推广为范畴等变神经网络（CENN），可处理非可逆对称性与组合关系，拓展了等变深度学习的理论基础。</p></section><p class="recommendation"><strong>核心推荐：</strong>该研究为几何深度学习提供了统一理论框架，首次给出层神经网络的通用逼近定理，并拓展至范畴等变，对理解等变架构有重要理论价值。</p></article>
+<article class="card paper-card"><h3>4. Second-Order Smooth Planning with Optimal-Transport Bellman Smoothing</h3><p class="meta"><strong>作者：</strong>Tuan Quang Dam</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">生成模型规划</span><span class="tag">二阶光滑</span><span class="tag">最优传输贝尔曼备份</span></div><p><strong>一句话总结：</strong>二阶光滑规划器将样本复杂度降至O(ε^{-3})</p><p class="links"><a href="https://openreview.net/forum?id=LrNH0O3s45" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=LrNH0O3s45" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>该文研究基于生成模型的规划问题，旨在用最少模拟调用估计状态价值。已有方法SmoothCruiser借助熵正则Bellman光滑性实现一阶估计，复杂度为Õ(ε^{-4})。本文揭示该类规划器的复杂度指数由局部泰勒余项的阶数β决定，给出通用界Õ(ε^{-(2+2/(β-1))})，并从一阶(β=2)推进到二阶(β=3)，得到Õ(ε^{-3})。为此引入最优传输平滑的Bellman备份，具有闭式解、策略梯度、Lipschitz Hessian，且二次校正允许无偏交叉乘积估计，提出SecondOrderSmoothCruiser算法。文中还建立了OT、熵正则化与无正则化目标之间的正则化偏差界。</p></section><p class="recommendation"><strong>核心推荐：</strong>通过最优传输平滑将规划器推进到二阶，突破样本复杂度壁垒，为高效生成模型规划和强化学习前沿提供了新工具与新视角。</p></article>
+<article class="card paper-card"><h3>5. Quantifying Frontier LLM Capabilities for Container Sandbox Escape</h3><p class="meta"><strong>作者：</strong>Rahul Marchand, Art O Cathain, Jerome Wynne, Philippos Maximos Giavridis, Sam Deverett 等 (8 人)</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">沙箱逃逸</span><span class="tag">LLM安全</span><span class="tag">智能体评估</span><span class="tag">容器安全</span><span class="tag">基准测试</span></div><p><strong>一句话总结：</strong>评估大模型突破容器沙箱能力的基准研究</p><p class="links"><a href="https://openreview.net/forum?id=19AbP986bv" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=19AbP986bv" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出SandboxEscapeBench，一个开放基准，以CTF形式安全衡量LLM在Docker容器中逃逸的能力。其嵌套沙箱架构外层的flag无已知漏洞，内层则涵盖配置错误、特权失误、内核缺陷等多种逃逸机制。实验发现，当注入漏洞时，前沿LLM能识别并利用它们，表明需此类评估来确保高能力模型的沙箱封装有效性。核心贡献是首个系统量化LLM容器逃逸风险的基准框架，为自主智能体安全部署提供关键评测工具。</p></section><p class="recommendation"><strong>核心推荐：</strong>直击自主智能体部署的核心安全痛点，量化前沿LLM突破隔离的实战能力，对构建可信AI agent具有重要参考价值。</p></article>
+<article class="card paper-card"><h3>6. DroneDINO: Towards Heterogeneous Routed Mixture of Experts for Drone-based Unified Object Detection</h3><p class="meta"><strong>作者：</strong>Dongdong Li, Rui Chen, Yan Fan, Yan Liu, Yangliu Kuai 等 (6 人)</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">无人机目标检测</span><span class="tag">混合专家模型</span><span class="tag">异构路由</span><span class="tag">多模态统一检测</span><span class="tag">DINO</span></div><p><strong>一句话总结：</strong>异构路由MoE统一无人机多模态目标检测</p><p class="links"><a href="https://openreview.net/forum?id=vPGmYeL1rG" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=vPGmYeL1rG" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>论文提出DroneDINO，将RGB、红外及融合检测统一到DINO框架中，引入异构路由混合专家（MoE）架构，将专家分为共享、任务特定和动态三组，共享专家全激活，任务特定专家仅对应任务激活，克服数据不平衡导致的专家过激活问题。辅以任务识别辅助训练策略增强特征判别力，在多个无人机检测基准上显著超越现有统一和任务专用检测器。</p></section><p class="recommendation"><strong>核心推荐：</strong>通过结构化MoE设计解决多任务不平衡学习问题，为统一检测架构提供新范式，对多模态融合和模型扩展性研究极具启发。</p></article>
+<article class="card paper-card"><h3>7. CVE-Factory: Scaling Expert-Level Agentic Tasks for Code Security Vulnerability</h3><p class="meta"><strong>作者：</strong>Xianzhen Luo, Jingyuan Zhang, Shiqi Zhou, JinYang Huang, Chuan Xiao 等 (11 人)</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">代码安全</span><span class="tag">多智能体</span><span class="tag">漏洞自动复现</span><span class="tag">Agent评测基准</span></div><p><strong>一句话总结：</strong>首个专家级自动化CVE安全漏洞任务生成框架</p><p class="links"><a href="https://openreview.net/forum?id=BkMSFFtm5M" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=BkMSFFtm5M" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>CVE-Factory提出首个多智能体框架，自动将CVE元数据转换为完全可执行的代码安全漏洞任务，经人类专家交叉验证，方案正确率达95%、环境保真度达96%。基于此构建持续更新的评测基准LiveCVEBench（含190个任务，覆盖14种语言和153个仓库），并合成超1000个训练环境，首次大规模扩展代码安全Agent任务。微调Qwen3-32B后，在LiveCVEBench上从5.3%提升至35.8%，超越Claude 4.5 Sonnet，且能力泛化至Terminal Bench。该工作为代码安全智能体的评测与训练提供了高质量数据基础。</p></section><p class="recommendation"><strong>核心推荐：</strong>从静态CVE信息到可执行环境的端到端自动化生成，解决了代码安全Agent缺乏高质量动态任务的核心瓶颈，同时展示合成数据训练显著提升Agent能力的范式，对Agent能力边界拓展有重要启发。</p></article>
+<article class="card paper-card"><h3>8. Monitoring Monitorability</h3><p class="meta"><strong>作者：</strong>Melody Y. Guan, Miles Wang, Micah Carroll, Zehao Dou, Annie Y. Wei 等 (12 人)</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">可监控性</span><span class="tag">思维链监控</span><span class="tag">缩放定律</span></div><p><strong>一句话总结：</strong>评估并提升思维链监控的可监控性</p><p class="links"><a href="https://openreview.net/forum?id=b82fgbMVpz" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=b82fgbMVpz" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>安全部署AI智能体需观察其决策，思维链(CoT)监控可检测不良行为，但“可监控性”可能在不同训练和规模下脆弱。本文提出三种评估原型（干预、过程、结果属性）、新度量及广泛测试集。实验表明CoT监控优于仅动作监控，前沿模型总体可监控但不完美。研究缩放规律发现更长CoT更可监控；固定能力下，小模型配合高推理努力可提高监控性但计算成本上升；弱监控器增加测试时计算并接入CoT能显著提升监控性能，且使计算-监控性曲线更陡；通过追问并将后续CoT提供给监控器可进一步增强监控性。该工作为推理模型的安全审计提供了系统性洞见。</p></section><p class="recommendation"><strong>核心推荐：</strong>系统研究CoT监控的可监控性缩放规律，为大规模推理模型的安全审计提供实践指导，对AI安全前沿有重要价值。</p></article>
+<article class="card paper-card"><h3>9. Transforming Weather Data from Pixel to Latent Space</h3><p class="meta"><strong>作者：</strong>Sijie Zhao, Feng Liu, Xueliang Zhang, Hao Chen, Tao Han 等 (10 人)</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">气象自编码器</span><span class="tag">隐空间学习</span><span class="tag">数据压缩</span><span class="tag">AI for Science</span><span class="tag">多变量统一表示</span></div><p><strong>一句话总结：</strong>用隐空间自编码器高效压缩气象数据，提升下游任务性能。</p><p class="links"><a href="https://openreview.net/forum?id=NlSWKeQPoZ" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=NlSWKeQPoZ" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出天气隐空间自编码器（WLA），将气象数据从像素空间转换到隐空间，实现高压缩比与高保真重建，并设计了压力-变量统一模块，使模型能适应多种气压层与变量组合。WLA在压缩至0.43 TB的同时保留了关键信息，下游任务可在低存储隐空间进行，减少计算与存储开销，且效果优于像素空间模型。核心贡献包括：解耦气象重建与任务学习、统一多压力变量表示、以及构建高效ERA5-Latent数据集。</p></section><p class="recommendation"><strong>核心推荐：</strong>将隐空间表示学习用于地球科学大数据，为构建高效气象基础模型提供了新范式，是AI与环境科学交叉的重要进展。</p></article>
+<article class="card paper-card"><h3>10. Mechanistic Data Attribution: Tracing the Training Origins of Interpretable LLM Units</h3><p class="meta"><strong>作者：</strong>Jianhui Chen, Yuzhang Luo, Liangming Pan</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">机制性数据归因</span><span class="tag">影响函数</span><span class="tag">归纳头</span><span class="tag">上下文学习</span><span class="tag">可解释性</span></div><p><strong>一句话总结：</strong>用影响函数追溯LLM可解释单元的训练数据起源</p><p class="links"><a href="https://openreview.net/forum?id=PQaxfoEcRc" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=PQaxfoEcRc" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出机制性数据归因(MDA)框架，利用影响函数将大语言模型中的可解释单元（如归纳头）精确追溯到具体训练样本。在Pythia系列模型上的实验表明，移除或增强少量高影响样本可显著调控可解释头的形成，而随机干预无效。研究发现重复性结构数据（LaTeX、XML等）是机制性催化剂。更重要的是，对归纳头的干预直接引起模型上下文学习能力的变化，首次为归纳头与ICL的功能关联提供了因果证据。最后提出了机制性数据增强流水线，可稳定加速电路收敛，为引导LLM发展轨迹提供了原则性方法。</p></section><p class="recommendation"><strong>核心推荐：</strong>首次用因果证据连接训练数据与可解释电路，为LLM发育理解和控制提供新工具，与AI安全、对齐前沿紧密相关。</p></article>
+<article class="card paper-card"><h3>11. RoboMME: Benchmarking and Understanding Memory for Robotic Generalist Policies</h3><p class="meta"><strong>作者：</strong>Yinpei Dai, Hongze Fu, Jayjun Lee, Yuejiang Liu, Haoran Zhang 等 (9 人)</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">机器人操作记忆</span><span class="tag">VLA 基准</span><span class="tag">具身智能评估</span></div><p><strong>一句话总结：</strong>首个机器人长期记忆标准化基准与系统评估</p><p class="links"><a href="https://openreview.net/forum?id=8m30ogkPk2" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=8m30ogkPk2" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>提出 RoboMME，一个面向长时程、历史依赖场景的机器人操作标准化基准，包含 16 项任务，系统覆盖时间、空间、对象和程序四类记忆。基于 π0.5 构建 14 种记忆增强 VLA 变体，全面探讨记忆表示与集成策略。结果显示记忆效果强依赖于任务类型，为统一评估与机制设计提供坚实基础。</p></section><p class="recommendation"><strong>核心推荐：</strong>该基准首次系统性地量化评估机器人 VLA 模型的记忆能力，直接服务于具身智能体长期任务规划与记忆设计，是连接多模态大模型与真实物理交互的关键工作。</p></article>
+<article class="card paper-card"><h3>12. FlashSketch: Sketch-Kernel Co-Design for Fast Sparse Sketching on GPUs</h3><p class="meta"><strong>作者：</strong>Rajat Vadiraj Dwaraknath, Sungyoon Kim, Mert Pilanci</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">稀疏Johnson-Lindenstrauss变换</span><span class="tag">GPU内核优化</span><span class="tag">草图协同设计</span><span class="tag">BlockPerm-SJLT</span><span class="tag">随机数值线性代数</span></div><p><strong>一句话总结：</strong>提出块置换稀疏草图与GPU内核协同设计，大幅提升稀疏JL变换速度</p><p class="links"><a href="https://openreview.net/forum?id=cCwxV6rSXF" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=cCwxV6rSXF" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文针对稀疏Johnson–Lindenstrauss变换在GPU上因随机稀疏导致内存访问不规则、带宽利用率低的瓶颈，提出BlockPerm-SJLT新草图族和FlashSketch专用CUDA内核。通过引入可调参数显式权衡GPU执行效率与草图近似质量，并从理论上给出盲子空间嵌入保证。实验表明，FlashSketch在RandNLA基准和GraSS数据归因管道中，在草图质量-速度帕累托前沿上全面超越现有方法，获得约1.7倍全局几何平均加速。该工作实现了稀疏草图理论与高效系统实现的协同突破。</p></section><p class="recommendation"><strong>核心推荐：</strong>将理论草图改进与底层内核深度协同，直接提升大规模ML数据预处理、归因等任务效率，是AI系统优化的代表性工作。</p></article>
+<article class="card paper-card"><h3>13. What Preferences Can—and Cannot—Predict in Multi-Agent Online Learning</h3><p class="meta"><strong>作者：</strong>Omar Abbadi, Rida Laraki, Panayotis Mertikopoulos</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">多智能体在线学习</span><span class="tag">偏好图</span><span class="tag">无悔动态</span></div><p><strong>一句话总结：</strong>偏好图能否预测多智能体在线学习的长期行为？</p><p class="links"><a href="https://openreview.net/forum?id=5W30WwL8wt" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=5W30WwL8wt" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文研究博弈中偏好图与无悔学习动态（如FTRL）的长期结果之间的关系。证明任何动态稳定集的纯策略骨架必定是偏好稳定的（对有利偏离封闭）；反之，仅在子博弈情形下偏好稳定等价于动态稳定。然而，通过构造三人博弈反例，发现一般情形中存在偏好稳定但动态不稳定的集合，表明偏好数据不足以刻画学习动态。为此引入“无泄漏”概念，描述收益漂移，并给出确保纯策略集跨度稳定且吸引的收益条件。</p></section><p class="recommendation"><strong>核心推荐：</strong>揭示序数偏好与基数收益驱动的学习动态之间的本质鸿沟，为多智能体系统长期行为预测提供新理论工具，对理解多AI体交互演化具有重要参考价值。</p></article>
+<article class="card paper-card"><h3>14. Strategic Navigation or Stochastic Search? How Agents and Humans Reason Over Document Collections</h3><p class="meta"><strong>作者：</strong>Łukasz Borchmann, Jordy Van Landeghem, Michał Turski, Shreyansh Padarha, Ryan Othniel Kearns 等 (15 人)</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">多模态代理</span><span class="tag">文档理解</span><span class="tag">策略推理</span><span class="tag">基准数据集</span><span class="tag">准确率-效率权衡</span></div><p><strong>一句话总结：</strong>揭示AI代理依赖蛮力搜索而非策略推理</p><p class="links"><a href="https://openreview.net/forum?id=ds3ZOevkwx" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=ds3ZOevkwx" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文针对多模态文档代理提出基准MADQA，含2250个人工问题与800篇异构PDF。基于经典测验理论设计高区分度评估，引入准确率-效率权衡协议。实验表明最佳代理虽在原始准确率上接近人类，但成功问题交集小，依赖暴力搜索弥补策略规划不足，与神谕性能相差近20%，且常陷入无效循环。数据集与评估工具开源，旨在推动从蛮力检索向校准高效推理的转变。</p></section><p class="recommendation"><strong>核心推荐：</strong>揭示了当前AI代理在复杂文档推理中缺乏真正战略规划，为构建高效、可校准的智能推理架构提供了重要洞察和评估框架。</p></article>
+<article class="card paper-card"><h3>15. Measuring Agents in Production</h3><p class="meta"><strong>作者：</strong>Melissa Pan, Negar Arabzadeh, Riccardo Cogo, Yuxuan Zhu, Alexander Xiong 等 (25 人)</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">生产智能体</span><span class="tag">实证研究</span><span class="tag">可靠性挑战</span></div><p><strong>一句话总结：</strong>首项生产环境Agent系统实证研究</p><p class="links"><a href="https://openreview.net/forum?id=mWxEAgz3xu" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=mWxEAgz3xu" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>基于20个案例访谈与86份系统调查，首次系统研究生产环境中的LLM智能体。发现生产智能体倾向简单可控：68%在10步内需人工介入，70%依赖现成模型提示而非权重微调，74%主要靠人工评估。可靠性是核心挑战，当前通过系统级设计缓解。该研究为社区揭示了部署现实与待探索方向。</p></section><p class="recommendation"><strong>核心推荐：</strong>首份揭示真实世界中智能体构建与评估的实证研究，指明简单可控方法仍是主流，为Agent研究从实验室走向落地提供关键现实参照。</p></article>
+<article class="card paper-card"><h3>16. The Signal is in the Steps: Local Scoring for Reasoning Data Selection</h3><p class="meta"><strong>作者：</strong>Hoang Anh Just, Myeongseob Ko, Ruoxi Jia</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">推理数据选择</span><span class="tag">局部评分</span><span class="tag">知识蒸馏</span></div><p><strong>一句话总结：</strong>局部步骤评分突破多教师推理蒸馏瓶颈</p><p class="links"><a href="https://openreview.net/forum?id=GcB3a6IonG" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=GcB3a6IonG" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>从多个教师模型蒸馏长链推理时，现有方法选择学生概率最高的完整回复，但效果不佳。本研究发现，全轨迹评分偏好全局流畅性，忽视了可迁移的局部步骤过渡信号。为此提出局部平均对数概率（LALP），仅用有限上下文窗口评估每一步是否被其直接前提所支撑。LALP可预选最佳教师并从多教师池中精选训练数据，在数学、编程、科学推理等任务上显著提升蒸馏模型准确率。</p></section><p class="recommendation"><strong>核心推荐：</strong>揭示全局评估在推理蒸馏中的失败根源，提出聚焦步骤级合理性的新方法，对高质量推理数据筛选和模型蒸馏极具启发。</p></article>
+<article class="card paper-card"><h3>17. On the Limits of LLM Adaptability: Impact of Model-Internalized Priors on Annotation Task Performance</h3><p class="meta"><strong>作者：</strong>Etienne Casanova, Rafal Kocielnik, R. Michael Alvarez</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">大语言模型</span><span class="tag">零样本标注</span><span class="tag">先验偏差</span><span class="tag">定义对齐</span><span class="tag">提示纠正局限性</span></div><p><strong>一句话总结：</strong>LLM标注错误难纠正，定义对齐重于记忆</p><p class="links"><a href="https://openreview.net/forum?id=oTv2bKG5Qg" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=oTv2bKG5Qg" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文研究大语言模型零样本标注任务的可靠性，发现模型内部先验与任务定义交互存在局限。实验显示三分之二的零样本错误难以通过提示纠正（挽救率仅34.8%），高置信度错误尤其顽固。模型遵循错误定义时置信度不变。作者提出“定义特定熟悉度”（DSF），其与性能呈正相关（偏r=+0.41），而文本级记忆指标（ROUGE-L, BERTScore, 余弦相似度）均无正向关联，揭示定义对齐比表面记忆更关键。</p></section><p class="recommendation"><strong>核心推荐：</strong>揭示LLM标注中难以靠提示纠正先验错误的现象，提出的DSF指标对构建可靠AI评估器有重要启发，直指指令跟随与概念对齐的前沿问题。</p></article>
+<article class="card paper-card"><h3>18. Do We Need Adam? Surprisingly Strong and Sparse Reinforcement Learning with SGD in LLMs</h3><p class="meta"><strong>作者：</strong>Sagnik Mukherjee, Lifan Yuan, Pavan Jayasinha, Dilek Hakkani-Tür, Hao Peng</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">大语言模型</span><span class="tag">强化学习</span><span class="tag">SGD优化器</span><span class="tag">参数稀疏性</span><span class="tag">RLVR</span></div><p><strong>一句话总结：</strong>SGD替代AdamW实现LLM强化学习，效果强劲且参数稀疏</p><p class="links"><a href="https://openreview.net/forum?id=z31fdV4WRu" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=z31fdV4WRu" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文挑战了在大语言模型强化学习阶段沿用监督学习阶段优化器AdamW的惯例。分析表明，AdamW的动量和自适应学习率在RL中影响较小，而内存高效的SGD在LLM的RL（尤其是RLVR）中匹配甚至超越AdamW，且全量微调的参数更新不足0.02%，远超千倍的稀疏性。该发现揭示了RL阶段独有的优化动力学，为参数高效RL训练开辟新视角。</p></section><p class="recommendation"><strong>核心推荐：</strong>颠覆了RL训练必须依赖AdamW的认知，用简单SGD即可实现高效且稀疏的更新，对RLHF和推理对齐实践具有直接指导价值。</p></article>
+<article class="card paper-card"><h3>19. Expressivity-Efficiency Tradeoffs for Hybrid Sequence Models</h3><p class="meta"><strong>作者：</strong>John Cooper, Ilias Diakonikolas, Mingchen Ma, Frederic Sala</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">混合序列模型</span><span class="tag">Transformer-SSM权衡</span><span class="tag">长度泛化</span></div><p><strong>一句话总结：</strong>混合序列模型实现效率与表达力的最佳平衡</p><p class="links"><a href="https://openreview.net/forum?id=82EJxJzG6r" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=82EJxJzG6r" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文研究结合Transformer和状态空间模型（SSM）的混合架构，针对合成任务证明纯Transformer或纯SSM均存在参数或记忆量的根本限制，而混合模型能以小尺寸和低记忆解决选择性复制与联想回忆等任务。实验验证了理论发现，并进一步显示学习的混合模型性能可超越参数量多达6倍的纯模型，且长度泛化与分布外鲁棒性显著更强。</p></section><p class="recommendation"><strong>核心推荐：</strong>从理论视角阐明混合架构的必要性与优势，为当前大模型高效组合注意力与状态空间模块提供了坚实依据，值得架构设计与优化方向关注。</p></article>
+<article class="card paper-card"><h3>20. DiScoFormer: Plug-In Density and Score Estimation with Transformers</h3><p class="meta"><strong>作者：</strong>Vasily Ilin, Peter Sushko, Ranjay Krishna</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">概率密度估计</span><span class="tag">分数估计</span><span class="tag">等变Transformer</span><span class="tag">核密度估计</span><span class="tag">即插即用</span></div><p><strong>一句话总结：</strong>用Transformer实现通用密度与分数估计</p><p class="links"><a href="https://openreview.net/forum?id=gyOWJpP8cQ" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=gyOWJpP8cQ" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>DiScoFormer提出一种基于等变Transformer的通用密度与分数估计方法，首次证明自注意力可恢复归一化核密度估计，实现“训练一次、任意分布推断”的即插即用机制。该模型在密度估计上比KDE精度更高、收敛更快，并可作为分数预言机服务于分数去偏KDE、Fisher信息计算及Fokker-Planck方程，统一了经典核方法与现代神经估计的各自优势。</p></section><p class="recommendation"><strong>核心推荐：</strong>将Transformer作为函数逼近器统一密度与分数估计，支持跨分布泛化，为概率建模和物理启发生成模型提供可复用的基础工具，与流动模型、扩散模型的分数匹配密切相关。</p></article>
+</div>
+    </section>
+    
+
+    
+    <section class="report-section" id="wechat-articles">
+      <h2>Part 6 — 微信公众号</h2>
+      <p class="empty-state">今日无微信公众号更新。</p>
+    </section>
+    
+
+  </main>
+
+  <script>
+(function() {
+  // ── TOC card collapse/expand ──
+  var tocHeader = document.querySelector('.toc-card-header');
+  var tocCard = document.querySelector('.toc-card');
+  if (tocHeader && tocCard) {
+    tocHeader.addEventListener('click', function() {
+      tocCard.classList.toggle('collapsed');
+    });
+  }
+
+  // ── Scroll-spy: highlight active section in TOC ──
+  var sections = document.querySelectorAll('.report-section[id]');
+  var tocEntries = document.querySelectorAll('.toc-entry[data-target]');
+  var tocDots = document.querySelectorAll('.toc-dot[data-target]');
+
+  function setActive(id) {
+    tocEntries.forEach(function(el) {
+      el.classList.toggle('active', el.getAttribute('data-target') === id);
+    });
+    tocDots.forEach(function(el) {
+      el.classList.toggle('active', el.getAttribute('data-target') === id);
+    });
+  }
+
+  if ('IntersectionObserver' in window && sections.length > 0) {
+    setActive(sections[0].id);
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          setActive(entry.target.id);
+        }
+      });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+    sections.forEach(function(s) { observer.observe(s); });
+  }
+
+  // ── Smooth scroll on TOC click ──
+  document.querySelectorAll('a[href^="#"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      var href = this.getAttribute('href');
+      if (href.length > 1) {
+        var target = document.getElementById(href.slice(1));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', href);
+        }
+      }
+    });
+  });
+
+  // ── Floating dot click → scroll to section ──
+  tocDots.forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      var id = this.getAttribute('data-target');
+      var target = document.getElementById(id);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -8,7 +8,7 @@ struct NottyView: View {
     @State private var sessionId: String?
     @State private var sessions: [ChatSession] = []
     @State private var showSessionList = false
-    @Environment(\.dismiss) private var dismiss
+    var onClose: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,6 +21,12 @@ struct NottyView: View {
                     .font(.headline)
 
                 Spacer()
+
+                Button { startNewSession() } label: {
+                    Image(systemName: "square.and.pencil")
+                        .foregroundStyle(Color.inkSecondary)
+                }
+                .buttonStyle(.plain)
 
                 Button { showSessionList.toggle() } label: {
                     Image(systemName: "clock.arrow.circlepath")
@@ -38,7 +44,7 @@ struct NottyView: View {
                 }
 
                 #if os(macOS)
-                Button { dismiss() } label: {
+                Button { onClose?() } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
                 }
@@ -299,17 +305,36 @@ private struct ChatBubble: View {
                     .foregroundStyle(Color.inkTertiary)
                 }
 
-                Text(message.content)
-                    .font(.body)
-                    .textSelection(.enabled)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(isUser ? Color.accent : Color.canvasSecondary)
-                    .foregroundStyle(isUser ? .white : Color.ink)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                if isUser {
+                    Text(message.content)
+                        .font(.body)
+                        .textSelection(.enabled)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.accent)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: DG.r16))
+                } else {
+                    Text(markdownAttributed(message.content))
+                        .font(.body)
+                        .textSelection(.enabled)
+                        .padding(.horizontal, DG.sp12)
+                        .padding(.vertical, DG.sp8)
+                        .background(Color.canvasSecondary)
+                        .foregroundStyle(Color.ink)
+                        .clipShape(RoundedRectangle(cornerRadius: DG.r16))
+                }
             }
 
             if !isUser { Spacer(minLength: 60) }
         }
+    }
+
+    private func markdownAttributed(_ text: String) -> AttributedString {
+        let opts = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        if let attr = try? AttributedString(markdown: text, options: opts) {
+            return attr
+        }
+        return AttributedString(text)
     }
 }

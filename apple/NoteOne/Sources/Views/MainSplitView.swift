@@ -130,6 +130,10 @@ struct MainSplitView: View {
             }
         case .trash:
             TrashView()
+        case .ascanReports:
+            AscanReportListView()
+        case .ascanConfig:
+            AscanConfigView()
         case .empty:
             emptyPlaceholder("从左侧选择笔记或写作文件")
         }
@@ -156,7 +160,7 @@ struct MainSplitView: View {
             }
         } else {
             // Regular Notty (read-only chat with notes)
-            NottyView()
+            NottyView(onClose: { drawerVisible = false })
         }
     }
 
@@ -171,7 +175,7 @@ struct MainSplitView: View {
         switch newSelection {
         case .markdown(let file):
             Task { await openMarkdown(file) }
-        case .note, .trash, .empty:
+        case .note, .trash, .ascanReports, .ascanConfig, .empty:
             // Leaving the writer — flush any in-flight save and clear editor state.
             if currentFile != nil {
                 let pending = currentFile

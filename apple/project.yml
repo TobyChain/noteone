@@ -41,19 +41,23 @@ targets:
         # Dock drop, iOS share-sheet drop). Actual handling is via SwiftUI .onDrop on root.
         CFBundleDocumentTypes:
           - CFBundleTypeName: Text
+            CFBundleTypeRole: Editor
             LSHandlerRank: Alternate
             LSItemContentTypes:
               - public.text
               - public.plain-text
           - CFBundleTypeName: URL
+            CFBundleTypeRole: Viewer
             LSHandlerRank: Alternate
             LSItemContentTypes:
               - public.url
           - CFBundleTypeName: Image
+            CFBundleTypeRole: Viewer
             LSHandlerRank: Alternate
             LSItemContentTypes:
               - public.image
           - CFBundleTypeName: Movie
+            CFBundleTypeRole: Viewer
             LSHandlerRank: Alternate
             LSItemContentTypes:
               - public.movie

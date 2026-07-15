@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ascan-20260612</title>
+  <style>/* ── Notion-inspired Design System for Ascan Daily Report ── */
+:root {
+  color-scheme: light;
+  /* Surface & Canvas */
+  --canvas: #ffffff;
+  --surface: #f7f7f5;
+  --surface-soft: #f1f1ef;
+  /* Borders */
+  --hairline: #e8e7e4;
+  --hairline-soft: #eeeeed;
+  --hairline-strong: #d3d1cb;
+  /* Text */
+  --ink-deep: #0f0f0f;
+  --ink: #191919;
+  --charcoal: #37352f;
+  --slate: #6b6b6b;
+  --steel: #9b9a97;
+  --stone: #b4b3af;
+  --muted: #c4c3bf;
+  /* Brand Accents */
+  --primary: #6c47ff;
+  --primary-pressed: #5a3ad6;
+  --link-blue: #2383e2;
+  /* Semantic Tints */
+  --tint-lavender: #e8deee;
+  --tint-peach: #faebdd;
+  --tint-mint: #dbeddb;
+  --tint-sky: #d3e5ef;
+  --tint-yellow: #fdecc8;
+  --brand-purple-800: #4a2d8a;
+  --brand-orange-deep: #b05c1a;
+  --brand-green: #2d7d46;
+  /* Elevation */
+  --shadow-subtle: rgba(15, 15, 15, 0.04) 0px 1px 2px 0px;
+  --shadow-card: rgba(15, 15, 15, 0.06) 0px 3px 8px 0px;
+  /* Spacing base unit: 4px */
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 12px;
+  --sp-lg: 16px;
+  --sp-xl: 24px;
+  --sp-xxl: 32px;
+  --sp-section: 48px;
+  /* Radius */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-full: 9999px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--canvas);
+  color: var(--charcoal);
+  font-family: Inter, -apple-system, system-ui, "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--link-blue); text-decoration: none; transition: color 0.15s ease; }
+a:hover { text-decoration: underline; color: #1a6dc2; }
+
+/* ── Page Container ── */
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--sp-xxl) var(--sp-xl) var(--sp-section);
+}
+
+/* ── Hero / Header ── */
+.hero {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xxl) var(--sp-xl);
+  margin-bottom: var(--sp-section);
+}
+.hero h1 {
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-sm);
+}
+.hero p {
+  font-size: 16px;
+  color: var(--slate);
+  line-height: 1.55;
+}
+
+/* ── Section Headings ── */
+.report-section { margin-top: var(--sp-section); }
+.report-section > h2 {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-lg);
+  padding-bottom: var(--sp-sm);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xl);
+  margin-bottom: var(--sp-lg);
+  transition: box-shadow 0.15s ease;
+}
+.card:hover { box-shadow: var(--shadow-card); }
+.card h3 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-sm);
+}
+.card h4 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+  margin-bottom: var(--sp-xs);
+}
+
+/* ── Meta & Muted Text ── */
+.meta {
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.5;
+  margin-bottom: var(--sp-sm);
+}
+.muted, .section-note, .empty-state {
+  font-size: 14px;
+  color: var(--steel);
+  line-height: 1.5;
+}
+.empty-state {
+  padding: var(--sp-xl);
+  text-align: center;
+  background: var(--surface);
+  border-radius: var(--r-md);
+}
+
+/* ── Lead (one-liner emphasis) ── */
+.lead {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.55;
+  margin-bottom: var(--sp-sm);
+}
+
+/* ── Tags ── */
+.tags { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin: var(--sp-sm) 0; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--r-sm);
+  background: var(--tint-lavender);
+  color: var(--brand-purple-800);
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ── Recommendation Callout ── */
+.recommendation {
+  border-left: 3px solid var(--primary);
+  background: var(--surface);
+  padding: var(--sp-md) var(--sp-lg);
+  border-radius: var(--r-md);
+  margin-top: var(--sp-md);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--charcoal);
+}
+
+/* ── Summary Block ── */
+.summary-block {
+  margin-top: var(--sp-md);
+  padding-top: var(--sp-md);
+  border-top: 1px solid var(--hairline-soft);
+}
+.summary-block h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--sp-xs);
+}
+.summary-block p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--charcoal);
+}
+
+/* ── Links Row ── */
+.links {
+  font-size: 14px;
+  font-weight: 500;
+  margin: var(--sp-sm) 0;
+}
+.links a { margin-right: var(--sp-xs); }
+
+/* ── Tables ── */
+.table-wrapper { overflow-x: auto; margin: var(--sp-lg) 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  font-size: 14px;
+}
+th {
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--ink);
+  padding: var(--sp-md) var(--sp-lg);
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+}
+td {
+  padding: var(--sp-md) var(--sp-lg);
+  border-bottom: 1px solid var(--hairline-soft);
+  color: var(--charcoal);
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: none; }
+
+/* ── Meta List (repo details) ── */
+.meta-list {
+  padding-left: var(--sp-xl);
+  margin: var(--sp-sm) 0;
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.6;
+}
+.meta-list li { margin-bottom: var(--sp-xs); }
+.meta-list strong { color: var(--charcoal); font-weight: 500; }
+
+/* ── Footer ── */
+.footer {
+  margin-top: var(--sp-section);
+  padding-top: var(--sp-lg);
+  border-top: 1px solid var(--hairline);
+  color: var(--steel);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .page { padding: var(--sp-lg) var(--sp-md) var(--sp-xxl); }
+  .hero { padding: var(--sp-xl) var(--sp-lg); }
+  .hero h1 { font-size: 28px; }
+  .report-section > h2 { font-size: 22px; }
+  .card { padding: var(--sp-lg); }
+  .card h3 { font-size: 18px; }
+  th, td { padding: var(--sp-sm) var(--sp-md); }
+}/* ── TOC Outline Card ── */
+.toc-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-section);
+  overflow: hidden;
+}
+.toc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-md) var(--sp-lg);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+.toc-card-header:hover { background: var(--surface-soft); }
+.toc-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.3px;
+}
+.toc-card-toggle {
+  font-size: 13px;
+  color: var(--steel);
+  transition: transform 0.2s ease;
+}
+.toc-card.collapsed .toc-card-toggle { transform: rotate(-90deg); }
+.toc-list {
+  list-style: none;
+  padding: 0 var(--sp-lg) var(--sp-md);
+  margin: 0;
+}
+.toc-card.collapsed .toc-list { display: none; }
+.toc-entry {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  color: var(--charcoal);
+  transition: background 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+}
+.toc-entry:hover { background: var(--surface-soft); text-decoration: none; color: var(--ink); }
+.toc-entry.active { background: var(--tint-lavender); color: var(--brand-purple-800); font-weight: 500; }
+.toc-entry-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-full);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+  margin-right: var(--sp-sm);
+  flex-shrink: 0;
+}
+.toc-entry.active .toc-entry-num { background: var(--primary); border-color: var(--primary); color: #fff; }
+.toc-entry-text { flex: 1; }
+.toc-entry-count {
+  font-size: 12px;
+  color: var(--steel);
+  margin-left: var(--sp-sm);
+  flex-shrink: 0;
+}
+
+/* ── Floating Side Navigator (desktop only) ── */
+.toc-floating {
+  position: fixed;
+  left: calc(50% - 500px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-md);
+  padding: var(--sp-md);
+}
+.toc-floating-label {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--charcoal);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: 4px 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  box-shadow: var(--shadow-subtle);
+}
+.toc-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-full);
+  background: var(--muted);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+.toc-dot:hover { background: var(--steel); }
+.toc-dot:hover .toc-floating-label { opacity: 1; }
+.toc-dot.active { background: var(--primary); border-color: var(--primary); transform: scale(1.3); }
+@media (max-width: 1100px) { .toc-floating { display: none; } }
+</style>
+</head>
+<body>
+  <div class="toc-floating">
+  <span class="toc-dot" data-target="arxiv-papers"><span class="toc-floating-label">Part 1 · arXiv 论文精选</span></span>
+  <span class="toc-dot" data-target="github-repos"><span class="toc-floating-label">Part 2 · GitHub 项目挖掘</span></span>
+  <span class="toc-dot" data-target="official-tracker"><span class="toc-floating-label">Part 3 · 官方动态跟踪</span></span>
+  <span class="toc-dot" data-target="blog-subs"><span class="toc-floating-label">Part 4 · 独立博客订阅</span></span>
+  </div>
+  <main class="page">
+    <header class="hero">
+      <h1>Ascan-20260612</h1>
+      <p>科技前沿日报 · 2026-06-12 · arXiv 论文精选 + GitHub 项目挖掘 + 官方动态跟踪</p>
+    </header>
+
+    <nav class="toc-card" id="toc-card">
+      <div class="toc-card-header">
+        <span class="toc-card-title">📑 大纲</span>
+        <span class="toc-card-toggle">▼</span>
+      </div>
+      <div class="toc-list">
+      <a href="#arxiv-papers" class="toc-entry" data-target="arxiv-papers"><span class="toc-entry-num">Part 1</span><span class="toc-entry-text">arXiv 论文精选</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#github-repos" class="toc-entry" data-target="github-repos"><span class="toc-entry-num">Part 2</span><span class="toc-entry-text">GitHub 项目挖掘</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#official-tracker" class="toc-entry" data-target="official-tracker"><span class="toc-entry-num">Part 3</span><span class="toc-entry-text">官方动态跟踪</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#blog-subs" class="toc-entry" data-target="blog-subs"><span class="toc-entry-num">Part 4</span><span class="toc-entry-text">独立博客订阅</span><span class="toc-entry-count">无</span></a>
+      </div>
+    </nav>
+
+    <section class="report-section" id="arxiv-papers">
+      <h2>Part 1 — arXiv 论文精选</h2>
+      <div class="report-list arxiv-list" data-date="2026-06-11">
+<article class="card paper-card">
+<h3>1. MedCTA: A Benchmark for Clinical Tool Agents</h3>
+<p class="meta"><strong>作者：</strong>Tajamul Ashraf, Hyewon Jeong, Fida Mohammad Thoker, Bernard Ghanem</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">ecom_service</span></div>
+<p><strong>一句话总结：</strong>开发医疗AI工具代理评估基准，发现现有模型在多步临床任务中容易出错。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.11702" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.11702.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>为实现临床决策，医疗AI代理需具备工具检索、证据获取和整合能力。现有基准测试局限于感知或单轮问答，无法评估规划和工具调用失败。MedCTA是评估医疗工具代理的基准，包含107个真实临床任务，支持多模态输入和过程评估。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>为电商AI提供多模态工具集成和过程评估框架参考，可用于复杂客户服务场景的可靠性测试和数字员工工作流优化。</p>
+</article>
+<article class="card paper-card">
+<h3>2. MemToolAgent: Leveraging Memory for Tool Using Agents Based on Environment and User Feedback</h3>
+<p class="meta"><strong>作者：</strong>Suleyman Armagan Er, Danilo Ribeiro, Yogesh Virkar, Surafel Lakew, Adi Kalyanpur, James Gung, Thomas Delteil, Arshit Gupta</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">intent_understand</span></div>
+<p><strong>一句话总结：</strong>让AI助手记住用户偏好和错误经验，从而更聪明地使用工具解决问题</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.07909" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.07909.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>现代大语言模型代理可使用外部工具帮助用户解决复杂任务。但对于需要从长期历史事件或之前代理-环境交互中学习的问题，需使用记忆机制存储和检索经验。我们提出MemToolAgent框架，通过记忆管理改进工具使用，包含记忆提取模块和检索模块，无需微调即可实现个性化响应。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>为电商AI客服和数字员工提供记忆管理能力，可根据用户反馈和历史交互优化服务策略，提升个性化推荐和问题解决准确率</p>
+</article>
+<article class="card paper-card">
+<h3>3. When More Documents Hurt RAG: Mitigating Vector Search Dilution with Domain-Scoped, Model-Agnostic Retrieval</h3>
+<p class="meta"><strong>作者：</strong>Nabaraj Subedi, Ahmed Abdelaty, Shivanand Venkanna Sheshappanavar</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">ecom_service</span></div>
+<p><strong>一句话总结：</strong>解决知识库变大后AI回答准确率下降的问题，让检索更精准。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.11350" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.11350.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>检索增强生成在扩展到大型异构文档集合时性能下降，密集相似性失去区分能力，top-k检索返回语义相似但上下文错误的片段。提出MASDR-RAG方法缓解向量搜索稀释问题。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>可提升电商知识库问答准确性，优化商品咨询和客服对话质量，特别适用于多品类商品知识管理场景。</p>
+</article>
+<article class="card paper-card">
+<h3>4. Fanar-Sadiq: A Multi-Agent Architecture for Grounded Islamic QA</h3>
+<p class="meta"><strong>作者：</strong>Ummar Abbas, Mourad Ouzzani, Mohamed Y. Eltabakh, Omar Sinan, Gagan Bhatia, Hamdy Mubarak, Majd Hawasly, Mohammed Qusay Hashim, Kareem Darwish, Firoj Alam</p>
+<div class="tags"><span class="tag">ecom_service</span><span class="tag">agentic_framework</span></div>
+<p><strong>一句话总结：</strong>构建多代理系统解决宗教问答中的准确性问题，确保答案有经典文本依据。</p>
+<p class="links"><a href="https://arxiv.org/abs/2603.08501" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2603.08501.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>大型语言模型能流利回答宗教知识查询，但常出现幻觉和错误归因，在伊斯兰环境中用户期望基于经典文本(古兰经和圣训)和教法细微差别。检索增强生成改善了基础性，但单一检索生成管道不足以处理多样化伊斯兰查询。提出Fanar-Sadiq多代理架构伊斯兰问答系统。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>多代理架构可应用于电商客服意图识别和专业领域问答，提升复杂查询处理能力和答案可信度，为电商AI客服提供分场景专业化服务思路。</p>
+</article>
+<article class="card paper-card">
+<h3>5. Agents All the Way Down; A Methodology for Building Custom AI Agents from Substrate to Production</h3>
+<p class="meta"><strong>作者：</strong>Marc Alier Forment, Juanan Pereira, Francisco Jos\&#39;e Garc\&#39;ia-Pe\~nalvo, Mar\&#39;ia Jos\&#39;e Casa\~n Guerrero</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">AI</span></div>
+<p><strong>一句话总结：</strong>提供了一套完整的定制AI智能体构建方法论，让工程师能从零开始打造专用智能体。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.11869" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.11869.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>定制AI智能体是存在于自己应用程序中、连接自有数据和工具、执行安全边界并携带品牌和审计跟踪的智能体。它们与通用智能体的区别在于适配性而非能力：每个都为一个特定工作而建。本文提出端到端构建方法论Agents All the Way Down。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>为电商AI应用提供定制化智能体构建框架，可应用于数字员工自动化、个性化商品推荐、智能客服对话系统等场景，提升电商运营效率。</p>
+</article>
+<article class="card paper-card">
+<h3>6. Exploration Structure in LLM Agents for Multi-File Change Localization</h3>
+<p class="meta"><strong>作者：</strong>Akeela Darryl Fattha, Kia Ying Chua, Lingxiao Jiang, Laura Wynter</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">AI</span></div>
+<p><strong>一句话总结：</strong>改进AI代码助手探索方式，让其能同时在多个代码模块中找问题，提升修复效率</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.11976" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.11976.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>软件工程工具越来越多地依赖基于LLM的智能体来定位需要修改的文件以解决软件问题。大多数AI智能体线性探索存储库，即每步访问一个目录或文件。我们假设这对于跨多个子系统的更改存在结构不匹配。我们比较了线性顺序探索与非线性、领域范围并行智能体探索。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>启发电商AI数字员工处理复杂业务逻辑，可借鉴并行探索思路优化多模块业务流程自动化</p>
+</article>
+<article class="card paper-card">
+<h3>7. A Lightweight Multi-Agent Framework for Automated Concrete Barrier Design</h3>
+<p class="meta"><strong>作者：</strong>Wanting Wang, Xiye Ma, Yuyang He, Minghui Cheng, Ran Cao</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">AI</span></div>
+<p><strong>一句话总结：</strong>用多个AI智能体协作完成复杂的工程设计任务，比单个大模型更准确且成本更低。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.12040" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.12040.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>钢筋混凝土高速公路护栏设计是安全关键过程，需严格遵守AASHTO-LRFD桥梁设计规范。当前工程实践依赖手动迭代计算来满足复杂非线性材料力学约束。虽然大语言模型展现强生成能力，但其在结构工程中的直接应用受限于幻觉风险和物理基础不足。本研究提出基于AutoGen多智能体编排能力的新型&#39;生成-评估-优化&#39;闭环框架用于自动混凝土护栏设计。实验结果表明该智能体框架实现超过98%设计准确率，显著超越独立通用大语言模型。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>多智能体协作框架可应用于电商AI客服系统，让不同专业AI协同处理复杂用户需求，提升服务质量和效率。</p>
+</article>
+</div>
+    </section>
+
+    <section class="report-section" id="github-repos">
+      <h2>Part 2 — GitHub 项目挖掘</h2>
+      <div class="report-list github-list" data-date="20260611">
+<p class="section-note">聚焦电商 AI 应用相关项目（数字员工/商品推荐/商品巡检/电商客服/智能体框架/意图理解），共发现 80 个仓库。</p>
+<h3>今日精选（高度相关，共 5 个）</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>项目</th><th>语言</th><th>Stars</th><th>一句话描述</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/NirDiamant/RAG_Techniques" target="_blank" rel="noopener noreferrer">NirDiamant/RAG_Techniques</a></td><td>Jupyter Notebook</td><td>⭐27k</td><td>提供42个可运行的RAG技术教程，帮助构建更准确的检索增强生成系统</td></tr>
+<tr><td><a href="https://github.com/jackwener/OpenCLI" target="_blank" rel="noopener noreferrer">jackwener/OpenCLI</a></td><td>JavaScript</td><td>⭐24k</td><td>把任何网站变成命令行工具，让AI代理操作你登录的浏览器</td></tr>
+<tr><td><a href="https://github.com/NirDiamant/agents-towards-production" target="_blank" rel="noopener noreferrer">NirDiamant/agents-towards-production</a></td><td>Jupyter Notebook</td><td>⭐20k</td><td>手把手教你把AI智能体从原型做到企业级产品上线</td></tr>
+<tr><td><a href="https://github.com/ever-co/ever-demand" target="_blank" rel="noopener noreferrer">ever-co/ever-demand</a></td><td>TypeScript</td><td>⭐1.8k</td><td>开源电商平台，支持电商、配送车队和库存管理的一体化商业解决方案</td></tr>
+<tr><td><a href="https://github.com/Onelevenvy/flock" target="_blank" rel="noopener noreferrer">Onelevenvy/flock</a></td><td>Rust</td><td>⭐1.1k</td><td>桌面多智能体协作平台，可视化编排AI工作流</td></tr>
+</tbody></table></div>
+<h3>精选项目深度解析</h3>
+<article class="card repo-card">
+<h4><a href="https://github.com/NirDiamant/RAG_Techniques" target="_blank" rel="noopener noreferrer">NirDiamant/RAG_Techniques</a></h4>
+<p class="lead">提供42个可运行的RAG技术教程，帮助构建更准确的检索增强生成系统</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐27k</li>
+<li><strong>语言：</strong>Jupyter Notebook</li>
+</ul>
+<div class="tags"><span class="tag">agentic-rag</span><span class="tag">ai</span><span class="tag">embeddings</span><span class="tag">generative-ai</span><span class="tag">gpt</span><span class="tag">langchain</span></div>
+<p><strong>定位：</strong>解决RAG系统构建中的技术难题，从基础到前沿技术全覆盖。面向AI工程师、研究人员和希望提升LLM应用效果的开发者。</p>
+<p><strong>核心技术：</strong>包含多种RAG优化技术，如嵌入向量优化、检索策略改进、上下文增强等。通过Jupyter Notebook形式提供详细的技术实现和代码示例。</p>
+<p><strong>使用场景：</strong>适用于需要提升大模型问答准确性、知识库检索质量的各类AI应用开发。可用于构建企业级知识助手、智能客服、文档问答等场景。</p>
+<p><strong>对比同类：</strong>专注于RAG技术本身而非多代理协作，相比AutoGen/LangGraph更聚焦于检索增强这一特定领域，提供了更深入的RAG优化方案。</p>
+<p><strong>值得关注：</strong>社区驱动的高质量内容，持续更新前沿RAG技术，拥有详细的实践教程。高星增长反映了RAG技术在实际应用中的重要性和需求。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/jackwener/OpenCLI" target="_blank" rel="noopener noreferrer">jackwener/OpenCLI</a></h4>
+<p class="lead">把任何网站变成命令行工具，让AI代理操作你登录的浏览器</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐24k</li>
+<li><strong>语言：</strong>JavaScript</li>
+</ul>
+<div class="tags"><span class="tag">ai-agent</span><span class="tag">ai-agents</span><span class="tag">ai-tools</span><span class="tag">browser-automation</span><span class="tag">browser-use</span><span class="tag">cli</span></div>
+<p><strong>定位：</strong>解决网站自动化操作难题，让AI代理能够像人一样操作已登录的网页和应用。面向需要自动化网站操作和AI代理开发的技术人员。</p>
+<p><strong>核心技术：</strong>基于Playwright实现浏览器自动化，支持在已登录状态下进行页面操作。提供统一接口将网站、浏览器会话转换为可编程的命令行界面。</p>
+<p><strong>使用场景：</strong>AI代理自动完成网页操作任务，如表单填写、数据提取、业务流程自动化。将传统网页应用快速转为API接口供AI调用。</p>
+<p><strong>对比同类：</strong>相比AutoGen等纯文本交互框架，OpenCLI专注浏览器自动化领域，提供真实的网页操作能力而非模拟。</p>
+<p><strong>值得关注：</strong>填补了AI代理与真实网页操作之间的技术空白，Star增长源于浏览器自动化需求广泛且技术实现独特。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/NirDiamant/agents-towards-production" target="_blank" rel="noopener noreferrer">NirDiamant/agents-towards-production</a></h4>
+<p class="lead">手把手教你把AI智能体从原型做到企业级产品上线</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐20k</li>
+<li><strong>语言：</strong>Jupyter Notebook</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">agent-framework</span><span class="tag">agentic-ai</span><span class="tag">agents</span><span class="tag">ai-agents</span><span class="tag">deployment</span></div>
+<p><strong>定位：</strong>解决AI代理从开发到生产部署的全链路难题，面向需要构建实际产品的开发者和企业团队。提供端到端的实战教程和最佳实践指南。</p>
+<p><strong>核心技术：</strong>基于LangGraph/LangChain等主流框架，涵盖状态管理、向量存储、实时搜索、容器化部署、安全防护等核心技术栈。支持多智能体协作、可观测性和性能扩展。</p>
+<p><strong>使用场景：</strong>适用于构建企业级AI助手、自动化工作流、智能客服系统、数据处理机器人等需要实际商业落地的应用场景。</p>
+<p><strong>对比同类：</strong>相比AutoGen偏重研究、CrewAI功能相对简单，该项目更专注于生产部署实战，提供了从原型到企业的完整技术栈和工程化解决方案。</p>
+<p><strong>值得关注：</strong>作者持续更新生产级最佳实践，内容覆盖从基础到高阶的完整技能树，2万+stars证明了其实用价值和社区认可度。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/ever-co/ever-demand" target="_blank" rel="noopener noreferrer">ever-co/ever-demand</a></h4>
+<p class="lead">开源电商平台，支持电商、配送车队和库存管理的一体化商业解决方案</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐1.8k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">commerce</span><span class="tag">commerce-platform</span><span class="tag">driver-app</span><span class="tag">e-commerce</span><span class="tag">ecommerce</span><span class="tag">ecommerce-platform</span></div>
+<p><strong>定位：</strong>为电商企业、配送服务商和零售商家提供完整的商业平台解决方案。解决传统电商平台功能分散、集成困难的问题。</p>
+<p><strong>核心技术：</strong>基于TypeScript构建的现代化电商平台架构。支持电商交易、司机配送应用、车队管理和库存控制等功能模块。</p>
+<p><strong>使用场景：</strong>适用于电商商家的全渠道销售管理，配送服务商的车队调度运营，以及零售企业的库存和订单处理。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>作为开源商业平台获得1839个star，具有实际商业应用价值。涵盖电商、配送、库存等多个商业场景，生态完整性较好。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Onelevenvy/flock" target="_blank" rel="noopener noreferrer">Onelevenvy/flock</a></h4>
+<p class="lead">桌面多智能体协作平台，可视化编排AI工作流</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐1.1k</li>
+<li><strong>语言：</strong>Rust</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">ai</span><span class="tag">chatbot</span><span class="tag">deekseek</span><span class="tag">harness</span><span class="tag">langchain</span></div>
+<p><strong>定位：</strong>为开发者和企业用户提供多智能体系统构建工具，支持可视化工作流设计和安全沙箱环境。面向需要复杂AI自动化流程的用户。</p>
+<p><strong>核心技术：</strong>基于Rust + Tauri + React技术栈，集成langgraph-rust框架实现多智能体协调。采用桌面应用架构，支持跨平台部署和可视化工作流编排。</p>
+<p><strong>使用场景：</strong>适用于复杂业务流程自动化、多AI助手协同工作、企业级智能体系统构建等场景。</p>
+<p><strong>对比同类：</strong>相比AutoGen等传统Python框架，采用Rust技术栈提供更好的性能和安全性。专注于桌面端多智能体协作体验。</p>
+<p><strong>值得关注：</strong>Rust生态在AI工程化领域稀缺项目，langgraph-rust原创框架技术独特。星标快速增长反映市场对高性能智能体框架需求旺盛。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/msitarzewski/agency-agents" target="_blank" rel="noopener noreferrer">msitarzewski/agency-agents</a></h4>
+<p class="lead">提供各种专业AI代理角色，帮你处理从网站开发到社区运营等各种任务</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐111k (+1599 今日)</li>
+<li><strong>语言：</strong>Shell</li>
+</ul>
+<p><strong>定位：</strong>解决个人和团队在不同领域缺乏专业AI助手的问题，面向需要多技能AI支持的开发者和业务人员。每个AI代理都有专门的能力和个性化的交互方式。</p>
+<p><strong>核心技术：</strong>基于Shell脚本构建的AI代理框架，包含多个预定义的专业角色如前端专家、社区运营等。采用模块化设计，每个代理都有自己的处理流程和交付能力。</p>
+<p><strong>使用场景：</strong>用于自动化处理网站开发、社交媒体运营、学术研究、金融分析等专业领域任务。适合需要多角色AI协作的工作流程管理。</p>
+<p><strong>对比同类：</strong>与CrewAI类似都是多智能体系统，但更专注于提供具体领域的专业化代理角色和现成解决方案。</p>
+<p><strong>值得关注：</strong>概念新颖且实用性强，11万+星标证明了其受欢迎程度，提供了完整的AI代理生态体系。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/chatwoot/chatwoot" target="_blank" rel="noopener noreferrer">chatwoot/chatwoot</a></h4>
+<p class="lead">开源的多渠道客户服务平台，支持聊天、邮件等服务</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐30k (+67 今日)</li>
+<li><strong>语言：</strong>Ruby</li>
+</ul>
+<p><strong>定位：</strong>提供开源的客户支持解决方案，替代Intercom、Zendesk等商业产品。面向需要客户服务功能的企业和开发者。</p>
+<p><strong>核心技术：</strong>基于Ruby开发的全栈应用，支持多渠道接入包括实时聊天、邮件等。采用现代Web技术栈，提供完整的客户服务工作台功能。</p>
+<p><strong>使用场景：</strong>企业客户服务、在线支持、工单管理、多渠道沟通协调等场景。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>作为成熟的开源客户服务平台，拥有大量stars和活跃社区。提供了商业级功能的开源替代方案，具有实用价值。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/TelegramBots/Telegram.Bot" target="_blank" rel="noopener noreferrer">TelegramBots/Telegram.Bot</a></h4>
+<p class="lead">让.NET开发者轻松创建和管理Telegram机器人</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐3.6k</li>
+<li><strong>语言：</strong>C#</li>
+</ul>
+<div class="tags"><span class="tag">bot</span><span class="tag">chatbot</span><span class="tag">telegram</span><span class="tag">telegram-bot</span><span class="tag">telegram-bot-api</span></div>
+<p><strong>定位：</strong>为.NET开发者提供Telegram Bot API的客户端库，简化机器人开发流程。面向需要集成Telegram聊天功能的企业和个人开发者。</p>
+<p><strong>核心技术：</strong>基于C#实现的异步API客户端，支持完整的Telegram Bot API功能。采用现代化的.NET开发模式，提供强类型的API封装。</p>
+<p><strong>使用场景：</strong>可用于构建客服机器人、消息推送服务、自动化交互系统等。适合需要在Telegram平台上提供服务的业务场景。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>Telegram平台用户量大，机器人需求旺盛，该项目为.NET生态提供了稳定的解决方案，因此获得持续关注。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/google/adk-java" target="_blank" rel="noopener noreferrer">google/adk-java</a></h4>
+<p class="lead">用Java开发AI智能体的工具包，让程序员轻松构建AI助手</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐1.6k</li>
+<li><strong>语言：</strong>Java</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">agentic</span><span class="tag">agentic-ai</span><span class="tag">agentic-workflow</span><span class="tag">agents</span><span class="tag">agents-sdk</span></div>
+<p><strong>定位：</strong>为Java开发者提供开箱即用的AI智能体开发框架，降低AI应用构建门槛。面向需要集成AI能力的企业级Java应用开发团队。</p>
+<p><strong>核心技术：</strong>基于Java的代码优先开发模式，提供完整的AI智能体生命周期管理。支持多种AI模型集成和灵活的智能体编排能力。</p>
+<p><strong>使用场景：</strong>适用于企业内部的自动化流程处理、智能客服系统、数据分析助手等场景。</p>
+<p><strong>对比同类：</strong>相比Python生态的AutoGen/LangGraph，ADK-Java更适合Java技术栈企业，提供原生Java API集成优势。</p>
+<p><strong>值得关注：</strong>谷歌官方开源项目，Java生态完整度高，适合企业级AI应用落地需求。Star增长受益于AI智能体热潮和Java开发者基数庞大。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/kyegomez/awesome-multi-agent-papers" target="_blank" rel="noopener noreferrer">kyegomez/awesome-multi-agent-papers</a></h4>
+<p class="lead">收集整理多智能体系统领域的优质论文资源</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐1.5k</li>
+<li><strong>语言：</strong>TeX</li>
+</ul>
+<div class="tags"><span class="tag">agents</span><span class="tag">agents-team</span><span class="tag">attention</span><span class="tag">autogen</span><span class="tag">autonomous-agents</span><span class="tag">crewai</span></div>
+<p><strong>定位：</strong>为研究者和开发者提供多智能体系统领域的重要论文合集。面向对多智能体技术感兴趣的学术研究人员和工程实践者。</p>
+<p><strong>核心技术：</strong>专注于多智能体协作、自主智能体、注意力机制等核心技术。涵盖AutoGen、LangGraph、CrewAI等相关框架的理论基础。</p>
+<p><strong>使用场景：</strong>用于多智能体系统研究学习和参考。帮助开发者了解多智能体技术发展趋势和应用场景。</p>
+<p><strong>对比同类：</strong>作为论文资源库与AutoGen/LangGraph/CrewAI等实现框架形成互补关系，提供了理论基础支撑。</p>
+<p><strong>值得关注：</strong>多智能体技术是当前AI发展热点，该仓库持续收录最新研究成果。为从业者提供了宝贵的学术资源和理论指导。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/hexo-ai/sia" target="_blank" rel="noopener noreferrer">hexo-ai/sia</a></h4>
+<p class="lead">让AI系统能够自我改进性能的框架</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐1.3k (+199 今日)</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<p><strong>定位：</strong>解决AI模型在基准任务上性能优化的问题，面向需要持续提升AI系统表现的研究者和开发者。提供自主化的性能改进能力。</p>
+<p><strong>核心技术：</strong>自改进AI框架，能够自动优化任何AI系统的性能。支持模型和智能体的自主性能提升，具备评估和改进闭环机制。</p>
+<p><strong>使用场景：</strong>用于提升各类AI模型在基准测试中的表现，适用于需要持续性能优化的AI系统开发场景。</p>
+<p><strong>对比同类：</strong>与AutoGen/LangGraph/CrewAI相比，SIA专注于AI系统的自我改进能力，而其他框架更侧重多智能体协作或图结构处理。</p>
+<p><strong>值得关注：</strong>自改进AI是前沿研究方向，具有很强的技术创新性，星标增长体现了社区对AI自主优化能力的关注。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Kaelio/ktx" target="_blank" rel="noopener noreferrer">Kaelio/ktx</a></h4>
+<p class="lead">让AI助手能够安全准确地查询公司数据的上下文层工具</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐1.1k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">agent-skills</span><span class="tag">agents</span><span class="tag">ai-agent</span><span class="tag">ai-agents</span><span class="tag">analytics</span></div>
+<p><strong>定位：</strong>解决AI代理访问企业数据时缺乏上下文和安全性的问题，面向需要数据分析能力的企业AI应用开发者。</p>
+<p><strong>核心技术：</strong>提供可执行的数据访问上下文层，支持Claude Code、Codex等主流AI代理，确保数据查询的准确性和企业环境的安全性。</p>
+<p><strong>使用场景：</strong>企业内部AI助手查询业务数据、商业智能分析、数据驱动的自动化决策系统。</p>
+<p><strong>对比同类：</strong>相比AutoGen/LangGraph等通用AI代理框架，专注于数据访问的上下文层，提供更专业的数据查询能力。</p>
+<p><strong>值得关注：</strong>填补了AI代理与企业数据安全访问之间的空白，随AI在企业应用增长而需求上升。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Zleap-AI/SAG" target="_blank" rel="noopener noreferrer">Zleap-AI/SAG</a></h4>
+<p class="lead">上传文档后自动切片向量化，支持围绕文档内容对话查询</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐1.1k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">ai</span><span class="tag">data-engineering</span><span class="tag">graphrag</span><span class="tag">knowledge-base</span><span class="tag">knowledge-graph</span></div>
+<p><strong>定位：</strong>解决传统RAG只知道文本相似度但不知关系的问题，面向需要文档检索问答的企业和个人开发者</p>
+<p><strong>核心技术：</strong>采用SAG技术路线，将文档转为事件和实体的超边结构，相比传统向量RAG和GraphRAG更轻量适合生产</p>
+<p><strong>使用场景：</strong>企业知识库问答、文档智能检索、个人知识管理助手等场景</p>
+<p><strong>对比同类：</strong>相比LangGraph等框架更专注文档检索领域，SAG架构在关系建模上比传统三元组抽取更高效</p>
+<p><strong>值得关注：</strong>RAG领域新技术路线，解决了传统方法的痛点，开箱即用降低使用门槛</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/massgen/MassGen" target="_blank" rel="noopener noreferrer">massgen/MassGen</a></h4>
+<p class="lead">在终端里运行多个AI代理协作完成复杂任务的系统</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐1.1k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">agentic-ai</span><span class="tag">autonomous-agents</span><span class="tag">cli</span><span class="tag">collaborative-ai</span><span class="tag">conversational-ai</span></div>
+<p><strong>定位：</strong>解决单个AI模型能力有限的问题，通过多代理协同工作提升输出质量。面向需要处理复杂推理和协作任务的开发者和企业用户。</p>
+<p><strong>核心技术：</strong>多智能体编排系统，支持前沿大模型协作推理。具备自主协调机制，可在终端环境运行。采用CLI界面设计，便于集成和部署。</p>
+<p><strong>使用场景：</strong>复杂问题求解、多步骤任务处理、跨领域知识整合。适合需要高质量输出的研究和商业应用场景。</p>
+<p><strong>对比同类：</strong>相比AutoGen等同类项目，更注重终端运行和多代理自主协作能力，提供更轻量级的部署方案。</p>
+<p><strong>值得关注：</strong>多智能体协作是AI发展方向，开源社区关注度高且star增长迅速。终端原生运行模式降低了部署门槛。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/declare-lab/MELD" target="_blank" rel="noopener noreferrer">declare-lab/MELD</a></h4>
+<p class="lead">识别对话中多个人的情绪状态</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐1.1k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">chatbot</span><span class="tag">conversational-ai</span><span class="tag">dialogue</span><span class="tag">dialogue-systems</span><span class="tag">emotion</span><span class="tag">emotion-detection</span></div>
+<p><strong>定位：</strong>解决多模态多人对话中的情绪识别问题，面向需要理解对话情感的AI研究者和开发者</p>
+<p><strong>核心技术：</strong>多模态数据集，结合视觉、音频和文本特征进行情绪识别，支持多人对话场景</p>
+<p><strong>使用场景：</strong>智能客服情绪分析、对话机器人情感交互、心理健康辅助系统</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>情绪识别领域的重要基准数据集，被广泛用于学术研究和模型评估</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/NVIDIA/SkillSpector" target="_blank" rel="noopener noreferrer">NVIDIA/SkillSpector</a></h4>
+<p class="lead">扫描AI智能体技能的安全漏洞和恶意代码</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>一般</li>
+<li><strong>Stars：</strong>⭐2.6k (+319 今日)</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<p><strong>定位：</strong>解决AI代理技能安装前的安全风险检测问题，面向需要安全验证AI技能的开发者和企业用户。防止恶意技能危害系统安全。</p>
+<p><strong>核心技术：</strong>基于Python开发的安全扫描工具，能够检测AI技能中的漏洞和恶意模式。支持对Claude Code、Codex CLI、Gemini CLI等平台的技能进行安全验证。</p>
+<p><strong>使用场景：</strong>AI技能市场安全审核、企业内部AI技能库安全管控、第三方AI技能安装前风险评估。</p>
+<p><strong>对比同类：</strong>专注于AI技能安全扫描领域，与AutoGen/LangGraph/CrewAI等智能体框架不同，专门解决技能安全性验证问题。</p>
+<p><strong>值得关注：</strong>AI智能体快速发展带来技能安全风险，该项目填补了技能安全检测空白，具有重要实用价值。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/cactus-compute/cactus" target="_blank" rel="noopener noreferrer">cactus-compute/cactus</a></h4>
+<p class="lead">移动端AI推理引擎，让手机和穿戴设备运行AI模型更快更省电</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐5.3k</li>
+<li><strong>语言：</strong>C++</li>
+</ul>
+<div class="tags"><span class="tag">ai</span><span class="tag">android</span><span class="tag">arm</span><span class="tag">edge</span><span class="tag">edge-ai</span><span class="tag">framework</span></div>
+<p><strong>定位：</strong>专为移动设备和穿戴设备优化的AI推理引擎，解决在资源受限环境下运行AI模型的性能和功耗问题。面向移动开发者、AI工程师和硬件厂商。</p>
+<p><strong>核心技术：</strong>ARM CPU上最快的推理性能，4位量化技术匹配半精度准确度。零拷贝内存映射技术实现比其他引擎低10倍的RAM使用量。支持语音、视觉、语言多模态统一引擎。</p>
+<p><strong>使用场景：</strong>手机端实时AI助手、智能穿戴设备AI功能、移动AR/VR应用、离线AI服务等边缘AI计算场景。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>移动端AI是未来趋势，该项目在性能和资源占用方面有显著优势，社区关注度高且持续增长。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/ArcReel/ArcReel" target="_blank" rel="noopener noreferrer">ArcReel/ArcReel</a></h4>
+<p class="lead">AI驱动的视频生成工具，能将小说自动转换成视频内容</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐2.5k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">ai-agent</span><span class="tag">ai-video-generator</span><span class="tag">claude-agent-sdk</span><span class="tag">docker</span><span class="tag">gemini</span><span class="tag">grok</span></div>
+<p><strong>定位：</strong>解决从文本到视频的自动化生成问题，面向需要快速制作视频内容的创作者和企业用户。通过AI Agent实现跨镜头角色与场景的一致性控制。</p>
+<p><strong>核心技术：</strong>采用多AI Agent协同工作架构，集成Nano Banana 2、Veo 3.1、Grok、Seedance等多家AI模型。支持从角色设计、剧本生成到分镜图制作的完整视频生产流程。</p>
+<p><strong>使用场景：</strong>适用于短视频制作、动画制作、故事可视化等场景，特别适合需要批量生成视频内容的业务需求。</p>
+<p><strong>对比同类：</strong>相比传统AI视频生成工具，该项目建设了完整的端到端工作流，实现了更精细的跨镜头一致性控制。</p>
+<p><strong>值得关注：</strong>项目整合了多家主流AI模型，提供了完整的视频生成解决方案，Star增长迅速反映了市场对AI视频生成的需求旺盛。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/kenn-io/agentsview" target="_blank" rel="noopener noreferrer">kenn-io/agentsview</a></h4>
+<p class="lead">本地AI编程助手使用情况统计和费用跟踪工具</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐1.6k (+114 今日)</li>
+<li><strong>语言：</strong>Go</li>
+</ul>
+<p><strong>定位：</strong>解决AI编程助手使用成本难以监控的问题，面向使用多个AI编程工具的开发者。提供本地化数据存储和分析，无需云端账户。</p>
+<p><strong>核心技术：</strong>支持Claude Code、Codex等20多个AI编程助手的数据收集和分析。Go语言开发，提供单二进制文件部署，支持Docker容器化运行。</p>
+<p><strong>使用场景：</strong>开发者监控不同AI编程助手的使用频率和费用支出，企业团队统计AI工具使用成本。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>填补了AI编程助手使用统计工具的市场空白，支持主流AI编程工具覆盖面广。本地优先设计符合数据隐私需求，安装使用简单。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Weizhena/Deep-Research-skills" target="_blank" rel="noopener noreferrer">Weizhena/Deep-Research-skills</a></h4>
+<p class="lead">让AI助手做深度研究时更可控，支持人工介入调整</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐1.1k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">claude-code</span><span class="tag">claude-code-skills</span><span class="tag">deep-research-agent</span><span class="tag">gpt-skills</span><span class="tag">llm-agent</span><span class="tag">opencode</span></div>
+<p><strong>定位：</strong>为Claude Code、OpenCode、Codex等AI编程助手提供结构化深度研究技能，通过人机协作确保研究质量和方向控制。面向需要AI辅助进行学术、技术或市场研究的开发者和研究人员。</p>
+<p><strong>核心技术：</strong>采用两阶段研究流程：先生成大纲再深入调查，支持可扩展的outline生成。设计了human-in-the-loop机制，在每个阶段都允许人工精确控制AI行为和研究方向。</p>
+<p><strong>使用场景：</strong>适用于学术论文调研、技术框架评估、市场竞争分析等需要深度研究的场景，特别是对研究质量要求较高的专业领域。</p>
+<p><strong>对比同类：</strong>相比AutoGen/LangGraph/CrewAI等通用多智能体框架，该项目专注于深度研究这一特定任务，提供了更精细的人工控制机制和结构化的研究流程。</p>
+<p><strong>值得关注：</strong>AI研究助手需求快速增长，该项目解决了AI自主研究时缺乏精确控制的问题。Star增长快是因为提供了实用的人机协作研究模式，填补了细分领域空白。</p>
+</article>
+</div>
+    </section>
+
+    
+    <section class="report-section" id="official-tracker">
+      <h2>Part 3 — 官方动态跟踪</h2>
+      <p class="meta-note">共发现 159 条官方动态，来自 anthropic、openai。</p>
+<div class="detail-cards">
+</div>
+    </section>
+    
+
+    
+    <section class="report-section" id="blog-subs">
+      <h2>Part 4 — 独立博客订阅</h2>
+      <p class="empty-state">今日无独立博客更新。</p>
+    </section>
+    
+
+    <footer class="footer">Generated by Ascan</footer>
+  </main>
+
+  <script>
+(function() {
+  // ── TOC card collapse/expand ──
+  var tocHeader = document.querySelector('.toc-card-header');
+  var tocCard = document.querySelector('.toc-card');
+  if (tocHeader && tocCard) {
+    tocHeader.addEventListener('click', function() {
+      tocCard.classList.toggle('collapsed');
+    });
+  }
+
+  // ── Scroll-spy: highlight active section in TOC ──
+  var sections = document.querySelectorAll('.report-section[id]');
+  var tocEntries = document.querySelectorAll('.toc-entry[data-target]');
+  var tocDots = document.querySelectorAll('.toc-dot[data-target]');
+
+  function setActive(id) {
+    tocEntries.forEach(function(el) {
+      el.classList.toggle('active', el.getAttribute('data-target') === id);
+    });
+    tocDots.forEach(function(el) {
+      el.classList.toggle('active', el.getAttribute('data-target') === id);
+    });
+  }
+
+  if ('IntersectionObserver' in window && sections.length > 0) {
+    setActive(sections[0].id);
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          setActive(entry.target.id);
+        }
+      });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+    sections.forEach(function(s) { observer.observe(s); });
+  }
+
+  // ── Smooth scroll on TOC click ──
+  document.querySelectorAll('a[href^="#"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      var href = this.getAttribute('href');
+      if (href.length > 1) {
+        var target = document.getElementById(href.slice(1));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', href);
+        }
+      }
+    });
+  });
+
+  // ── Floating dot click → scroll to section ──
+  tocDots.forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      var id = this.getAttribute('data-target');
+      var target = document.getElementById(id);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

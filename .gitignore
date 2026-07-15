@@ -13,6 +13,15 @@ build/
 .env
 .env.local
 
+# Databases
+*.db
+
+# Python (ascan module)
+__pycache__/
+*.pyc
+.venv/
+ascan/logs/
+
 # Uploaded files (local image storage)
 server/uploads/
 # 3eye tooling scratch dirs (any level)

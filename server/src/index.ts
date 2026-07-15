@@ -16,6 +16,7 @@ import { settingsRouter } from "./routes/settings.js";
 import { accountRouter } from "./routes/account.js";
 import { exportRouter } from "./routes/export.js";
 import { reportsRouter } from "./routes/reports.js";
+import { ascanRouter } from "./routes/ascan.js";
 import { startTrashCleanup } from "./services/trash-cleanup.js";
 import { requestLogger } from "./middleware/logger.js";
 
@@ -65,6 +66,7 @@ app.use("/api/settings", requireAuth, settingsRouter);
 app.use("/api/account", requireAuth, accountRouter);
 app.use("/api/export", requireAuth, exportRouter);
 app.use("/api/reports", requireAuth, reportsRouter);
+app.use("/api/ascan", requireAuth, ascanRouter);
 
 // Central error handler — never leak stack traces in production.
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

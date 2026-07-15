@@ -6,6 +6,8 @@ enum SidebarSelection: Hashable {
     case note(String)               // note id
     case markdown(LocalMarkdownFile)
     case trash
+    case ascanReports
+    case ascanConfig
     case empty
 }
 
@@ -122,6 +124,8 @@ struct MainSidebar: View {
                                     .help("插入引用到写作")
                                 }
                             }
+                            .contentShape(Rectangle())
+                            .onTapGesture { selection = .note(note.id) }
                             .tag(SidebarSelection.note(note.id))
                             .contextMenu {
                                 Button(role: .destructive) {
@@ -169,11 +173,24 @@ struct MainSidebar: View {
                     }
                     .menuStyle(.borderlessButton)
                     .fixedSize()
+                    .help("按类型筛选")
                     Button(action: { Task { await onRefresh() } }) {
                         Image(systemName: "arrow.clockwise")
                     }
                     .buttonStyle(.plain)
+                    .help("刷新笔记列表")
                 }
+            }
+
+            // --- Ascan ---
+            Section {
+                Label("日报浏览", systemImage: "doc.text")
+                    .tag(SidebarSelection.ascanReports)
+                Label("配置管理", systemImage: "gearshape")
+                    .tag(SidebarSelection.ascanConfig)
+            } header: {
+                Label("Ascan", systemImage: "globe")
+                    .font(.caption.bold())
             }
         }
         .searchable(text: $searchText, prompt: "搜索笔记...")
