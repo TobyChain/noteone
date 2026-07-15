@@ -8,11 +8,9 @@ import { chatCompletion, chatCompletionWithTools, ToolDefinition, generateEmbedd
 import { getUserChatConfig } from "../services/user-config.js";
 import { fetchUrlContent } from "../services/web-fetch.js";
 import { searchWeb } from "../services/web-search.js";
+import { trimToTokenBudget, needsCompaction, getProtectionZone, buildSummarizationPrompt, type ContextMessage } from "../services/context-manager.js";
 
 const router = Router();
-
-const MAX_MESSAGES_BEFORE_COMPACT = 30;
-const PROTECTION_ZONE = 6;
 
 // Per-process lock so a flurry of /messages requests can't trigger overlapping compactions
 // for the same session (which would risk duplicate summaries / half-deleted history).
@@ -262,25 +260,57 @@ ${note.content}`;
     },
   };
 
+  const historyMessages: ContextMessage[] = allMessages.map(m => ({
+    role: m.role,
+    content: m.content,
+    isSummary: m.isSummary,
+    tool_calls: m.toolCalls as any[] | undefined,
+    tool_call_id: m.toolCallId || undefined,
+  }));
+  const trimmedHistory = trimToTokenBudget(historyMessages);
+
   const llmMessages = [
     { role: "system", content: systemPrompt },
-    ...allMessages.map(m => ({ role: m.role, content: m.content })),
+    ...trimmedHistory,
   ];
 
   const chatConfig = await getUserChatConfig(req.userId!);
-  const reply = await chatCompletionWithTools(llmMessages, NOTTY_TOOLS, toolHandlers, chatConfig, 5);
 
-  const [assistantMsg] = await db.insert(chatMessages).values({
-    sessionId: session.id,
-    role: "assistant",
-    content: reply,
-  }).returning();
+  // Collect intermediate tool messages for persistence
+  const intermediateMessages: Array<{ role: string; content: string | null; tool_calls?: any[]; tool_call_id?: string }> = [];
+  const reply = await chatCompletionWithTools(llmMessages, NOTTY_TOOLS, toolHandlers, chatConfig, 5, (msg) => {
+    intermediateMessages.push(msg);
+  });
+
+  // Persist intermediate tool messages and final reply atomically
+  await db.transaction(async (tx) => {
+    for (const msg of intermediateMessages) {
+      await tx.insert(chatMessages).values({
+        sessionId: session.id,
+        role: msg.role,
+        content: msg.content || "",
+        toolCalls: msg.tool_calls,
+        toolCallId: msg.tool_call_id,
+      });
+    }
+    await tx.insert(chatMessages).values({
+      sessionId: session.id,
+      role: "assistant",
+      content: reply,
+    });
+  });
+
+  // Fetch the assistant message to return its ID
+  const assistantMsg = await db.query.chatMessages.findFirst({
+    where: and(eq(chatMessages.sessionId, session.id), eq(chatMessages.role, "assistant")),
+    orderBy: [desc(chatMessages.createdAt)],
+  }) ?? { id: "", content: reply };
 
   await db.update(chatSessions)
     .set({ updatedAt: new Date(), title: session.title || parsed.data.message.slice(0, 50) })
     .where(eq(chatSessions.id, session.id));
 
-  if (allMessages.length + 2 >= MAX_MESSAGES_BEFORE_COMPACT) {
+  if (needsCompaction(allMessages.length + 2)) {
     compactSession(session.id).catch(console.error);
     console.log(`[chat] session=${session.id.slice(0, 8)} compaction=triggered msgCount=${allMessages.length + 2}`);
   }
@@ -298,24 +328,25 @@ async function compactSession(sessionId: string) {
       orderBy: [asc(chatMessages.createdAt)],
     });
 
-    if (messages.length < MAX_MESSAGES_BEFORE_COMPACT) return;
+    const PROTECTION = getProtectionZone();
+    if (!needsCompaction(messages.length)) return;
 
-    const cutoff = messages.length - PROTECTION_ZONE;
+    const cutoff = messages.length - PROTECTION;
     const toCompact = messages.slice(0, cutoff);
-    const summaryBoundary = toCompact.findIndex((m) => m.isSummary);
-    const startIdx = summaryBoundary >= 0 ? summaryBoundary : 0;
+    const summaryIdx = toCompact.findIndex((m) => m.isSummary);
+    const startIdx = summaryIdx >= 0 ? summaryIdx + 1 : 0;
     const compactable = toCompact.slice(startIdx);
 
     if (compactable.length < 4) return;
 
-    const transcript = compactable.map((m) => `${m.role}: ${m.content}`).join("\n\n");
+    const existingSummary = summaryIdx >= 0 ? toCompact[summaryIdx].content?.replace(/^\[对话摘要\]\n?/, "") || null : null;
+    const compactMessages: ContextMessage[] = compactable.map(m => ({
+      role: m.role,
+      content: m.content,
+      isSummary: m.isSummary,
+    }));
 
-    // LLM call OUTSIDE the transaction (it's slow and idempotent on retry); only the
-    // "insert summary + delete originals" swap needs to be atomic.
-    const summary = await chatCompletion([
-      { role: "system", content: "将以下对话历史压缩为一段简洁的摘要，保留关键信息、用户偏好和重要结论。用中文输出。" },
-      { role: "user", content: transcript },
-    ]);
+    const summary = await chatCompletion(buildSummarizationPrompt(compactMessages, existingSummary));
 
     const idsToDelete = compactable.map((m) => m.id);
 
@@ -329,6 +360,7 @@ async function compactSession(sessionId: string) {
       });
       await tx.delete(chatMessages).where(inArray(chatMessages.id, idsToDelete));
     });
+    console.log(`[chat] session=${sessionId.slice(0, 8)} compaction=done compacted=${compactable.length} summaryLen=${summary.length}`);
   } finally {
     compactingSessions.delete(sessionId);
   }
@@ -571,25 +603,54 @@ ${selection ? `\n用户当前选中了 [${safeStart}, ${safeEnd}) 区间：\n\`\
     },
   };
 
+  const writerHistoryMessages: ContextMessage[] = allMessages.map(m => ({
+    role: m.role,
+    content: m.content,
+    isSummary: m.isSummary,
+    tool_calls: m.toolCalls as any[] | undefined,
+    tool_call_id: m.toolCallId || undefined,
+  }));
+  const writerTrimmed = trimToTokenBudget(writerHistoryMessages);
+
   const llmMessages = [
     { role: "system", content: systemPrompt },
-    ...allMessages.map(m => ({ role: m.role, content: m.content })),
+    ...writerTrimmed,
   ];
 
   const chatConfig = await getUserChatConfig(req.userId!);
-  const reply = await chatCompletionWithTools(llmMessages, tools, toolHandlers, chatConfig, 6);
 
-  const [assistantMsg] = await db.insert(chatMessages).values({
-    sessionId: session.id,
-    role: "assistant",
-    content: reply,
-  }).returning();
+  const writerIntermediateMessages: Array<{ role: string; content: string | null; tool_calls?: any[]; tool_call_id?: string }> = [];
+  const reply = await chatCompletionWithTools(llmMessages, tools, toolHandlers, chatConfig, 6, (msg) => {
+    writerIntermediateMessages.push(msg);
+  });
+
+  await db.transaction(async (tx) => {
+    for (const msg of writerIntermediateMessages) {
+      await tx.insert(chatMessages).values({
+        sessionId: session.id,
+        role: msg.role,
+        content: msg.content || "",
+        toolCalls: msg.tool_calls,
+        toolCallId: msg.tool_call_id,
+      });
+    }
+    await tx.insert(chatMessages).values({
+      sessionId: session.id,
+      role: "assistant",
+      content: reply,
+    });
+  });
+
+  const assistantMsg = await db.query.chatMessages.findFirst({
+    where: and(eq(chatMessages.sessionId, session.id), eq(chatMessages.role, "assistant")),
+    orderBy: [desc(chatMessages.createdAt)],
+  }) ?? { id: "", content: reply };
 
   await db.update(chatSessions)
     .set({ updatedAt: new Date(), title: session.title || message.slice(0, 50) })
     .where(eq(chatSessions.id, session.id));
 
-  if (allMessages.length + 2 >= MAX_MESSAGES_BEFORE_COMPACT) {
+  if (needsCompaction(allMessages.length + 2)) {
     compactSession(session.id).catch(console.error);
   }
 

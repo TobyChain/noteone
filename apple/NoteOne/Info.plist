@@ -11,6 +11,8 @@
 		<dict>
 			<key>CFBundleTypeName</key>
 			<string>Text</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
 			<key>LSHandlerRank</key>
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
@@ -22,6 +24,8 @@
 		<dict>
 			<key>CFBundleTypeName</key>
 			<string>URL</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
 			<key>LSHandlerRank</key>
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
@@ -32,6 +36,8 @@
 		<dict>
 			<key>CFBundleTypeName</key>
 			<string>Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
 			<key>LSHandlerRank</key>
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
@@ -42,6 +48,8 @@
 		<dict>
 			<key>CFBundleTypeName</key>
 			<string>Movie</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
 			<key>LSHandlerRank</key>
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>

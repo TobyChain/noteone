@@ -72,6 +72,10 @@ actor APIClient {
         self.token = token
     }
 
+    func setPort(_ port: Int) {
+        self.baseURL = "http://localhost:\(port)"
+    }
+
     func setToken(_ token: String) {
         self.token = token
     }
@@ -364,6 +368,35 @@ actor APIClient {
         let _: DeleteWrapper = try await delete("/api/reports/\(id)")
     }
 
+    // MARK: - Ascan
+
+    func listAscanReports() async throws -> [AscanReportMeta] {
+        let response: AscanReportsResponse = try await get("/api/ascan/reports")
+        return response.reports
+    }
+
+    func getAscanReport(date: String) async throws -> AscanReportResponse {
+        return try await get("/api/ascan/reports/\(date)")
+    }
+
+    func getAscanConfig() async throws -> AscanConfig {
+        return try await get("/api/ascan/config")
+    }
+
+    func updateAscanConfig(updates: [String: Any]) async throws -> AscanConfig {
+        let bodyData = try JSONSerialization.data(withJSONObject: updates)
+        return try await requestRaw("/api/ascan/config", method: "PATCH", bodyData: bodyData)
+    }
+
+    func triggerAscan(date: String?) async throws -> AscanTriggerResponse {
+        struct Body: Encodable { let date: String? }
+        return try await post("/api/ascan/trigger", body: Body(date: date))
+    }
+
+    func getAscanStatus() async throws -> AscanRunStatus {
+        return try await get("/api/ascan/status")
+    }
+
     // MARK: - HTTP Methods
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
@@ -402,6 +435,43 @@ actor APIClient {
             throw APIError.networkError(URLError(.badServerResponse))
         }
 
+        switch httpResponse.statusCode {
+        case 200...299:
+            do {
+                let decoder = JSONDecoder()
+                decoder.keyDecodingStrategy = .convertFromSnakeCase
+                decoder.dateDecodingStrategy = .iso8601WithOptionalFractional
+                return try decoder.decode(T.self, from: data)
+            } catch {
+                throw APIError.decodingError(error)
+            }
+        case 401:
+            NotificationCenter.default.post(name: .unauthorized, object: nil)
+            throw APIError.unauthorized
+        case 404:
+            throw APIError.notFound
+        default:
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+    }
+
+    private func requestRaw<T: Decodable>(_ path: String, method: String, bodyData: Data? = nil) async throws -> T {
+        guard let url = URL(string: "\(baseURL)\(path)") else {
+            throw APIError.invalidURL
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = method
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = token {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        if let bodyData = bodyData {
+            req.httpBody = bodyData
+        }
+        let (data, response) = try await session.data(for: req)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.networkError(URLError(.badServerResponse))
+        }
         switch httpResponse.statusCode {
         case 200...299:
             do {

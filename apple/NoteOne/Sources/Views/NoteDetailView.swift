@@ -89,10 +89,12 @@ struct NoteDetailView: View {
                         Button { startEditing() } label: {
                             Image(systemName: "pencil")
                         }
+                        .help("编辑")
                         Button { showDeleteConfirm = true } label: {
                             Image(systemName: "trash")
-                                .foregroundStyle(.red)
+                                .foregroundStyle(Color.danger)
                         }
+                        .help("移入垃圾箱")
                     }
                 }
             }
@@ -120,14 +122,15 @@ struct NoteDetailView: View {
         Text(note.title ?? "无标题")
             .font(.title)
             .foregroundStyle(Color.ink)
+            .textSelection(.enabled)
 
         if let summary = note.aiSummary {
             Text(summary)
                 .font(.subheadline)
                 .foregroundStyle(Color.inkSecondary)
-                .padding()
-                .background(Color.canvasSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .cardStyle(padding: DG.sp12)
         }
 
         if let tags = note.tags, !tags.isEmpty {
@@ -149,7 +152,7 @@ struct NoteDetailView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: DG.r8))
         }
     }
 
@@ -331,7 +334,7 @@ struct NoteDetailView: View {
 
 private struct AIProcessingBanner: View {
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DG.sp8) {
             Image(systemName: "sparkles")
                 .foregroundStyle(Color.accent)
                 .symbolEffect(.pulse, options: .repeating)
@@ -340,9 +343,7 @@ private struct AIProcessingBanner: View {
                 .foregroundStyle(Color.inkSecondary)
             Spacer()
         }
-        .padding(12)
-        .background(Color.accent.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .bannerStyle(tint: Color.accent)
     }
 }
 
@@ -350,9 +351,9 @@ private struct FailedBanner: View {
     let onRetry: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DG.sp8) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.red)
+                .foregroundStyle(Color.danger)
             Text("生成失败")
                 .font(.subheadline)
                 .foregroundStyle(Color.inkSecondary)
@@ -361,9 +362,7 @@ private struct FailedBanner: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
         }
-        .padding(12)
-        .background(Color.red.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .bannerStyle(tint: Color.danger)
     }
 }
 
@@ -373,9 +372,9 @@ private struct TrashedBanner: View {
     @State private var showPermanentConfirm = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DG.sp8) {
             Image(systemName: "trash")
-                .foregroundStyle(.red)
+                .foregroundStyle(Color.danger)
             Text("此笔记在垃圾箱中")
                 .font(.subheadline)
                 .foregroundStyle(Color.inkSecondary)
@@ -384,12 +383,10 @@ private struct TrashedBanner: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
             Button("永久删除") { showPermanentConfirm = true }
-                .foregroundStyle(.red)
+                .foregroundStyle(Color.danger)
                 .controlSize(.small)
         }
-        .padding(12)
-        .background(Color.red.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .bannerStyle(tint: Color.danger)
         .confirmationDialog("永久删除？", isPresented: $showPermanentConfirm, titleVisibility: .visible) {
             Button("永久删除", role: .destructive, action: onPermanentDelete)
             Button("取消", role: .cancel) {}
@@ -405,13 +402,11 @@ private struct FlowTagsView: View {
     var body: some View {
         HStack(spacing: 0) {
             let wrapped = wrappedTags()
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: DG.sp4) {
                 ForEach(wrapped.indices, id: \.self) { rowIdx in
-                    HStack(spacing: 6) {
+                    HStack(spacing: DG.sp4) {
                         ForEach(wrapped[rowIdx], id: \.tagId) { tag in
-                            Text("#\(tag.name)")
-                                .font(.callout)
-                                .foregroundStyle(colorForDimension(tag.dimension))
+                            TagPill(text: "#\(tag.name)", color: colorForDimension(tag.dimension))
                         }
                     }
                 }
@@ -433,10 +428,10 @@ private struct FlowTagsView: View {
 
     private func colorForDimension(_ dimension: String) -> Color {
         switch dimension {
-        case "format": return .blue
-        case "topic": return .green
-        case "domain": return .orange
-        case "module": return .purple
+        case "format": return .tagFormat
+        case "topic": return .tagTopic
+        case "domain": return .tagDomain
+        case "module": return .tagModule
         default: return Color.inkSecondary
         }
     }
@@ -466,5 +461,6 @@ private struct MetaSection: View {
         }
         .font(.caption)
         .foregroundStyle(Color.inkSecondary)
+        .textSelection(.enabled)
     }
 }

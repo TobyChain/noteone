@@ -10,21 +10,39 @@ export async function enrichNote(
   llmConfig?: LLMConfig,
 ): Promise<void> {
   const start = Date.now();
-  const [summary, title, embedding] = await Promise.all([
+  const results = await Promise.allSettled([
     generateSummary(content, llmConfig),
     generateTitle(content, llmConfig),
     generateEmbedding(content),
   ]);
-  console.log(`[enrichment] noteId=${noteId} duration=${Date.now() - start}ms summaryLen=${summary.length} titleLen=${title.length}`);
+
+  const summary = results[0].status === "fulfilled" ? results[0].value : "";
+  const title = results[1].status === "fulfilled" ? results[1].value : "";
+  const embedding = results[2].status === "fulfilled" ? results[2].value : null;
+
+  if (results[0].status === "rejected") {
+    console.error(`[enrichment] summary-failed noteId=${noteId}:`, results[0].reason);
+  }
+  if (results[1].status === "rejected") {
+    console.error(`[enrichment] title-failed noteId=${noteId}:`, results[1].reason);
+  }
+  if (results[2].status === "rejected") {
+    console.error(`[enrichment] embedding-failed noteId=${noteId}:`, results[2].reason);
+  }
+
+  const allFailed = !summary && !title;
+  console.log(`[enrichment] noteId=${noteId} duration=${Date.now() - start}ms summaryLen=${summary.length} titleLen=${title.length} embedding=${embedding ? "ok" : "failed"} allFailed=${allFailed}`);
+
+  const updateData: Record<string, unknown> = {
+    status: allFailed ? "failed" : "active",
+    updatedAt: new Date(),
+  };
+  if (summary) updateData.aiSummary = summary;
+  if (title) updateData.title = sql`COALESCE(${notes.title}, ${title})`;
+  if (embedding) updateData.embedding = embedding;
 
   await db.update(notes)
-    .set({
-      aiSummary: summary,
-      title: sql`COALESCE(${notes.title}, ${title})`,
-      embedding: embedding,
-      status: "active",
-      updatedAt: new Date(),
-    })
+    .set(updateData)
     .where(eq(notes.id, noteId));
 }
 

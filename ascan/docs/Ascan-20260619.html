@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ascan-20260619</title>
+  <style>/* ── Notion-inspired Design System for Ascan Daily Report ── */
+:root {
+  color-scheme: light;
+  /* Surface & Canvas */
+  --canvas: #ffffff;
+  --surface: #f7f7f5;
+  --surface-soft: #f1f1ef;
+  /* Borders */
+  --hairline: #e8e7e4;
+  --hairline-soft: #eeeeed;
+  --hairline-strong: #d3d1cb;
+  /* Text */
+  --ink-deep: #0f0f0f;
+  --ink: #191919;
+  --charcoal: #37352f;
+  --slate: #6b6b6b;
+  --steel: #9b9a97;
+  --stone: #b4b3af;
+  --muted: #c4c3bf;
+  /* Brand Accents */
+  --primary: #6c47ff;
+  --primary-pressed: #5a3ad6;
+  --link-blue: #2383e2;
+  /* Semantic Tints */
+  --tint-lavender: #e8deee;
+  --tint-peach: #faebdd;
+  --tint-mint: #dbeddb;
+  --tint-sky: #d3e5ef;
+  --tint-yellow: #fdecc8;
+  --brand-purple-800: #4a2d8a;
+  --brand-orange-deep: #b05c1a;
+  --brand-green: #2d7d46;
+  /* Elevation */
+  --shadow-subtle: rgba(15, 15, 15, 0.04) 0px 1px 2px 0px;
+  --shadow-card: rgba(15, 15, 15, 0.06) 0px 3px 8px 0px;
+  /* Spacing base unit: 4px */
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 12px;
+  --sp-lg: 16px;
+  --sp-xl: 24px;
+  --sp-xxl: 32px;
+  --sp-section: 48px;
+  /* Radius */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-full: 9999px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--canvas);
+  color: var(--charcoal);
+  font-family: Inter, -apple-system, system-ui, "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--link-blue); text-decoration: none; transition: color 0.15s ease; }
+a:hover { text-decoration: underline; color: #1a6dc2; }
+
+/* ── Page Container ── */
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--sp-xxl) var(--sp-xl) var(--sp-section);
+}
+
+/* ── Hero / Header ── */
+.hero {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xxl) var(--sp-xl);
+  margin-bottom: var(--sp-section);
+}
+.hero h1 {
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-sm);
+}
+.hero p {
+  font-size: 16px;
+  color: var(--slate);
+  line-height: 1.55;
+}
+
+/* ── Section Headings ── */
+.report-section { margin-top: var(--sp-section); }
+.report-section > h2 {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-lg);
+  padding-bottom: var(--sp-sm);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xl);
+  margin-bottom: var(--sp-lg);
+  transition: box-shadow 0.15s ease;
+}
+.card:hover { box-shadow: var(--shadow-card); }
+.card h3 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-sm);
+}
+.card h4 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+  margin-bottom: var(--sp-xs);
+}
+
+/* ── Meta & Muted Text ── */
+.meta {
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.5;
+  margin-bottom: var(--sp-sm);
+}
+.muted, .section-note, .empty-state {
+  font-size: 14px;
+  color: var(--steel);
+  line-height: 1.5;
+}
+.empty-state {
+  padding: var(--sp-xl);
+  text-align: center;
+  background: var(--surface);
+  border-radius: var(--r-md);
+}
+
+/* ── Lead (one-liner emphasis) ── */
+.lead {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.55;
+  margin-bottom: var(--sp-sm);
+}
+
+/* ── Tags ── */
+.tags { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin: var(--sp-sm) 0; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--r-sm);
+  background: var(--tint-lavender);
+  color: var(--brand-purple-800);
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ── Recommendation Callout ── */
+.recommendation {
+  border-left: 3px solid var(--primary);
+  background: var(--surface);
+  padding: var(--sp-md) var(--sp-lg);
+  border-radius: var(--r-md);
+  margin-top: var(--sp-md);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--charcoal);
+}
+
+/* ── Summary Block ── */
+.summary-block {
+  margin-top: var(--sp-md);
+  padding-top: var(--sp-md);
+  border-top: 1px solid var(--hairline-soft);
+}
+.summary-block h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--sp-xs);
+}
+.summary-block p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--charcoal);
+}
+
+/* ── Links Row ── */
+.links {
+  font-size: 14px;
+  font-weight: 500;
+  margin: var(--sp-sm) 0;
+}
+.links a { margin-right: var(--sp-xs); }
+
+/* ── Tables ── */
+.table-wrapper { overflow-x: auto; margin: var(--sp-lg) 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  font-size: 14px;
+}
+th {
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--ink);
+  padding: var(--sp-md) var(--sp-lg);
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+}
+td {
+  padding: var(--sp-md) var(--sp-lg);
+  border-bottom: 1px solid var(--hairline-soft);
+  color: var(--charcoal);
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: none; }
+
+/* ── Meta List (repo details) ── */
+.meta-list {
+  padding-left: var(--sp-xl);
+  margin: var(--sp-sm) 0;
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.6;
+}
+.meta-list li { margin-bottom: var(--sp-xs); }
+.meta-list strong { color: var(--charcoal); font-weight: 500; }
+
+/* ── Footer ── */
+.footer {
+  margin-top: var(--sp-section);
+  padding-top: var(--sp-lg);
+  border-top: 1px solid var(--hairline);
+  color: var(--steel);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .page { padding: var(--sp-lg) var(--sp-md) var(--sp-xxl); }
+  .hero { padding: var(--sp-xl) var(--sp-lg); }
+  .hero h1 { font-size: 28px; }
+  .report-section > h2 { font-size: 22px; }
+  .card { padding: var(--sp-lg); }
+  .card h3 { font-size: 18px; }
+  th, td { padding: var(--sp-sm) var(--sp-md); }
+}/* ── TOC Outline Card ── */
+.toc-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-section);
+  overflow: hidden;
+}
+.toc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-md) var(--sp-lg);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+.toc-card-header:hover { background: var(--surface-soft); }
+.toc-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.3px;
+}
+.toc-card-toggle {
+  font-size: 13px;
+  color: var(--steel);
+  transition: transform 0.2s ease;
+}
+.toc-card.collapsed .toc-card-toggle { transform: rotate(-90deg); }
+.toc-list {
+  list-style: none;
+  padding: 0 var(--sp-lg) var(--sp-md);
+  margin: 0;
+}
+.toc-card.collapsed .toc-list { display: none; }
+.toc-entry {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  color: var(--charcoal);
+  transition: background 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+}
+.toc-entry:hover { background: var(--surface-soft); text-decoration: none; color: var(--ink); }
+.toc-entry.active { background: var(--tint-lavender); color: var(--brand-purple-800); font-weight: 500; }
+.toc-entry-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-full);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+  margin-right: var(--sp-sm);
+  flex-shrink: 0;
+}
+.toc-entry.active .toc-entry-num { background: var(--primary); border-color: var(--primary); color: #fff; }
+.toc-entry-text { flex: 1; }
+.toc-entry-count {
+  font-size: 12px;
+  color: var(--steel);
+  margin-left: var(--sp-sm);
+  flex-shrink: 0;
+}
+
+/* ── Floating Side Navigator (desktop only) ── */
+.toc-floating {
+  position: fixed;
+  left: calc(50% - 500px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-md);
+  padding: var(--sp-md);
+}
+.toc-floating-label {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--charcoal);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: 4px 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  box-shadow: var(--shadow-subtle);
+}
+.toc-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-full);
+  background: var(--muted);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+.toc-dot:hover { background: var(--steel); }
+.toc-dot:hover .toc-floating-label { opacity: 1; }
+.toc-dot.active { background: var(--primary); border-color: var(--primary); transform: scale(1.3); }
+@media (max-width: 1100px) { .toc-floating { display: none; } }
+</style>
+</head>
+<body>
+  <div class="toc-floating">
+  <span class="toc-dot" data-target="arxiv-papers"><span class="toc-floating-label">Part 1 · arXiv 论文精选</span></span>
+  <span class="toc-dot" data-target="github-repos"><span class="toc-floating-label">Part 2 · GitHub 项目挖掘</span></span>
+  <span class="toc-dot" data-target="official-tracker"><span class="toc-floating-label">Part 3 · 官方动态跟踪</span></span>
+  <span class="toc-dot" data-target="blog-subs"><span class="toc-floating-label">Part 4 · 独立博客订阅</span></span>
+  </div>
+  <main class="page">
+    <header class="hero">
+      <h1>Ascan-20260619</h1>
+      <p>科技前沿日报 · 2026-06-19 · arXiv 论文精选 + GitHub 项目挖掘 + 官方动态跟踪</p>
+    </header>
+
+    <nav class="toc-card" id="toc-card">
+      <div class="toc-card-header">
+        <span class="toc-card-title">📑 大纲</span>
+        <span class="toc-card-toggle">▼</span>
+      </div>
+      <div class="toc-list">
+      <a href="#arxiv-papers" class="toc-entry" data-target="arxiv-papers"><span class="toc-entry-num">Part 1</span><span class="toc-entry-text">arXiv 论文精选</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#github-repos" class="toc-entry" data-target="github-repos"><span class="toc-entry-num">Part 2</span><span class="toc-entry-text">GitHub 项目挖掘</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#official-tracker" class="toc-entry" data-target="official-tracker"><span class="toc-entry-num">Part 3</span><span class="toc-entry-text">官方动态跟踪</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#blog-subs" class="toc-entry" data-target="blog-subs"><span class="toc-entry-num">Part 4</span><span class="toc-entry-text">独立博客订阅</span><span class="toc-entry-count">无</span></a>
+      </div>
+    </nav>
+
+    <section class="report-section" id="arxiv-papers">
+      <h2>Part 1 — arXiv 论文精选</h2>
+      <div class="report-list arxiv-list" data-date="2026-06-18">
+<article class="card paper-card">
+<h3>1. Large Language Models for Agentic NetOps and AIOps: Architectures, Evaluation, and Safety</h3>
+<p class="meta"><strong>作者：</strong>Muhammad Bilal, Jon Crowcroft, Ruizhi Wang, Xiaolong Xu, Schahram Dustdar</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">ecom_service</span></div>
+<p><strong>一句话总结：</strong>用大模型做IT运维自动化，让AI代理能安全可靠地处理网络故障和系统维护任务</p>
+<p class="links"><a href="https://arxiv.org/abs/2605.12729" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2605.12729.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>大语言模型越来越多地用于支持网络运维(NetOps)和IT运维人工智能(AIOps)，包括事件调查、根本原因分析、配置合成和有限自愈。基于代理的运维工作流从收集证据到采取行动，遵循权限、策略和检查，并在必要时提供回滚选项。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>为电商AI运维提供思路，可构建智能运维代理处理服务器监控、故障诊断、自动修复等任务，提升系统稳定性和响应效率</p>
+</article>
+<article class="card paper-card">
+<h3>2. TopBench: A Benchmark for Implicit Predictive Reasoning in Tabular Question Answering</h3>
+<p class="meta"><strong>作者：</strong>An-Yang Ji, Jun-Peng Jiang, De-Chuan Zhan, Han-Jia Ye</p>
+<div class="tags"><span class="tag">ecom_service</span><span class="tag">agentic_framework</span><span class="tag">intent_understand</span></div>
+<p><strong>一句话总结：</strong>解决表格问答中模型无法识别和处理隐式预测查询的问题</p>
+<p class="links"><a href="https://arxiv.org/abs/2604.28076" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2604.28076.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>大型语言模型在表格问答中取得进展，但现实查询常需隐式预测，从历史模式推断未观察答案。我们引入TopBench基准测试，包含779个样本，涵盖单点预测到决策制定等任务，评估模型在表格隐式预测问答中的表现。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>可提升电商AI在销售预测、库存管理、用户行为分析等场景的表格数据处理能力，增强数字员工的商业智能分析功能</p>
+</article>
+<article class="card paper-card">
+<h3>3. GrowthHacker: Automated Off-Policy Evaluation Optimization Using Code-Modifying LLM Agents</h3>
+<p class="meta"><strong>作者：</strong>Jie JW Wu, Ayanda Patrick Herlihy, Ahmad Saleem Mirza, Ali Afoud, Fatemeh Fard</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">product_recommend</span></div>
+<p><strong>一句话总结：</strong>用AI智能体自动优化离线A/B测试代码，提升电商推荐系统等在线实验的安全性和效率</p>
+<p class="links"><a href="https://arxiv.org/abs/2511.00802" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2511.00802.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>随着数据驱动开发的广泛采用，在线A/B测试是衡量新技术效果的既定方法。然而，在线实验部署需要设计、实现和部署资源，可能对用户产生负面影响，且需要数周数据收集。离策略评估(OPE)使用历史日志数据离线评估新技术。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>可应用于电商推荐系统的安全测试优化，避免线上实验风险，加速算法迭代验证，提升个性化推荐准确性</p>
+</article>
+<article class="card paper-card">
+<h3>4. From Agent Traces to Trust: A Survey of Evidence Tracing and Execution Provenance in LLM Agents</h3>
+<p class="meta"><strong>作者：</strong>Yiqi Wang, Jiaqi Zhang, Taotao Cai, Zirui Liu, Qingqiang Sun, Zequn Sun, Zhangkai Wu, Manqing Dong, Mingkai Zhang, Xuefei Yin, Yanming Zhu</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">AI</span></div>
+<p><strong>一句话总结：</strong>让AI代理的行为过程变得可追踪可审计，解决黑盒决策的信任问题。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.04990" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.04990.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>基于大语言模型的代理正从被动文本生成器演进为能规划、使用工具、检索、访问记忆、环境交互和多代理协作的自主系统。这些能力扩展了代理自主性，但也使代理行为更难验证、调试和审计。最终答案准确性无法解释输出如何产生、每个主张得到哪些证据支持等。本调查将执行来源作为可信LLM代理中过程级问责的基础。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>提升电商AI数字员工可信度，实现决策过程透明化，便于故障诊断和用户信任建立，支持可追溯的商品推荐和客户服务。</p>
+</article>
+<article class="card paper-card">
+<h3>5. An Evaluation of Data Leakage Risks in Tool-Using LLM Agents in Realistic Scenarios</h3>
+<p class="meta"><strong>作者：</strong>Hankyul Baek, Jaewon Noh, Sang Seo, Yongsu Kim, Gabriel Waikin Loh Matienzo, Young Il Kim, Ee Wei Seah, Akriti Vij</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">ecom_service</span></div>
+<p><strong>一句话总结：</strong>发现AI助手在正常使用时也会泄露敏感数据，需要分别评估功能和安全。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.17114" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.17114.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>AI代理在企业环境中访问敏感数据时存在信息泄露风险。研究通过12个真实场景评估了工具使用型LLM代理的数据泄露风险，发现即使在非对抗性使用中，代理也会在完成任务时泄露敏感信息。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>电商AI应用需建立独立的数据安全评估体系，避免数字员工在客户服务和业务处理中泄露用户隐私数据。</p>
+</article>
+<article class="card paper-card">
+<h3>6. On the Memorization Behavior of LLMs in Generative Recommendation: Observations, Implications, and Training Strategies</h3>
+<p class="meta"><strong>作者：</strong>Sunwoo Kim, Sunkyung Lee, Clark Mingxuan Ju, Donald Loveland, Bhuvesh Kumar, Kijung Shin, Neil Shah, Liam Collins</p>
+<div class="tags"><span class="tag">product_recommend</span><span class="tag">intent_understand</span></div>
+<p><strong>一句话总结：</strong>解决大语言模型在商品推荐中过度记忆训练数据的问题，提出新训练方法提升推荐准确性。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.17276" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.17276.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>生成式推荐（GR）中大语言模型（LLMs）的记忆行为研究发现，LLMs在微调后仍存在过度记忆训练数据中的物品转移模式问题，限制了其预训练知识的利用。提出IIRG训练策略，通过捕捉多跳协同关系和语义相似性来改进推荐效果。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>揭示LLM推荐系统记忆局限性，提供IIRG策略优化商品推荐算法，增强跨领域知识迁移能力，提升个性化推荐效果。</p>
+</article>
+<article class="card paper-card">
+<h3>7. SkillJect: Effectively Automating Skill-Based Prompt Injection for Skill-Enabled Agents</h3>
+<p class="meta"><strong>作者：</strong>Xiaojun Jia, Jie Liao, Simeng Qin, Jindong Gu, Wenqi Ren, Xiaochun Cao, Yang Liu, Philip Torr</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">AI</span></div>
+<p><strong>一句话总结：</strong>发现AI助手技能系统存在供应链攻击风险，开发了自动化的技能中毒检测工具。</p>
+<p class="links"><a href="https://arxiv.org/abs/2602.14211" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2602.14211.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>代理技能通过特定任务指令、可执行脚本和辅助资源扩展LLM代理，提高重用性但创建新的供应链攻击面。恶意技能可能被重复加载并引导下游工具使用。提出SkillJect，首个针对技能启用代理系统的自动化中毒技能生成框架。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>提升电商AI数字员工安全性，防止恶意技能注入影响商品推荐、客户服务等核心功能，保障供应链安全。</p>
+</article>
+<article class="card paper-card">
+<h3>8. Pulling The REINS: Training-Free Safety Alignment of Video Diffusion Models via Representation Steering</h3>
+<p class="meta"><strong>作者：</strong>Rohit Kundu, Arindam Dutta, Sarosij Bose, Athula Balachandran, Amit K. Roy-Chowdhury</p>
+<div class="tags"><span class="tag">digital_worker</span><span class="tag">product_inspection</span><span class="tag">video generation</span><span class="tag">image-to-video</span><span class="tag">text-to-video</span></div>
+<p><strong>一句话总结：</strong>让AI视频生成模型在推理时自动避开暴力等有害内容，无需重新训练模型</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.17257" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.17257.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>开放权重视频扩散模型可生成逼真的不安全内容，现有防御方法要么需要昂贵的安全微调，要么容易被对抗提示绕过。提出REINS方法，在推理时通过引导内部表征实现安全对齐，无需训练。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>可应用于电商视频内容安全审核，防止AI生成不当商品展示视频，提升数字员工内容创作安全性</p>
+</article>
+<article class="card paper-card">
+<h3>9. WEQA: Wearable hEalth Question Answering with Query-Adaptive Agentic Reasoning</h3>
+<p class="meta"><strong>作者：</strong>Yuwei Zhang, Tong Xia, Bianca Emmerich, Yu Yvonne Wu, Dimitris Spathis, Xin Liu, Daniel McDuff, Cecilia Mascolo</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">ecom_service</span><span class="tag">intent_understand</span></div>
+<p><strong>一句话总结：</strong>让AI能看懂你的手环和健康数据，给出专业的健康问答建议。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.18147" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.18147.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>语言模型在医疗问答方面表现出色，但回答可穿戴健康数据问题仍具挑战性。我们提出WEQA框架，结合LLM推理与专业可穿戴分析工具，动态路由查询并进行响应审计。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>可启发健康管理数字员工开发，用于用户健康数据分析、个性化健康建议推荐、智能健康客服等场景，提升健康服务智能化水平。</p>
+</article>
+<article class="card paper-card">
+<h3>10. Improve Large Language Model Systems with User Logs</h3>
+<p class="meta"><strong>作者：</strong>Changyue Wang, Weihang Su, Qingyao Ai, Xingzhao Yue, Rui Zhang, Xiaojia Chang, Yiqun Liu</p>
+<div class="tags"><span class="tag">ecom_service</span><span class="tag">intent_understand</span></div>
+<p><strong>一句话总结：</strong>用用户聊天记录训练AI助手，让其越用越好</p>
+<p class="links"><a href="https://arxiv.org/abs/2602.06470" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2602.06470.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>大规模语言模型的进展长期依赖于扩展训练数据和模型参数，但这一范式正因高质量数据稀缺和计算成本递增而受限。近期工作转向从现实部署中的用户交互日志持续学习，然而用户日志的非结构化和噪声特性使其学习变得困难。我们提出UNO框架，通过将日志蒸馏为半结构化规则和偏好对，采用查询反馈驱动聚类管理数据异质性，并量化模型先验知识与日志数据的认知差距。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>可应用于电商客服系统的持续优化，通过用户对话日志自动改进服务质量和意图理解能力，提升数字员工的智能化水平</p>
+</article>
+<article class="card paper-card">
+<h3>11. TWICE: Modeling the Temporal Evolution of Personalized User Behavior via Event-Driven Agents</h3>
+<p class="meta"><strong>作者：</strong>Bingrui Jin, Kunyao Lan, Baihan LI, Mengyue Wu</p>
+<div class="tags"><span class="tag">intent_understand</span><span class="tag">agentic_framework</span></div>
+<p><strong>一句话总结：</strong>通过事件驱动的记忆机制，让AI更真实地模拟用户行为随时间的变化规律</p>
+<p class="links"><a href="https://arxiv.org/abs/2602.22222" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2602.22222.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>用户模拟器广泛用于数据生成、评估和基于智能体的交互，但现有方法通常将用户建模为静态角色或依赖通用历史上下文，难以捕捉个体行为如何随时间演变。为解决此限制，我们提出TWICE，一种基于LLM的时间基础个性化用户模拟框架。TWICE结合结构化用户画像、围绕生活事件和行为转变组织的事件驱动记忆模块，以及分离事件内容规划和个人化风格适应的两阶段工作流。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>可用于电商数字员工和客服系统，通过事件驱动记忆更好地理解用户购买行为演进，提升个性化推荐和意图理解准确性</p>
+</article>
+</div>
+    </section>
+
+    <section class="report-section" id="github-repos">
+      <h2>Part 2 — GitHub 项目挖掘</h2>
+      <div class="report-list github-list" data-date="20260618">
+<p class="section-note">聚焦电商 AI 应用相关项目（数字员工/商品推荐/商品巡检/电商客服/智能体框架/意图理解），共发现 75 个仓库。</p>
+<h3>今日精选（高度相关，共 4 个）</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>项目</th><th>语言</th><th>Stars</th><th>一句话描述</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/microsoft/autogen" target="_blank" rel="noopener noreferrer">microsoft/autogen</a></td><td>Python</td><td>⭐59k</td><td>让多个AI角色协作完成复杂任务的编程框架</td></tr>
+<tr><td><a href="https://github.com/browser-use/browser-harness" target="_blank" rel="noopener noreferrer">browser-use/browser-harness</a></td><td>Python</td><td>⭐15k</td><td>让AI大模型直接控制真实浏览器完成各种网页操作任务</td></tr>
+<tr><td><a href="https://github.com/withastro/flue" target="_blank" rel="noopener noreferrer">withastro/flue</a></td><td>TypeScript</td><td>⭐5.5k</td><td>让AI代理自动化处理复杂任务的框架</td></tr>
+<tr><td><a href="https://github.com/nextlevelbuilder/goclaw" target="_blank" rel="noopener noreferrer">nextlevelbuilder/goclaw</a></td><td>Go</td><td>⭐3.3k</td><td>部署多租户AI代理团队，支持20多个大模型提供商的并发调用</td></tr>
+</tbody></table></div>
+<h3>精选项目深度解析</h3>
+<article class="card repo-card">
+<h4><a href="https://github.com/microsoft/autogen" target="_blank" rel="noopener noreferrer">microsoft/autogen</a></h4>
+<p class="lead">让多个AI角色协作完成复杂任务的编程框架</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐59k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">agentic</span><span class="tag">agentic-agi</span><span class="tag">agents</span><span class="tag">ai</span><span class="tag">autogen</span><span class="tag">autogen-ecosystem</span></div>
+<p><strong>定位：</strong>解决单个AI能力有限的问题，通过多智能体协作实现更复杂的AI应用。面向需要构建多角色AI协作系统的开发者和企业。</p>
+<p><strong>核心技术：</strong>支持多智能体对话和协作，可配置不同角色的AI代理进行交互。提供灵活的消息传递机制和工作流编排能力。</p>
+<p><strong>使用场景：</strong>适用于需要多角色协作的场景，如客服系统、内容创作、数据分析等复杂AI应用开发。</p>
+<p><strong>对比同类：</strong>相比LangGraph更注重多智能体协作，相比CrewAI提供更灵活的角色配置和消息传递机制。</p>
+<p><strong>值得关注：</strong>微软开源项目，Star数快速增长反映市场对多智能体协作框架的强烈需求。背靠微软资源丰富，生态发展潜力大。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/browser-use/browser-harness" target="_blank" rel="noopener noreferrer">browser-use/browser-harness</a></h4>
+<p class="lead">让AI大模型直接控制真实浏览器完成各种网页操作任务</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐15k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">ai-agent</span><span class="tag">browser-agent</span><span class="tag">browser-automation</span><span class="tag">browser-use</span><span class="tag">browser-use-box</span><span class="tag">browser-use-cloud</span></div>
+<p><strong>定位：</strong>解决AI无法直接操作浏览器的问题，面向需要自动化网页交互的开发者和企业用户。通过CDP协议建立AI与浏览器的直连通道。</p>
+<p><strong>核心技术：</strong>基于Chrome DevTools Protocol(CDP)的轻量级代理架构，支持AI自修复和自我进化能力。采用websocket实时通信，无中间层阻隔。</p>
+<p><strong>使用场景：</strong>电商网站自动化操作、商品信息抓取、表单填写提交、网页测试验证等场景。</p>
+<p><strong>对比同类：</strong>相比AutoGen等框架更专注于浏览器操作领域，提供更底层的CDP直连能力，适合需要精确控制网页交互的场景。</p>
+<p><strong>值得关注：</strong>填补了AI与真实浏览器交互的技术空白，star增长迅速反映了市场对浏览器自动化需求的强烈关注。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/withastro/flue" target="_blank" rel="noopener noreferrer">withastro/flue</a></h4>
+<p class="lead">让AI代理自动化处理复杂任务的框架</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐5.5k (+162 今日)</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<p><strong>定位：</strong>构建自主AI代理和工作流的TypeScript框架，让开发者轻松创建能独立完成任务的智能代理。面向需要自动化复杂业务流程的开发者和企业。</p>
+<p><strong>核心技术：</strong>基于TypeScript的可编程代理框架，支持通过技能(Skill)和工具(Tool)组合实现复杂任务自动化。提供HTTP路由暴露代理能力，具备沙箱安全机制。</p>
+<p><strong>使用场景：</strong>适用于自动化工单处理、代码审查修复、客户支持、数据处理等需要端到端自主执行的任务场景。</p>
+<p><strong>对比同类：</strong>相比AutoGen/LangGraph等，Flue更注重轻量级的代理构建和安全沙箱机制，提供更简洁的TypeScript API。</p>
+<p><strong>值得关注：</strong>Astro团队出品，TypeScript生态完善，Star增长快因AI代理需求旺盛且框架设计简洁实用。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/nextlevelbuilder/goclaw" target="_blank" rel="noopener noreferrer">nextlevelbuilder/goclaw</a></h4>
+<p class="lead">部署多租户AI代理团队，支持20多个大模型提供商的并发调用</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐3.3k</li>
+<li><strong>语言：</strong>Go</li>
+</ul>
+<div class="tags"><span class="tag">agent-orchestration</span><span class="tag">ai-agent</span><span class="tag">ai-gateway</span><span class="tag">anthropic</span><span class="tag">chatbot</span><span class="tag">discord-bot</span></div>
+<p><strong>定位：</strong>解决AI代理编排和多租户隔离问题，面向需要大规模部署AI团队的企业用户。提供安全的多租户环境和原生并发处理能力。</p>
+<p><strong>核心技术：</strong>采用Go语言构建，具备5层安全机制和多租户PostgreSQL数据库。支持20+LLM提供商和7个通信渠道，单二进制部署。</p>
+<p><strong>使用场景：</strong>适用于需要大规模部署AI代理团队的场景，如企业级AI客服、自动化工作流编排、多租户AI服务平台。</p>
+<p><strong>对比同类：</strong>相比AutoGen/LangGraph等传统框架，GoClaw提供更好的多租户隔离和原生并发性能，更适合生产环境大规模部署。</p>
+<p><strong>值得关注：</strong>Go语言高性能优势结合多租户安全特性，在AI代理编排领域具有明显技术优势，Star增长迅速。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/2noise/ChatTTS" target="_blank" rel="noopener noreferrer">2noise/ChatTTS</a></h4>
+<p class="lead">将文字转换为自然对话语音的AI模型，支持中英文日常对话生成</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐39k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">chat</span><span class="tag">chatgpt</span><span class="tag">chattts</span><span class="tag">chinese</span><span class="tag">chinese-language</span></div>
+<p><strong>定位：</strong>解决文本转语音缺乏对话感的问题，面向需要语音交互功能的开发者和产品团队。提供更自然的人机对话体验。</p>
+<p><strong>核心技术：</strong>基于深度学习的端到端语音合成模型，支持多语言（中英文）语音生成。具备韵律控制和情感表达能力，生成自然对话语音。</p>
+<p><strong>使用场景：</strong>智能客服语音应答、虚拟助手语音交互、语音内容创作、无障碍语音服务等场景。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>开源语音合成领域创新项目，技术实现门槛较高且应用场景广泛。Star增长主要来自AI语音技术关注度提升和实用性强。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/VectifyAI/PageIndex" target="_blank" rel="noopener noreferrer">VectifyAI/PageIndex</a></h4>
+<p class="lead">无需向量数据库的文档检索工具，让AI像人一样理解文档内容</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐33k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">agentic-ai</span><span class="tag">agents</span><span class="tag">ai</span><span class="tag">ai-agents</span><span class="tag">context-engineering</span><span class="tag">information-retrieval</span></div>
+<p><strong>定位：</strong>解决传统RAG需要向量化存储和分块处理的复杂性问题，面向需要文档理解和信息检索的开发者和企业用户。提供更自然的人类式文档交互体验。</p>
+<p><strong>核心技术：</strong>采用推理驱动的文档索引技术，无需向量数据库和文档分块处理。基于上下文感知的检索机制，实现更精准的内容理解。</p>
+<p><strong>使用场景：</strong>适用于企业知识库问答、文档智能分析、客服系统知识检索等场景。</p>
+<p><strong>对比同类：</strong>相比AutoGen/LangGraph等框架，PageIndex专注于无向量化的文档检索，架构更轻量，部署更简单。</p>
+<p><strong>值得关注：</strong>创新的无向量化RAG方案，大幅降低部署复杂度，3万+stars显示市场认可度高。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/wechaty/wechaty" target="_blank" rel="noopener noreferrer">wechaty/wechaty</a></h4>
+<p class="lead">让开发者轻松制作微信聊天机器人，自动处理消息和对话</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐22k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">bot</span><span class="tag">chatbot</span><span class="tag">conversational-ai</span><span class="tag">framework</span><span class="tag">qq</span><span class="tag">robotics</span></div>
+<p><strong>定位：</strong>为聊天机器人开发者提供SDK框架，解决微信自动化交互问题。面向需要构建微信机器人的开发者和企业。</p>
+<p><strong>核心技术：</strong>基于TypeScript开发的会话式RPA框架，支持多协议适配器。提供事件驱动的API和丰富的插件生态。</p>
+<p><strong>使用场景：</strong>微信客服机器人、自动营销推广、群聊管理助手等场景。</p>
+<p><strong>对比同类：</strong>专注于微信生态的机器人开发，相比AutoGen等通用AI框架更垂直专业。</p>
+<p><strong>值得关注：</strong>微信生态庞大用户基础，自动化需求旺盛，社区活跃度高。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/owainlewis/awesome-artificial-intelligence" target="_blank" rel="noopener noreferrer">owainlewis/awesome-artificial-intelligence</a></h4>
+<p class="lead">提供AI工程师必备的学习资源合集，包括课程书籍论文等</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐14k (+40 今日)</li>
+<li><strong>语言：</strong>—</li>
+</ul>
+<p><strong>定位：</strong>为AI工程师和学习者提供经过筛选的高质量AI资源库。专注于AI工程实践，涵盖RAG、智能体、评估、部署等核心技术领域。</p>
+<p><strong>核心技术：</strong>聚焦AI工程化实践，包含现代AI系统设计、大型语言模型构建、可扩展ML管道等内容。精选工具和框架资源，强调实用性和维护性。</p>
+<p><strong>使用场景：</strong>AI工程师技能提升、AI项目技术选型参考、AI学习路径规划。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>资源质量高且持续更新，涵盖AI工程全栈内容，对从业者有实用价值。14k+stars证明了社区认可度。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/h2oai/h2o-llmstudio" target="_blank" rel="noopener noreferrer">h2oai/h2o-llmstudio</a></h4>
+<p class="lead">零代码图形界面微调大语言模型的工具</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐5.0k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">ai</span><span class="tag">chatbot</span><span class="tag">chatgpt</span><span class="tag">fedramp</span><span class="tag">fine-tuning</span><span class="tag">finetuning</span></div>
+<p><strong>定位：</strong>解决大模型微调技术门槛高的问题，让非技术人员也能轻松微调LLM。面向需要定制化AI能力的企业和开发者。</p>
+<p><strong>核心技术：</strong>提供可视化GUI界面，支持多种微调方法和模型架构。基于Python开发，集成分布式训练和实验管理功能。</p>
+<p><strong>使用场景：</strong>企业内部知识库问答系统构建，特定领域客服机器人训练，垂直行业专用模型开发。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>H2O.ai知名厂商背书，开源社区活跃度高，零代码理念降低AI应用门槛。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/chonkie-inc/chonkie" target="_blank" rel="noopener noreferrer">chonkie-inc/chonkie</a></h4>
+<p class="lead">轻量级文档切块处理库，让AI问答系统读取长文档更快更准</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐4.2k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">ai</span><span class="tag">chonkie</span><span class="tag">chunker</span><span class="tag">chunking-algorithm</span><span class="tag">llms</span><span class="tag">rag</span></div>
+<p><strong>定位：</strong>解决RAG系统中文档分块处理的技术难题，面向需要构建知识库问答系统的开发者。提供多种智能切块算法，确保语义完整性和检索准确性。</p>
+<p><strong>核心技术：</strong>支持语义切块、句子切块等多种算法，保证上下文连贯性。轻量级设计仅505KB，快速集成且资源占用低。</p>
+<p><strong>使用场景：</strong>适用于企业知识库构建、文档智能问答、学术论文检索等场景。</p>
+<p><strong>对比同类：</strong>专注文档切块处理，相比通用AI框架更专业高效。</p>
+<p><strong>值得关注：</strong>RAG技术热度高，切块质量直接影响问答效果，实用性强。轻量化设计适合各类部署环境，社区活跃度持续上升。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/zai-org/GLM-5" target="_blank" rel="noopener noreferrer">zai-org/GLM-5</a></h4>
+<p class="lead">GLM-5是一个从代码编写到代理工程的AI模型系列</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐4.1k (+202 今日)</li>
+<li><strong>语言：</strong>—</li>
+</ul>
+<p><strong>定位：</strong>解决复杂长程任务处理问题，面向需要AI代理进行编程和工程化操作的开发者和企业用户。提供从Vibe编码到Agentic工程的一站式AI解决方案。</p>
+<p><strong>核心技术：</strong>基于GLM-5.2旗舰模型，具备强大的长时距任务处理能力。支持API服务调用，提供完整的智能体工程框架和技能系统。</p>
+<p><strong>使用场景：</strong>适用于复杂编程任务自动化、AI代理工程化部署、长时距逻辑推理等场景。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>智谱AI最新发布的旗舰模型，在长程任务处理上有显著突破，技术报告显示性能提升明显，社区关注度高。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/morphik-org/morphik-core" target="_blank" rel="noopener noreferrer">morphik-org/morphik-core</a></h4>
+<p class="lead">构建AI应用的文档搜索和存储工具</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐3.6k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">artificial-intelligence</span><span class="tag">cache-augmented-generation</span><span class="tag">colpali</span><span class="tag">database</span><span class="tag">litellm</span><span class="tag">multimodal</span></div>
+<p><strong>定位：</strong>解决AI应用中文档检索准确性问题，面向需要处理大量文档的开发者和企业用户。</p>
+<p><strong>核心技术：</strong>采用缓存增强生成技术，支持多模态数据处理，集成LiteLLM实现规则化数据注入。</p>
+<p><strong>使用场景：</strong>适用于知识库问答系统、文档智能分析、企业内容管理等场景。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>文档检索精度高，社区活跃度好，下载量稳定增长，技术栈完整。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/VectifyAI/OpenKB" target="_blank" rel="noopener noreferrer">VectifyAI/OpenKB</a></h4>
+<p class="lead">把长文档自动整理成结构化知识库的AI工具</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐2.3k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">agents</span><span class="tag">ai</span><span class="tag">knowledge-base</span><span class="tag">llm</span><span class="tag">rag</span><span class="tag">retrieval</span></div>
+<p><strong>定位：</strong>解决长文档信息提取和知识管理难题，面向需要处理大量文档的企业和个人用户。通过LLM自动生成结构化知识库，无需向量数据库支持。</p>
+<p><strong>核心技术：</strong>采用PageIndex的无向量推理检索技术，支持长文档处理和多模态内容。基于CLI操作界面，通过LLM生成摘要和知识链接。</p>
+<p><strong>使用场景：</strong>企业文档知识管理、学术论文整理、法规政策梳理、产品手册构建等场景。</p>
+<p><strong>对比同类：</strong>相比传统RAG方案无需向量数据库，专注于长文档结构化处理，与AutoGen等智能体框架互补。</p>
+<p><strong>值得关注：</strong>提出无向量数据库的知识库构建方案，符合Andrej Karpathy概念验证，Star增长迅速反映社区对新型知识管理方案关注。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/yifanfeng97/Hyper-Extract" target="_blank" rel="noopener noreferrer">yifanfeng97/Hyper-Extract</a></h4>
+<p class="lead">用大模型把非结构化文本一键转换成结构化知识图谱</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐1.8k (+124 今日)</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<p><strong>定位：</strong>解决非结构化文本难以提取有用信息的问题，面向需要处理大量文档数据的开发者和研究人员。提供命令行工具，简化知识抽取流程。</p>
+<p><strong>核心技术：</strong>基于大语言模型进行文本解析和知识抽取，支持图谱、超图和时空信息提取。采用CLI设计，实现文档到结构化知识的一键转换。</p>
+<p><strong>使用场景：</strong>适用于文档智能分析、知识图谱构建、信息抽取和内容理解等场景。可处理企业文档、学术论文、新闻等内容的自动化结构化处理。</p>
+<p><strong>对比同类：</strong>相比LangGraph等同类工具，更专注于文本到结构化知识的单向转换，提供更简化的CLI接口，降低使用门槛。</p>
+<p><strong>值得关注：</strong>解决了文档处理的核心痛点，大模型驱动的知识抽取技术前景广阔。1768个star显示了社区对这类工具的强烈需求。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/openilink/openilink-hub" target="_blank" rel="noopener noreferrer">openilink/openilink-hub</a></h4>
+<p class="lead">开源微信机器人管理平台，支持多种聊天工具和AI应用市场</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐1.3k</li>
+<li><strong>语言：</strong>Go</li>
+</ul>
+<div class="tags"><span class="tag">ai-chatbot</span><span class="tag">ai-tools</span><span class="tag">app-marketplace</span><span class="tag">bot-management</span><span class="tag">chatbot</span><span class="tag">dingtalk</span></div>
+<p><strong>定位：</strong>解决多平台聊天机器人统一管理和部署的问题，面向需要跨平台机器人运营的企业和开发者。提供自托管的机器人平台和应用商店生态。</p>
+<p><strong>核心技术：</strong>基于Go语言开发，支持iLink协议的独立实现，提供20+主流聊天工具集成。具备AI工具集和7种语言SDK，采用容器化部署架构。</p>
+<p><strong>使用场景：</strong>企业客服机器人统一管理，多平台消息同步处理，AI应用市场分发运营。</p>
+<p><strong>对比同类：</strong>相比AutoGen等AI智能体框架，该项目更专注于聊天机器人平台化管理而非智能体编排，定位不同但可互补。</p>
+<p><strong>值得关注：</strong>微信生态机器人需求巨大，多平台集成能力强大，开源社区关注度高且持续增长。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Kong/insomnia" target="_blank" rel="noopener noreferrer">Kong/insomnia</a></h4>
+<p class="lead">API测试和调试工具，支持多种协议格式</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐38k (+18 今日)</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<p><strong>定位：</strong>解决API开发调试效率问题，面向开发者和测试人员。提供可视化界面进行接口测试和文档管理。</p>
+<p><strong>核心技术：</strong>支持GraphQL、REST、WebSockets等多种协议的统一测试平台。跨平台桌面应用，具备云存储和版本控制功能。</p>
+<p><strong>使用场景：</strong>API接口调试、接口文档编写、团队协作开发测试。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>开源免费且功能全面的API客户端工具，社区活跃度高。持续更新支持新协议，企业级功能完善。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Kilo-Org/kilocode" target="_blank" rel="noopener noreferrer">Kilo-Org/kilocode</a></h4>
+<p class="lead">让AI代理帮你自动编写和维护代码的平台</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐22k (+1345 今日)</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<p><strong>定位：</strong>解决开发者重复编码和项目维护效率低的问题，面向需要快速构建和迭代软件项目的开发团队和个人开发者。提供端到端的AI驱动开发工作流。</p>
+<p><strong>核心技术：</strong>基于TypeScript构建的全栈AI工程平台，支持多语言编程环境，集成代码生成、测试、部署等完整开发流程。具备智能代码理解和自动生成能力。</p>
+<p><strong>使用场景：</strong>适用于软件项目快速原型开发、代码重构优化、自动化测试生成等场景。可用于构建各种类型的应用程序。</p>
+<p><strong>对比同类：</strong>与AutoGen/LangGraph相比，更专注于代码生成和工程化落地，提供完整的开发工具链，而非单纯的对话式AI框架。</p>
+<p><strong>值得关注：</strong>作为开源编码代理领域的热门项目，具有强大的社区支持和活跃的开发更新，Star增长迅速反映了市场对AI编程工具的高度需求。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Lightricks/LTX-2" target="_blank" rel="noopener noreferrer">Lightricks/LTX-2</a></h4>
+<p class="lead">让AI根据音频生成视频内容的工具包</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐7.5k (+51 今日)</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<p><strong>定位：</strong>为LTX-2音视频生成模型提供Python推理和LoRA训练功能。面向需要音频驱动视频生成的技术开发者和研究人员。</p>
+<p><strong>核心技术：</strong>基于LTX-2模型实现音频到视频的生成能力。支持LoRA微调训练，可定制化模型表现。</p>
+<p><strong>使用场景：</strong>音乐视频自动生成、音频内容可视化、虚拟主播驱动等多媒体应用场景。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>Lightricks公司推出的专业音视频生成模型，技术前沿且实用性强。7488星显示社区关注度高，具有商业化应用潜力。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/groupultra/telegram-search" target="_blank" rel="noopener noreferrer">groupultra/telegram-search</a></h4>
+<p class="lead">导出Telegram聊天记录并支持模糊搜索，让历史消息查找变得简单</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐3.9k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">ai</span><span class="tag">ai-agent</span><span class="tag">embedding</span><span class="tag">mcp</span><span class="tag">telegram</span><span class="tag">telegram-bot</span></div>
+<p><strong>定位：</strong>解决Telegram聊天记录难以检索的问题，面向需要管理大量聊天历史的用户。提供便捷的消息导出和智能搜索功能。</p>
+<p><strong>核心技术：</strong>基于TypeScript开发，支持嵌入式搜索和模糊匹配技术。可能集成了AI向量化技术提升搜索准确性。</p>
+<p><strong>使用场景：</strong>适用于需要查找历史聊天记录的个人用户，以及需要管理Telegram群组消息的企业团队。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>Telegram生态下的消息管理工具，满足了用户对聊天记录搜索的实际需求，实用性强。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/aandrew-me/tgpt" target="_blank" rel="noopener noreferrer">aandrew-me/tgpt</a></h4>
+<p class="lead">在终端里免费使用ChatGPT等AI聊天机器人</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐3.2k</li>
+<li><strong>语言：</strong>Go</li>
+</ul>
+<div class="tags"><span class="tag">ai</span><span class="tag">chatbot</span><span class="tag">chatgpt</span><span class="tag">cli</span><span class="tag">go</span><span class="tag">golang</span></div>
+<p><strong>定位：</strong>解决在命令行环境中快速访问AI助手的问题，面向开发者和终端用户。提供跨平台的CLI工具，无需离开终端即可获得AI帮助。</p>
+<p><strong>核心技术：</strong>使用Go语言开发，支持多种AI模型API接入。提供终端界面交互，具备代码高亮、流式输出等特性。</p>
+<p><strong>使用场景：</strong>开发者在编写代码时获取AI辅助，在终端中快速查询信息或解决问题。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>免费且开源的终端AI工具，安装便捷支持多平台分发。满足开发者在命令行环境使用AI的需求，实用性强。</p>
+</article>
+</div>
+    </section>
+
+    
+    <section class="report-section" id="official-tracker">
+      <h2>Part 3 — 官方动态跟踪</h2>
+      <p class="meta-note">共发现 178 条官方动态，来自 anthropic、openai。</p>
+<div class="detail-cards">
+</div>
+    </section>
+    
+
+    
+    <section class="report-section" id="blog-subs">
+      <h2>Part 4 — 独立博客订阅</h2>
+      <p class="empty-state">今日无独立博客更新。</p>
+    </section>
+    
+
+    <footer class="footer">Generated by Ascan</footer>
+  </main>
+
+  <script>
+(function() {
+  // ── TOC card collapse/expand ──
+  var tocHeader = document.querySelector('.toc-card-header');
+  var tocCard = document.querySelector('.toc-card');
+  if (tocHeader && tocCard) {
+    tocHeader.addEventListener('click', function() {
+      tocCard.classList.toggle('collapsed');
+    });
+  }
+
+  // ── Scroll-spy: highlight active section in TOC ──
+  var sections = document.querySelectorAll('.report-section[id]');
+  var tocEntries = document.querySelectorAll('.toc-entry[data-target]');
+  var tocDots = document.querySelectorAll('.toc-dot[data-target]');
+
+  function setActive(id) {
+    tocEntries.forEach(function(el) {
+      el.classList.toggle('active', el.getAttribute('data-target') === id);
+    });
+    tocDots.forEach(function(el) {
+      el.classList.toggle('active', el.getAttribute('data-target') === id);
+    });
+  }
+
+  if ('IntersectionObserver' in window && sections.length > 0) {
+    setActive(sections[0].id);
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          setActive(entry.target.id);
+        }
+      });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+    sections.forEach(function(s) { observer.observe(s); });
+  }
+
+  // ── Smooth scroll on TOC click ──
+  document.querySelectorAll('a[href^="#"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      var href = this.getAttribute('href');
+      if (href.length > 1) {
+        var target = document.getElementById(href.slice(1));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', href);
+        }
+      }
+    });
+  });
+
+  // ── Floating dot click → scroll to section ──
+  tocDots.forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      var id = this.getAttribute('data-target');
+      var target = document.getElementById(id);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -85,11 +85,13 @@ export async function processNote(
           : `来源页面「${fetched.title}」内容：\n${fetched.content}`;
       } else {
         console.error(`[pipeline] url-fetch-failed noteId=${noteId} url=${fetchUrl} error=${fetched.error}`);
-        if (userText.length < 10) {
+        if (userText.length === 0) {
           await markFailed(noteId, "内容获取失败，请检查链接或重新输入");
-          console.log(`[pipeline] done noteId=${noteId} duration=${Date.now() - start}ms status=failed reason=url-fetch-empty`);
+          console.log(`[pipeline] done noteId=${noteId} duration=${Date.now() - start}ms status=failed reason=url-fetch-no-user-text`);
           return;
         }
+        // Still proceed to AI processing with whatever user text we have
+        effectiveContent = userText;
       }
     }
 
@@ -100,15 +102,11 @@ export async function processNote(
     ]);
     console.log(`[pipeline] ai-parallel noteId=${noteId} duration=${Date.now() - aiStart}ms tagging=${results[0].status} enrichment=${results[1].status}`);
 
-    if (results[1].status === "rejected") {
-      console.error(`[pipeline] enrichment-failed noteId=${noteId}:`, results[1].reason);
-      await markFailed(noteId, "AI 处理失败");
-      console.log(`[pipeline] done noteId=${noteId} duration=${Date.now() - start}ms status=failed reason=enrichment`);
-      return;
-    }
-
     if (results[0].status === "rejected") {
       console.error(`[pipeline] tagging-failed noteId=${noteId}:`, results[0].reason);
+    }
+    if (results[1].status === "rejected") {
+      console.error(`[pipeline] enrichment-failed noteId=${noteId}:`, results[1].reason);
     }
 
     console.log(`[pipeline] done noteId=${noteId} duration=${Date.now() - start}ms status=active`);

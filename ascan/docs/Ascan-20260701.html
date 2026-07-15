@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ascan-20260701</title>
+  <style>/* ── Notion-inspired Design System for Ascan Daily Report ── */
+:root {
+  color-scheme: light;
+  /* Surface & Canvas */
+  --canvas: #ffffff;
+  --surface: #f7f7f5;
+  --surface-soft: #f1f1ef;
+  /* Borders */
+  --hairline: #e8e7e4;
+  --hairline-soft: #eeeeed;
+  --hairline-strong: #d3d1cb;
+  /* Text */
+  --ink-deep: #0f0f0f;
+  --ink: #191919;
+  --charcoal: #37352f;
+  --slate: #6b6b6b;
+  --steel: #9b9a97;
+  --stone: #b4b3af;
+  --muted: #c4c3bf;
+  /* Brand Accents */
+  --primary: #6c47ff;
+  --primary-pressed: #5a3ad6;
+  --link-blue: #2383e2;
+  /* Semantic Tints */
+  --tint-lavender: #e8deee;
+  --tint-peach: #faebdd;
+  --tint-mint: #dbeddb;
+  --tint-sky: #d3e5ef;
+  --tint-yellow: #fdecc8;
+  --brand-purple-800: #4a2d8a;
+  --brand-orange-deep: #b05c1a;
+  --brand-green: #2d7d46;
+  /* Elevation */
+  --shadow-subtle: rgba(15, 15, 15, 0.04) 0px 1px 2px 0px;
+  --shadow-card: rgba(15, 15, 15, 0.06) 0px 3px 8px 0px;
+  /* Spacing base unit: 4px */
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 12px;
+  --sp-lg: 16px;
+  --sp-xl: 24px;
+  --sp-xxl: 32px;
+  --sp-section: 48px;
+  /* Radius */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-full: 9999px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--canvas);
+  color: var(--charcoal);
+  font-family: Inter, -apple-system, system-ui, "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--link-blue); text-decoration: none; transition: color 0.15s ease; }
+a:hover { text-decoration: underline; color: #1a6dc2; }
+
+/* ── Page Container ── */
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--sp-xxl) var(--sp-xl) var(--sp-section);
+}
+
+/* ── Hero / Header ── */
+.hero {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xxl) var(--sp-xl);
+  margin-bottom: var(--sp-section);
+}
+.hero h1 {
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-sm);
+}
+.hero p {
+  font-size: 16px;
+  color: var(--slate);
+  line-height: 1.55;
+}
+
+/* ── Section Headings ── */
+.report-section { margin-top: var(--sp-section); }
+.report-section > h2 {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-lg);
+  padding-bottom: var(--sp-sm);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xl);
+  margin-bottom: var(--sp-lg);
+  transition: box-shadow 0.15s ease;
+}
+.card:hover { box-shadow: var(--shadow-card); }
+.card h3 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-sm);
+}
+.card h4 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+  margin-bottom: var(--sp-xs);
+}
+
+/* ── Meta & Muted Text ── */
+.meta {
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.5;
+  margin-bottom: var(--sp-sm);
+}
+.muted, .section-note, .empty-state {
+  font-size: 14px;
+  color: var(--steel);
+  line-height: 1.5;
+}
+.empty-state {
+  padding: var(--sp-xl);
+  text-align: center;
+  background: var(--surface);
+  border-radius: var(--r-md);
+}
+
+/* ── Lead (one-liner emphasis) ── */
+.lead {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.55;
+  margin-bottom: var(--sp-sm);
+}
+
+/* ── Tags ── */
+.tags { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin: var(--sp-sm) 0; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--r-sm);
+  background: var(--tint-lavender);
+  color: var(--brand-purple-800);
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ── Recommendation Callout ── */
+.recommendation {
+  border-left: 3px solid var(--primary);
+  background: var(--surface);
+  padding: var(--sp-md) var(--sp-lg);
+  border-radius: var(--r-md);
+  margin-top: var(--sp-md);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--charcoal);
+}
+
+/* ── Summary Block ── */
+.summary-block {
+  margin-top: var(--sp-md);
+  padding-top: var(--sp-md);
+  border-top: 1px solid var(--hairline-soft);
+}
+.summary-block h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--sp-xs);
+}
+.summary-block p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--charcoal);
+}
+
+/* ── Links Row ── */
+.links {
+  font-size: 14px;
+  font-weight: 500;
+  margin: var(--sp-sm) 0;
+}
+.links a { margin-right: var(--sp-xs); }
+
+/* ── Tables ── */
+.table-wrapper { overflow-x: auto; margin: var(--sp-lg) 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  font-size: 14px;
+}
+th {
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--ink);
+  padding: var(--sp-md) var(--sp-lg);
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+}
+td {
+  padding: var(--sp-md) var(--sp-lg);
+  border-bottom: 1px solid var(--hairline-soft);
+  color: var(--charcoal);
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: none; }
+
+/* ── Meta List (repo details) ── */
+.meta-list {
+  padding-left: var(--sp-xl);
+  margin: var(--sp-sm) 0;
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.6;
+}
+.meta-list li { margin-bottom: var(--sp-xs); }
+.meta-list strong { color: var(--charcoal); font-weight: 500; }
+
+/* ── Footer ── */
+.footer {
+  margin-top: var(--sp-section);
+  padding-top: var(--sp-lg);
+  border-top: 1px solid var(--hairline);
+  color: var(--steel);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .page { padding: var(--sp-lg) var(--sp-md) var(--sp-xxl); }
+  .hero { padding: var(--sp-xl) var(--sp-lg); }
+  .hero h1 { font-size: 28px; }
+  .report-section > h2 { font-size: 22px; }
+  .card { padding: var(--sp-lg); }
+  .card h3 { font-size: 18px; }
+  th, td { padding: var(--sp-sm) var(--sp-md); }
+}/* ── TOC Outline Card ── */
+.toc-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-section);
+  overflow: hidden;
+}
+.toc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-md) var(--sp-lg);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+.toc-card-header:hover { background: var(--surface-soft); }
+.toc-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.3px;
+}
+.toc-card-toggle {
+  font-size: 13px;
+  color: var(--steel);
+  transition: transform 0.2s ease;
+}
+.toc-card.collapsed .toc-card-toggle { transform: rotate(-90deg); }
+.toc-list {
+  list-style: none;
+  padding: 0 var(--sp-lg) var(--sp-md);
+  margin: 0;
+}
+.toc-card.collapsed .toc-list { display: none; }
+.toc-entry {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  color: var(--charcoal);
+  transition: background 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+}
+.toc-entry:hover { background: var(--surface-soft); text-decoration: none; color: var(--ink); }
+.toc-entry.active { background: var(--tint-lavender); color: var(--brand-purple-800); font-weight: 500; }
+.toc-entry-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-full);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+  margin-right: var(--sp-sm);
+  flex-shrink: 0;
+}
+.toc-entry.active .toc-entry-num { background: var(--primary); border-color: var(--primary); color: #fff; }
+.toc-entry-text { flex: 1; }
+.toc-entry-count {
+  font-size: 12px;
+  color: var(--steel);
+  margin-left: var(--sp-sm);
+  flex-shrink: 0;
+}
+
+/* ── Floating Side Navigator (desktop only) ── */
+.toc-floating {
+  position: fixed;
+  left: calc(50% - 500px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-md);
+  padding: var(--sp-md);
+}
+.toc-floating-label {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--charcoal);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: 4px 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  box-shadow: var(--shadow-subtle);
+}
+.toc-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-full);
+  background: var(--muted);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+.toc-dot:hover { background: var(--steel); }
+.toc-dot:hover .toc-floating-label { opacity: 1; }
+.toc-dot.active { background: var(--primary); border-color: var(--primary); transform: scale(1.3); }
+@media (max-width: 1100px) { .toc-floating { display: none; } }
+</style>
+</head>
+<body>
+  <div class="toc-floating">
+  <span class="toc-dot" data-target="arxiv-papers"><span class="toc-floating-label">Part 1 · arXiv 论文精选</span></span>
+  <span class="toc-dot" data-target="github-repos"><span class="toc-floating-label">Part 2 · GitHub 项目挖掘</span></span>
+  <span class="toc-dot" data-target="official-tracker"><span class="toc-floating-label">Part 3 · 官方动态跟踪</span></span>
+  <span class="toc-dot" data-target="blog-subs"><span class="toc-floating-label">Part 4 · 独立博客订阅</span></span>
+  </div>
+  <main class="page">
+    <header class="hero">
+      <h1>Ascan-20260701</h1>
+      <p>科技前沿日报 · 2026-07-01 · arXiv 论文精选 + GitHub 项目挖掘 + 独立博客</p>
+    </header>
+
+    <nav class="toc-card" id="toc-card">
+      <div class="toc-card-header">
+        <span class="toc-card-title">📑 大纲</span>
+        <span class="toc-card-toggle">▼</span>
+      </div>
+      <div class="toc-list">
+      <a href="#arxiv-papers" class="toc-entry" data-target="arxiv-papers"><span class="toc-entry-num">Part 1</span><span class="toc-entry-text">arXiv 论文精选</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#github-repos" class="toc-entry" data-target="github-repos"><span class="toc-entry-num">Part 2</span><span class="toc-entry-text">GitHub 项目挖掘</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#official-tracker" class="toc-entry" data-target="official-tracker"><span class="toc-entry-num">Part 3</span><span class="toc-entry-text">官方动态跟踪</span><span class="toc-entry-count">无</span></a>
+      <a href="#blog-subs" class="toc-entry" data-target="blog-subs"><span class="toc-entry-num">Part 4</span><span class="toc-entry-text">独立博客订阅</span><span class="toc-entry-count">有内容</span></a>
+      </div>
+    </nav>
+
+    <section class="report-section" id="arxiv-papers">
+      <h2>Part 1 — arXiv 论文精选</h2>
+      <div class="report-list arxiv-list" data-date="2026-06-30">
+<article class="card paper-card">
+<h3>1. Dziri Voicebot: An End-to-End Low-Resource Speech-to-Speech Conversational System for Algerian Dialect</h3>
+<p class="meta"><strong>作者：</strong>Dihia Lanasri, Rebeh Imane Ammar Aouchiche, Abdelkarim Remmide, Fairouz Taki, Asma Kemmoum</p>
+<div class="tags"><span class="tag">ecom_service</span><span class="tag">intent_understand</span><span class="tag">tts</span><span class="tag">speech synthesis</span></div>
+<p class="links"><a href="https://arxiv.org/abs/2606.26003" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.26003.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>【翻译失败-请查看原文】Automatic speech and language technologies are still heavily biased toward high-resource languages, limiting their applicability to dialectal and low-resource settings such as Algerian Dialect. This language presents additional challenges including lack of standardized orthography, frequent codeswitching with French, and scarcity of annotated speech resources. This paper addresses the problem of building a complete speech-to-speech conversational system for Algerian Dialect. We propose a modular</p>
+</section>
+</article>
+<article class="card paper-card">
+<h3>2. Do Recommendation Algorithms Work When Users Are LLM Agents? A Case Study on Moltbook</h3>
+<p class="meta"><strong>作者：</strong>Daming Li, Simeng Han, Jialu Zhang</p>
+<div class="tags"><span class="tag">product_recommend</span><span class="tag">agentic_framework</span><span class="tag">intent_understand</span></div>
+<p><strong>一句话总结：</strong>用AI代理当用户时，推荐系统靠简单协同过滤就够了，不需要复杂个性化。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.29762" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.29762.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>大语言模型代理正大量出现在网络平台。我们在自主AI代理社交平台Moltbook上评估八种推荐方法，预测代理会参与哪个论坛。结果表明，简单流行度规则和利用共现及投票数的项协同过滤优于学习用户表示的方法，静态代理描述无帮助。这意味着对AI代理用户，推荐可能从个性化退化为结构模式匹配。代理的内容消费行为与人类不同，为设计鲁棒推荐算法提供了新视角。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>电商中若AI代理（如自动采购机器人、数字员工）成为内容消费者，推荐可简化为物品共现与流行度匹配，放弃复杂用户画像，提升效率和鲁棒性；客服意图理解也可借鉴结构性模式匹配。</p>
+</article>
+<article class="card paper-card">
+<h3>3. EvoRec: Self Evolving Agentic Recommender Systems</h3>
+<p class="meta"><strong>作者：</strong>Lingyu Mu, Hao Deng, Haibo Xing, Jinxin Hu, Yu Zhang, Xiaoyi Zeng</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">product_recommend</span></div>
+<p><strong>一句话总结：</strong>用多个AI智能体自己琢磨怎么改进推荐模型，越迭代越聪明，再也不用人工反复调参了。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.28368" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.28368.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>优化推荐系统仍依赖工程师手动迭代，慢且受限于经验。LLM智能体可自动化，但只充当代码翻译器，不积累方法论，且优化空间受限。本文提出EvoRec，一个多智能体框架，使推荐模型与优化方法协同进化。四个智能体执行双轨循环：研究智能体和代码智能体迭代模型，技能进化器从持久记忆中提炼可复用方法论。实验表明，离线指标提升最高5.54%，在线A/B测试收入提升1.85%，CTR提升1.02%。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>电商推荐算法可借助多智能体自动迭代优化，智能体持续积累调试经验，自主进化模型，减少人工干预，提升点击率和收入。</p>
+</article>
+<article class="card paper-card">
+<h3>4. Neural Procedural Memory: Empowering LLM Agents with Implicit Activation Steering</h3>
+<p class="meta"><strong>作者：</strong>Chengfeng Zhao, Yuqiao Tan, Shizhu He, Yequan Wang, Jun Zhao, Kang Liu</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">ecom_service</span></div>
+<p><strong>一句话总结：</strong>智能体通过对比经验微调内部“方向盘”记忆任务流程，不用训练，效果媲美看说明书。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.29824" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.29824.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>尽管大语言模型精于静态求解，但将其转化为自主智能体依然困难，这需要持续环境交互，而当前智能体缺乏持久的程序性记忆。现有方法大多使用检索增强生成(RAG)将显式文本指南注入模型上下文，但纯符号指令会导致文本-行为脱节，常常无法激活正确执行任务所需的内部表征。本文提出神经程序性记忆(NPM)，无需训练，通过隐式激活引导而非显式指令表示智能体记忆。NPM将历史对比经验中的程序技能蒸馏为激活空间中的引导向量，直接激活任务相关神经机制以指导执行。在四个智能体基准测评中，NPM性能与使用显式文本指令的基线相当。此外，隐式引导与显式工作流结合具有互补优势，可实现更鲁棒的任务执行。表征分析表明引导向量编码了一致的任务逻辑，在激活空间中形成有序结构。这些发现表明隐式激活引导为智能体记忆提供了有前景的途径。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>可赋能电商数字员工，将历史交互经验蒸馏为引导向量，隐式驱动流程执行，提升客服、导购等场景的任务稳定性与响应速度。</p>
+</article>
+<article class="card paper-card">
+<h3>5. POEM: Partial-Order Enhanced Real-Time Sequential Modeling for Recommendation</h3>
+<p class="meta"><strong>作者：</strong>Linxiao Che, Yijia Sun, Siyuan Lou, Shanshan Huang, Qiang Luo, Ruiming Tang, Han Li, Kun Gai</p>
+<div class="tags"><span class="tag">product_recommend</span><span class="tag">intent_understand</span></div>
+<p><strong>一句话总结：</strong>用实时排序分数生成动态兴趣序列，让推荐系统能即时捕捉用户偏好变化，像刷短视频时越刷越懂你。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.29946" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.29946.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>实时推荐系统面临用户兴趣动态变化和上下文条件波动。传统序列推荐仅利用静态历史点击，无法捕捉即时偏好变化，且忽略多阶段排序管道中的结构化信号。我们提出POEM，一个基于推荐级联内在偏序关系的实时序列建模框架。POEM利用上游排序模块生成的实时多任务排序分数（如预测CTR和观看时长）作为监督，构建动态偏序序列，实现细粒度实时兴趣建模及系统排序目标与用户行为模式的一致优化。核心贡献包括：偏序引导序列构建范式，通过动态分组采样丰富普通时间序列；多目标分数融合模块，将异构排序信号统一为紧凑五元组；分层样本学习策略，采用系统偏爱的高排名项和用户正向反馈。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>电商实时推荐中，可借鉴POEM利用多任务排序分数构建偏序序列，动态更新用户兴趣，优化商品推荐和广告排序，提升点击与转化。</p>
+</article>
+<article class="card paper-card">
+<h3>6. Evaluating Memory in LLM Agents via Incremental Multi-Turn Interactions</h3>
+<p class="meta"><strong>作者：</strong>Yuanzhe Hu, Yu Wang, Julian McAuley</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">ecom_service</span></div>
+<p><strong>一句话总结：</strong>搞了个专门测大模型记忆能力的多轮对话考试，考它记不记得住、会不会学、能不能忘掉不重要的。</p>
+<p class="links"><a href="https://arxiv.org/abs/2507.05257" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2507.05257.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>当前大模型智能体评估忽略记忆。本文借鉴记忆与认知科学，定义记忆智能体四项核心能力：准确检索、测试时学习、长程理解、选择性遗忘。提出MemoryAgentBench，将长上下文数据转为增量多轮交互，系统评估记忆质量。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>该记忆评估方法可指导电商客服与数字员工建设长期记忆机制，优化多轮对话中的信息保留与更新，提升服务质量。</p>
+</article>
+<article class="card paper-card">
+<h3>7. Mandol: An Agglomerative Agent Memory System for Long-Term Conversations</h3>
+<p class="meta"><strong>作者：</strong>Yuhan Zhang (Institute of Software, Chinese Academy of Sciences), Zhiyuan Guo (Institute of Software, Chinese Academy of Sciences), Ziheng Zeng (Institute of Software, Chinese Academy of Sciences), Wei Wang (Institute of Software, Chinese Academy of Sciences), Wentao Wu (Microsoft Research), Lijie Xu (Institute of Software, Chinese Academy of Sciences)</p>
+<div class="tags"><span class="tag">ecom_service</span><span class="tag">AI</span></div>
+<p><strong>一句话总结：</strong>让聊天机器人拥有一个整合的长记性，查信息时快准全，不乱翻碎片。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.29778" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.29778.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>长期会话智能体需记忆与查询跨会话多类型信息及其复杂关联。现有系统依赖异构向量与图数据库，造成碎片化和高跨库I/O延迟，RAG式检索引入噪声、遗漏线索且缺乏令牌预算控制。本文提出Mandol聚合记忆系统，将碎片化表示与存储整合为统一记忆原生架构。核心包括：1)层次记忆模型，将记忆分为基础层与抽象层，统一表示为结构化语义图；2)聚合语义数据结构，融合键值、向量和图结构，提供统一混合检索算子；3)量化查询机制，含自适应路由、去噪、冲突解决和令牌约束上下文生成，检索不涉及LLM。在LoCoMo和LongMemEval基准上，Mandol取得最佳整体准确率。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>为电商客服和数字员工提供统一的长期客户记忆方案，融合会话、偏好与商品图谱，实现低延迟精准检索，提升多轮对话理解和推荐效果。</p>
+</article>
+<article class="card paper-card">
+<h3>8. Is Lying an Emergent Behaviour in LLMs? Evidence from Gaslighting AI agents in a Sustainability Game</h3>
+<p class="meta"><strong>作者：</strong>Subhendu Bhandary, Federico Carucci, Christos Charalambous, Francesca Dilisante, Ksenia Dvorkina, Anna Garbo, Jiaqi Liang, Riccardo Vasellini, Francesco Bertolotti</p>
+<div class="tags"><span class="tag">agentic_framework</span><span class="tag">AI</span></div>
+<p><strong>一句话总结：</strong>在多智能体资源竞争游戏中，AI会自发说谎，但增加沟通和记忆能减少环境破坏。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.28456" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.28456.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>大型语言模型智能体在多智能体环境中日益普及，但其在可持续性游戏中的行为尚不明确。本研究在宣称资源可再生但实际不生的竞争性可持续性游戏中，探究LLM智能体是否会说谎。我们构建了基于智能体的模型，智能体管理工业、军事、生态资源，并通过网络互动。LLM智能体能观察邻居、声明攻击、获撒谎许可并访问声誉，规则型智能体作为对照。结果表明，邻居信息改变系统动态，增加攻击但提升生物圈存续；未来声明降低灭绝风险。即便未获许可，欺骗仍涌现，明确许可主要增加虚张声势。声誉记忆与生物圈信息减少生态耗竭。这表明欺骗可作为涌现行为出现，且沟通有助于可持续性。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>多智能体电商场景中，AI代理可能自发采取欺骗策略，需设计声誉监控与通信协议来防止信息扭曲，同时利用声明机制提升协作效率。</p>
+</article>
+</div>
+    </section>
+
+    <section class="report-section" id="github-repos">
+      <h2>Part 2 — GitHub 项目挖掘</h2>
+      <div class="report-list github-list" data-date="20260630">
+<p class="section-note">聚焦电商 AI 应用相关项目（数字员工/商品推荐/商品巡检/电商客服/智能体框架/意图理解），共发现 54 个仓库。</p>
+<h3>今日精选（高度相关，共 2 个）</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>项目</th><th>语言</th><th>Stars</th><th>一句话描述</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/aws-samples/aws-genai-llm-chatbot" target="_blank" rel="noopener noreferrer">aws-samples/aws-genai-llm-chatbot</a></td><td>TypeScript</td><td>⭐1.4k</td><td>一个能接入多种大模型、带知识库的企业级聊天机器人部署方案</td></tr>
+<tr><td><a href="https://github.com/swarmclawai/swarmclaw" target="_blank" rel="noopener noreferrer">swarmclawai/swarmclaw</a></td><td>TypeScript</td><td>⭐595</td><td>让你自己部署一群能协作、有记忆的AI智能体</td></tr>
+</tbody></table></div>
+<h3>精选项目深度解析</h3>
+<article class="card repo-card">
+<h4><a href="https://github.com/aws-samples/aws-genai-llm-chatbot" target="_blank" rel="noopener noreferrer">aws-samples/aws-genai-llm-chatbot</a></h4>
+<p class="lead">一个能接入多种大模型、带知识库的企业级聊天机器人部署方案</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐1.4k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">amazon-bedrock</span><span class="tag">aurora</span><span class="tag">aws</span><span class="tag">bedrock</span><span class="tag">cdk</span><span class="tag">chatbot</span></div>
+<p><strong>定位：</strong>解决企业快速搭建安全、多模型、带文档检索的生成式AI聊天机器人问题，面向需要将大模型落地到内部知识问答、客服等场景的开发者和架构师。</p>
+<p><strong>核心技术：</strong>基于AWS CDK交付，支持Amazon Bedrock、SageMaker等多家模型与RAG引擎，内置细粒度权限、审计和持久化会话记忆。</p>
+<p><strong>使用场景：</strong>典型用于企业内部知识库问答、IT运维助手、客服辅助等需要结合私域数据的对话式AI应用。</p>
+<p><strong>对比同类：</strong>与AutoGen/LangGraph等多智能体编排框架不同，本方案专注直接部署面向终端用户的RAG聊天应用，更低门槛开箱即用。</p>
+<p><strong>值得关注：</strong>它把企业级安全、多模型切换和RAG部署打包成可复用的CDK模板，省去大量重复造轮子工作，因此星数快速增长。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/swarmclawai/swarmclaw" target="_blank" rel="noopener noreferrer">swarmclawai/swarmclaw</a></h4>
+<p class="lead">让你自己部署一群能协作、有记忆的AI智能体</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐595</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">agent-framework</span><span class="tag">agent-memory</span><span class="tag">agent-runtime</span><span class="tag">agent-swarm</span><span class="tag">agents</span><span class="tag">ai</span></div>
+<p><strong>定位：</strong>解决开发者需要自托管、多智能体协作的痛点，面向希望完全掌控数据、构建自主AI团队的技术团队和个人。它提供开箱即用的代理运行时，让多智能体系统像搭积木一样简单。</p>
+<p><strong>核心技术：</strong>内置代理运行时与持久记忆，支持MCP工具调用和任务调度。采用TypeScript开发，可接入23+大模型，架构上强调代理间委托与技能复用。</p>
+<p><strong>使用场景：</strong>用于搭建自动化客服团队、多步骤信息调研、代码审查与生成等需要多个AI代理协同工作的场景。</p>
+<p><strong>对比同类：</strong>与LangChain、CrewAI相比，SwarmClaw更侧重自托管且内置记忆和MCP工具，不是一个纯框架而是一个完整的代理运行时，开箱即用。</p>
+<p><strong>值得关注：</strong>多智能体自主协作是当前AI热点，该项目提供自托管方案，隐私可控且支持MCP协议，近期star增长迅速，反映了开发者对实用型代理框架的强烈需求。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Marker-Inc-Korea/AutoRAG" target="_blank" rel="noopener noreferrer">Marker-Inc-Korea/AutoRAG</a></h4>
+<p class="lead">自动找出最适合你数据的RAG流水线，省去手工试错</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐4.8k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">analysis</span><span class="tag">automl</span><span class="tag">benchmarking</span><span class="tag">document-parser</span><span class="tag">embeddings</span><span class="tag">evaluation</span></div>
+<p><strong>定位：</strong>解决RAG应用开发中需要反复手动实验不同文档解析、切片、嵌入、检索、重排序、生成组件和参数组合的痛点，面向需要快速落地高质量知识问答的开发者与数据科学家，让他们专注业务而不用深究技术细节。</p>
+<p><strong>核心技术：</strong>采用AutoML式自动化搜索与评估框架，将RAG管道拆解为模块化节点（解析、分块、嵌入、检索、重排序、生成等），通过策略组合、指标驱动并行评估自动寻找最优配置；支持多种LLM和向量库，可YAML驱动、可视化结果。</p>
+<p><strong>使用场景：</strong>企业内部知识库问答、文档智能助手等RAG应用的管道自动优化，也适合构建针对特定数据集的聊天机器人时快速锁定最佳技术方案。</p>
+<p><strong>对比同类：</strong>AutoRAG专注RAG管道自动化调优，而AutoGen、LangGraph、CrewAI等多智能体框架侧重对话编排与协同，两者互补但目标不同，AutoRAG更适合以检索增强为核心的应用开发者。</p>
+<p><strong>值得关注：</strong>开源自动RAG调优工具尚属稀缺，直击RAG落地的繁琐实验痛点，Star快速增长源于社区对高效、低门槛RAG优化方案的强烈需求。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/chaskiq/chaskiq" target="_blank" rel="noopener noreferrer">chaskiq/chaskiq</a></h4>
+<p class="lead">自建类Intercom的在线客服和营销消息平台。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐3.5k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">chat</span><span class="tag">chatbot</span><span class="tag">graphql</span><span class="tag">helpdesk</span><span class="tag">knowledge-base</span><span class="tag">livechat</span></div>
+<p><strong>定位：</strong>为需要私有化部署的企业提供开源的客户沟通平台，替代Intercom、Drift等商业SaaS。支持实时聊天、客服工单和营销自动化，面向注重数据安全和定制化的开发者和中小企业。</p>
+<p><strong>核心技术：</strong>后端采用Ruby on Rails，前端使用TypeScript（可能React），通过GraphQL通信。内置聊天机器人、知识库和帮助台，支持多渠道集成和Docker化部署。</p>
+<p><strong>使用场景：</strong>网站嵌入即时聊天提供客服支持，通过弹窗开展营销活动，管理销售线索与用户沟通。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>作为Intercom等闭源产品的成熟开源替代，功能齐全且可自托管，满足了企业的数据自主可控需求，推动星数增长。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/zilliztech/memsearch" target="_blank" rel="noopener noreferrer">zilliztech/memsearch</a></h4>
+<p class="lead">给AI编程助手配个长期记忆，跨对话记住项目上下文</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐2.2k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">agent-memory</span><span class="tag">ai-agents</span><span class="tag">claude-code</span><span class="tag">claude-code-plugin</span><span class="tag">codex</span></div>
+<p><strong>定位：</strong>解决AI编程代理（如Claude Code、Codex）每次对话都丢失上下文的问题，面向需要AI辅助编码的开发者，让代理能持久记住项目知识、历史决策和代码风格，大幅减少重复沟通。</p>
+<p><strong>核心技术：</strong>以Markdown文件为记忆载体，基于Milvus向量数据库实现语义检索，通过插件形式无缝集成到Claude Code、Codex等主流代理，架构轻量、跨平台。</p>
+<p><strong>使用场景：</strong>在Claude Code中，开发者可让代理自动记住历史对话、项目结构、编码规范，下次打开新会话继续使用已积累的知识；也可让多个代理共享同一份记忆库。</p>
+<p><strong>对比同类：</strong>与AutoGen、LangGraph、CrewAI等侧重多代理编排的框架不同，memsearch专注为任意代理提供记忆层，互补而非替代，暂无完全同形态的同类项目。</p>
+<p><strong>值得关注：</strong>Star增长快因直击AI编码代理“无记忆”的核心痛点，且同时支持Claude Code、Codex等主流工具，简单实用，开发者社区反响热烈。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Haervwe/open-webui-tools" target="_blank" rel="noopener noreferrer">Haervwe/open-webui-tools</a></h4>
+<p class="lead">给 Open WebUI 加装工具包，让聊天界面能搜论文、生图、记事情，变成个人AI工作站。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐756</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">academic-research</span><span class="tag">ai-agents</span><span class="tag">ai-workstation</span><span class="tag">arxiv</span><span class="tag">comfyui</span><span class="tag">image-generation</span></div>
+<p><strong>定位：</strong>解决 Open WebUI 原生功能单一的问题，为想要在自建聊天界面中集成学术搜索、图像生成、记忆管理等高级能力的技术用户，提供一套即插即用的模块化工具。主要面向已经部署了 Open WebUI 的开发者、科研人员以及希望定制AI工作流的极客。</p>
+<p><strong>核心技术：</strong>基于 Open WebUI 的管道(Pipes)和函数(Functions)扩展机制，用 Python 编写模块化的工具和过滤器；对外集成 arXiv、ComfyUI、Letta 等外部服务，对内通过过滤器和管道实现请求预处理与结果加工；所有工具松散组合，不侵入核心系统，易于单独启用和配置。</p>
+<p><strong>使用场景：</strong>科研人员在聊天框里一键检索 arXiv 论文并生成综述；创作者通过对话调用 ComfyUI 生成和迭代图像；搭建有持久记忆的私人助理，能记住上下文并主动调用工具完成任务。</p>
+<p><strong>对比同类：</strong>与 AutoGen、LangGraph、CrewAI 等通用智能体编排框架不同，本项目是专门为 Open WebUI 量身打造的“工具市场”，提供现成的高阶功能块，而非底层的多 agent 编排引擎，集成方式更轻量、更贴合 Open WebUI 用户习惯。</p>
+<p><strong>值得关注：</strong>Open WebUI 用户量快速增长，社区对一站式功能扩展的渴求推动 star 上升；该项目把科研、图像、记忆等热门能力打包成傻瓜化工具，大幅降低了打造全能 AI 工作站的成本，因而受到关注。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/bosun-ai/swiftide" target="_blank" rel="noopener noreferrer">bosun-ai/swiftide</a></h4>
+<p class="lead">Rust写的高性能LLM工具，支持流式索引、查询和智能代理。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐712</li>
+<li><strong>语言：</strong>Rust</li>
+</ul>
+<div class="tags"><span class="tag">agents</span><span class="tag">ai</span><span class="tag">data</span><span class="tag">genai</span><span class="tag">indexing</span><span class="tag">llm</span></div>
+<p><strong>定位：</strong>面向Rust开发者，填补生态中高性能LLM应用框架的空白，尤其适合需要在数据流上实时建索引并驱动代理的场景。让追求低延迟、高吞吐的生产系统也能轻松集成现代AI能力。</p>
+<p><strong>核心技术：</strong>基于Rust异步流式管线，实现模块化的数据加载、分块、嵌入与索引存储；内置工具调用与代理循环，让LLM直接操控外部功能；全链路流式处理，内存占用低且延迟可控。</p>
+<p><strong>使用场景：</strong>构建私有知识库的实时问答与语义搜索，对海量文档持续流式入库并支持即查即问；开发能调用API、查询数据库的LLM智能助手。</p>
+<p><strong>对比同类：</strong>与AutoGen/LangGraph/CrewAI等Python代理框架相比，Swiftide以Rust原生性能突围，流式索引和查询延迟更低，更适合数据密集、性能敏感的工程场景。</p>
+<p><strong>值得关注：</strong>Rust在AI基础设施领域持续升温，该项目将LLM索引与代理能力带到Rust生态，兼具高性能与内存安全，吸引大量追求极致效能的开发者。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/swarmclawai/swarmvault" target="_blank" rel="noopener noreferrer">swarmclawai/swarmvault</a></h4>
+<p class="lead">把文档、笔记和网页变成 AI 可搜索的本地记忆库</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐591</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">agent-memory</span><span class="tag">ai-agents</span><span class="tag">claude-code</span><span class="tag">claude-code-memory</span><span class="tag">codex</span><span class="tag">karpathy</span></div>
+<p><strong>定位：</strong>解决大模型应用和 AI 代理缺乏持久本地记忆的问题，面向需要个人知识库和代理记忆的开发者、研究者和重度笔记用户，提供可替代 Obsidian 的本地化知识管理方案。</p>
+<p><strong>核心技术：</strong>本地优先的文件级存储，结合知识图谱与向量 RAG 双重检索，原生支持 Claude Code、Codex 等代理记忆后端，遵循 Karpathy 设计模式实现轻量可扩展架构。</p>
+<p><strong>使用场景：</strong>个人研究资料、代码笔记和对话记录的长期保存与智能检索；为 Claude Code 等编程助手提供可累积的项目记忆库。</p>
+<p><strong>对比同类：</strong>与 AutoGen、LangGraph、CrewAI 等代理编排框架定位不同，SwarmVault 专注本地知识记忆存储，二者互补而非竞争。</p>
+<p><strong>值得关注：</strong>精准切入 AI 代理的持久记忆痛点，借助 Karpathy 模式与 Claude Code 生态快速获得关注，本地优先特性也迎合隐私需求。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/AccumulateMore/CV" target="_blank" rel="noopener noreferrer">AccumulateMore/CV</a></h4>
+<p class="lead">一套跟着视频走的深度学习与大模型Agent实战笔记合集</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>一般</li>
+<li><strong>Stars：</strong>⭐22k</li>
+<li><strong>语言：</strong>Jupyter Notebook</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">agents</span><span class="tag">book</span><span class="tag">chinese</span><span class="tag">computer-vision</span><span class="tag">cv</span></div>
+<p><strong>定位：</strong>解决深度学习自学材料零散、缺乏系统性实战的问题，面向从零基础到进阶的AI学习者，提供覆盖计算机视觉、自然语言处理和大模型Agent的完整学习路径。</p>
+<p><strong>核心技术：</strong>整合土堆Pytorch、李沐动手学深度学习、吴恩达深度学习及大飞大模型Agent四大经典课程视频，以Jupyter Notebook形式提供可运行的代码与图文笔记，实现理论与动手操作一体化。</p>
+<p><strong>使用场景：</strong>按编号顺序配合B站视频逐步学习，适合学生入门、开发者转行AI或作为日常查阅的深度学习参考手册。</p>
+<p><strong>对比同类：</strong>暂无直接同形态的竞品项目，它并非开发框架，而是一站式学习材料，比单个课程笔记更全面，且持续补充大模型Agent等新内容。</p>
+<p><strong>值得关注：</strong>内容体系完整、持续更新，笔记与热门视频课程一一对应，成为许多新人的首选入门资源，口碑驱动Star快速增长。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/WeThinkIn/AIGC-Interview-Book" target="_blank" rel="noopener noreferrer">WeThinkIn/AIGC-Interview-Book</a></h4>
+<p class="lead">AIGC算法岗面试速成宝典，精选题库加经验，求职上岸利器</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>一般</li>
+<li><strong>Stars：</strong>⭐4.0k</li>
+<li><strong>语言：</strong>—</li>
+</ul>
+<div class="tags"><span class="tag">ai-agent</span><span class="tag">aigc</span><span class="tag">computer-vision</span><span class="tag">deep-learning</span><span class="tag">interview</span><span class="tag">interview-preparation</span></div>
+<p><strong>定位：</strong>解决AIGC、大模型、AI Agent等算法岗与开发岗的面试准备难题，面向AI算法工程师、开发者等求职人群，提供体系化的面试知识、真题与经验。</p>
+<p><strong>核心技术：</strong>以模块化知识体系组织内容，涵盖AI Agent、大模型、多模态、深度学习等前沿方向，包含高频面试题、深度解析与一线专家实战经验。</p>
+<p><strong>使用场景：</strong>求职者用于系统复习AIGC相关岗位的面试重点，查漏补缺；面试官亦可参考设计技术面试题目。</p>
+<p><strong>对比同类：</strong>本项目为面试知识库，与AutoGen、LangGraph、CrewAI等Agent开发框架非同类产品，暂无直接对比。</p>
+<p><strong>值得关注：</strong>紧贴AIGC求职热潮，由一线专家持续更新，内容全面且实用，是算法岗求职者的刚需资源，因此Star增长迅速。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Amm1rr/WebAI-to-API" target="_blank" rel="noopener noreferrer">Amm1rr/WebAI-to-API</a></h4>
+<p class="lead">让浏览器里的AI聊天工具变成可调用的API接口</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>一般</li>
+<li><strong>Stars：</strong>⭐1.3k</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">ai</span><span class="tag">api</span><span class="tag">api-less</span><span class="tag">atlascloud</span><span class="tag">bard</span><span class="tag">chatbot</span></div>
+<p><strong>定位：</strong>解决无法直接通过API调用网页端AI服务的问题，面向需要低成本、免密钥调用ChatGPT、Bard等AI的开发者和小团队。</p>
+<p><strong>核心技术：</strong>结合浏览器原生自动化与WebAPI，提供统一的OpenAI兼容接口，支持流式响应和多种AI服务后端路由。</p>
+<p><strong>使用场景：</strong>用于快速搭建AI应用原型、在无API额度时通过网页版AI服务继续开发，或统一管理多个AI聊天入口。</p>
+<p><strong>对比同类：</strong>暂无直接同类项目，AutoGen等更偏向多智能体协作框架，而本项目专注于把网页AI转为API，定位不同。</p>
+<p><strong>值得关注：</strong>以实用方式打通浏览器AI服务，降低使用门槛，快速获得大量关注；Star增长源于开发者对免费、兼容OpenAI接口的强烈需求。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/jakobdylanc/llmcord" target="_blank" rel="noopener noreferrer">jakobdylanc/llmcord</a></h4>
+<p class="lead">让Discord变成能大家一起玩大模型的聊天室，@一下就能聊。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>一般</li>
+<li><strong>Stars：</strong>⭐811</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">bot</span><span class="tag">chatbot</span><span class="tag">discord</span><span class="tag">discord-bot</span><span class="tag">gemini</span><span class="tag">gpt-5</span></div>
+<p><strong>定位：</strong>解决Discord社群希望共同使用AI助手的痛点，面向想直接在聊天里调用大模型的普通用户和社区管理者。无需跳出Discord就能协作提问、探讨，把任何LLM能力带到日常对话中。</p>
+<p><strong>核心技术：</strong>单文件Python实现，基于消息回复链构建对话，天然支持分支、接力等复杂对话结构。配置简单，兼容所有OpenAI格式API，可接入OpenRouter、Ollama等远程或本地模型。</p>
+<p><strong>使用场景：</strong>在Discord频道里@机器人向大模型提问，朋友间通过回复接力深入话题；私信中与AI助手连续对话，随时切换新话题。</p>
+<p><strong>对比同类：</strong>暂无直接同类产品。AutoGen、LangGraph等是面向自动化任务编排的Agent框架，而非将LLM嵌入聊天工具供多人实时协作。</p>
+<p><strong>值得关注：</strong>部署极简、开箱即用，完美融入Discord的高频场景，能立刻让社群用上所有主流大模型，很契合非开发者用户需求，因此Star增长迅速。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/hasaneyldrm/exercises-dataset" target="_blank" rel="noopener noreferrer">hasaneyldrm/exercises-dataset</a></h4>
+<p class="lead">一键获取包含1300多个健身动作的多语言结构化说明书，帮你快速搭好运动App的数据后台</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐6.6k (+1343 今日)</li>
+<li><strong>语言：</strong>HTML</li>
+</ul>
+<p><strong>定位：</strong>解决开发者构建健身应用时缺少规范、多语言动作数据的问题，面向健身App、AI教练和运动分析产品的开发者。提供可直接导入的JSON数据集与后端脚手架，省去从零整理数据的麻烦。</p>
+<p><strong>核心技术：</strong>纯JSON格式，涵盖动作类别、目标肌群、器材、步骤等字段，支持中英西意土俄6种语言；附带数据库Schema生成器和API代码模板，即插即用。</p>
+<p><strong>使用场景：</strong>快速生成健身教学App的动作库，或作为AI运动推荐、智能私教功能的结构化训练数据源。</p>
+<p><strong>对比同类：</strong>暂无同类，因AutoGen、LangGraph、CrewAI均为AI智能体编排框架，定位完全不同。</p>
+<p><strong>值得关注：</strong>数据量大、多语言覆盖、结构清晰，是健身应用领域的稀缺开源基础资源，直接解决开发者痛点从而吸引大量关注。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/altic-dev/FluidVoice" target="_blank" rel="noopener noreferrer">altic-dev/FluidVoice</a></h4>
+<p class="lead">Mac上不依赖网络，快速把语音变成文字的听写工具</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐4.9k (+588 今日)</li>
+<li><strong>语言：</strong>Swift</li>
+</ul>
+<p><strong>定位：</strong>解决macOS用户对快速、离线、隐私保护的语音转文字需求，面向作家、记者、开发者等注重数据保密和稳定性的群体，是本地化的Wispr Flow开源替代方案。</p>
+<p><strong>核心技术：</strong>采用完全设备端的语音识别引擎，支持NVIDIA Parakeet、Nemotron等先进模型，结合自定义AI增强算法，实现低延迟、高准确度的离线转录，无需上传任何音频数据。</p>
+<p><strong>使用场景：</strong>离线撰写文档、会议纪要整理，或在编程、设计时用语音快速输入，确保敏感内容不离开本机。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>作为少数主打完全离线的开源听写应用，回应了用户对隐私和低延迟的双重关切，因而快速获得关注。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/moltis-org/moltis" target="_blank" rel="noopener noreferrer">moltis-org/moltis</a></h4>
+<p class="lead">一个装在你自己电脑里的私人AI助手，能聊天、有记忆、接电话、上各种聊天软件</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐2.8k</li>
+<li><strong>语言：</strong>Rust</li>
+</ul>
+<div class="tags"><span class="tag">ai-agent</span><span class="tag">ai-assistant</span><span class="tag">clawdbot</span><span class="tag">llm</span><span class="tag">mcp</span><span class="tag">openclaw</span></div>
+<p><strong>定位：</strong>解决个人AI代理的数据隐私和持久化问题，让用户完全掌控自己的助手。面向注重隐私的个人用户和开发者，希望拥有一个不依赖云服务、可长期运行的智能代理。</p>
+<p><strong>核心技术：</strong>Rust编写，单二进制部署，沙箱安全执行；支持多LLM提供商、语音交互、长期记忆；通过MCP工具集成能力，可接入Telegram、WhatsApp、Discord等平台。</p>
+<p><strong>使用场景：</strong>在个人电脑或服务器上运行一个24小时在线的AI管家，管理消息、记忆上下文，或通过聊天软件自动处理日常事务。</p>
+<p><strong>对比同类：</strong>与AutoGen、LangGraph等框架不同，Moltis是开箱即用的完整代理服务器，侧重本地运行和安全隐私，无需用户自行编排多智能体逻辑。</p>
+<p><strong>值得关注：</strong>本地AI代理的隐私需求爆发，项目以单二进制、全平台、安全沙箱的特点降低使用门槛，吸引了大量用户。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/geek-fun/dockit" target="_blank" rel="noopener noreferrer">geek-fun/dockit</a></h4>
+<p class="lead">一个桌面软件，能用大白话查数据库，支持多种NoSQL，还保护隐私。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐1.1k</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">ai-agent</span><span class="tag">database-gui</span><span class="tag">desktop-app</span><span class="tag">dynamodb</span><span class="tag">dynamodb-client</span><span class="tag">dynamodb-gui-client</span></div>
+<p><strong>定位：</strong>解决开发者和DBA在管理多个NoSQL数据库时切换工具、写复杂查询的痛点，面向需要快速查询、可视化操作Elasticsearch、OpenSearch、DynamoDB、MongoDB等数据库的技术人员，提供开箱即用的隐私安全桌面客户端。</p>
+<p><strong>核心技术：</strong>基于TypeScript构建的原生桌面应用，集成AI Agent实现自然语言转数据库查询，支持多引擎统一管理，本地化代理确保数据不离开用户设备。</p>
+<p><strong>使用场景：</strong>工程师用自然语言代替DSL查询日志或订单数据，DBA在一个界面里监控多个数据库集群并快速诊断问题。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>填补了NoSQL数据库无统一GUI工具的空白，且以隐私优先和AI自然语言查询为亮点，吸引大量注重效率和数据安全的开发者。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/larlarua/AutoCVE" target="_blank" rel="noopener noreferrer">larlarua/AutoCVE</a></h4>
+<p class="lead">自动从开源代码里挖漏洞、写CVE报告</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐664</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">ai-security</span><span class="tag">code-audit</span><span class="tag">cve</span><span class="tag">fastapi</span><span class="tag">llm-agent</span></div>
+<p><strong>定位：</strong>AutoCVE解决安全研究员手动审计代码效率低、漏洞发现门槛高的问题，面向白帽黑客、安全团队和漏洞赏金猎人。它通过AI代理自动化完成从项目筛选、源码审查到漏洞验证与CVE报告生成的全过程，让漏洞挖掘更高效。</p>
+<p><strong>核心技术：</strong>采用多智能体协作架构，驱动大模型进行源代码级安全审计，覆盖漏洞发现、验证与报告生成。前端React + 后端FastAPI + PostgreSQL，支持Docker一键部署，内置漏洞库和CVE提交流水线。</p>
+<p><strong>使用场景：</strong>安全团队可每日自动扫描GitHub开源项目，挖掘未知漏洞并生成标准CVE报告；渗透测试人员用它辅助审计目标代码，快速输出漏洞验证结果。</p>
+<p><strong>对比同类：</strong>与AutoGen、LangGraph、CrewAI等通用智能体框架不同，AutoCVE专门针对漏洞挖掘场景，预置审计流程和CVE报告模板，开箱即用，无需额外开发安全审计逻辑。</p>
+<p><strong>值得关注：</strong>AI驱动安全审计需求激增，该项目将漏洞挖掘全流程自动化，大幅降低技术门槛，因此短时间内获得超660星，安全圈关注度高。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/oil-oil/wolfcha" target="_blank" rel="noopener noreferrer">oil-oil/wolfcha</a></h4>
+<p class="lead">让AI替你凑齐狼人杀牌友，一个人也能随时开局。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐629</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<div class="tags"><span class="tag">ai-agent</span><span class="tag">ai-game</span><span class="tag">llm</span><span class="tag">multiplayer-game</span><span class="tag">nextjs</span><span class="tag">open-source</span></div>
+<p><strong>定位：</strong>解决线下狼人杀组局困难的问题，面向喜欢社交推理但缺少玩伴的玩家，以及对AI博弈行为感兴趣的观察者。</p>
+<p><strong>核心技术：</strong>基于Next.js全栈框架，集成DeepSeek、Qwen、Gemini等多家大模型作为玩家，通过提示工程实现角色扮演和游戏流程控制。</p>
+<p><strong>使用场景：</strong>用户独自打开网页即可与多个AI角色进行狼人杀对战，无需等待匹配；也可用于展示不同大模型的推理与表达能力。</p>
+<p><strong>对比同类：</strong>暂无直接同类，AutoGen等是通用智能体开发框架，本项目是具体游戏应用，强调多模型同场竞技的娱乐性。</p>
+<p><strong>值得关注：</strong>将大模型引入经典社交推理游戏，创意新颖，娱乐性强，且得益于黑客松背景和赞助商生态，获得了快速关注。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Ar9av/PaperOrchestra" target="_blank" rel="noopener noreferrer">Ar9av/PaperOrchestra</a></h4>
+<p class="lead">把研究资料丢给编程助手，一键生成完整学术论文。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐599</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">agentic-ai</span><span class="tag">ai-research</span><span class="tag">anthropic</span><span class="tag">antigravity</span><span class="tag">arxiv</span><span class="tag">automated-paper-writing</span></div>
+<p><strong>定位：</strong>面向研究人员和学生，解决从研究素材到LaTeX论文的繁琐转化过程。将非结构化研究材料自动组织成可直接投稿的格式，省去大量手动写作和排版时间。</p>
+<p><strong>核心技术：</strong>基于PaperOrchestra多智能体论文写作管道，任务拆解为“大纲-章节-润色”等子代理协作完成。不依赖任何API密钥或LLM SDK，可直接接入Claude Code、Cursor等任意编码代理。</p>
+<p><strong>使用场景：</strong>将实验笔记、文献摘要等零碎材料交给编码助手，自动产出结构完整的学术论文草稿。</p>
+<p><strong>对比同类：</strong>相比AutoGen、LangGraph等通用多智能体框架，PaperOrchestra专为论文写作流程设计，内置领域专用管道，无需自行编排写作逻辑。</p>
+<p><strong>值得关注：</strong>直击科研写作痛点，600+星增长迅速；开源、无API依赖，能配合主流编码代理使用，实用性强。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/afgprogrammer/Flutter-Complete-e-commerce" target="_blank" rel="noopener noreferrer">afgprogrammer/Flutter-Complete-e-commerce</a></h4>
+<p class="lead">一个带漂亮动画的电商App界面模板，能直接运行看效果。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐551</li>
+<li><strong>语言：</strong>Dart</li>
+</ul>
+<div class="tags"><span class="tag">e-commerce</span><span class="tag">e-commerce-app</span><span class="tag">flutter</span><span class="tag">flutter-animation</span><span class="tag">flutter-application</span><span class="tag">flutter-design</span></div>
+<p><strong>定位：</strong>为Flutter开发者提供一套完整的电商应用UI设计与动画实现，降低从零搭建美观界面的成本。主要面向想学习Flutter电商界面开发或快速出原型的设计师和移动端开发者。</p>
+<p><strong>核心技术：</strong>基于Flutter框架，实现自定义页面转场动画、商品展示动效和流畅的购物车交互。代码结构清晰，可直接复用组件进行二次开发。</p>
+<p><strong>使用场景：</strong>用于学习Flutter动画与UI设计技巧，或作为电商App的启动模板，快速搭建产品展示和购物流程演示。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>提供了完整的电商UI动画案例，配合视频教程，学习价值高，因此吸引Flutter开发者关注和收藏。</p>
+</article>
+<h3>其他仓库</h3>
+<ul class="repo-link-list">
+<li><a href="https://github.com/adamlui/ai-web-extensions" target="_blank" rel="noopener noreferrer">adamlui/ai-web-extensions</a> <span class="repo-meta">⭐⭐544</span> <span class="repo-lang">JavaScript</span></li>
+<li><a href="https://github.com/ggozad/haiku.rag" target="_blank" rel="noopener noreferrer">ggozad/haiku.rag</a> <span class="repo-meta">⭐⭐541</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/dappros/ethora" target="_blank" rel="noopener noreferrer">dappros/ethora</a> <span class="repo-meta">⭐⭐539</span> <span class="repo-lang">JavaScript</span></li>
+<li><a href="https://github.com/carlos-algms/agentic.nvim" target="_blank" rel="noopener noreferrer">carlos-algms/agentic.nvim</a> <span class="repo-meta">⭐⭐539</span> <span class="repo-lang">Lua</span></li>
+<li><a href="https://github.com/garylab/MakeMoneyWithAI" target="_blank" rel="noopener noreferrer">garylab/MakeMoneyWithAI</a> <span class="repo-meta">⭐⭐538</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/HKUDS/LLMRec" target="_blank" rel="noopener noreferrer">HKUDS/LLMRec</a> <span class="repo-meta">⭐⭐532</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/concierge-hq/concierge" target="_blank" rel="noopener noreferrer">concierge-hq/concierge</a> <span class="repo-meta">⭐⭐531</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/oxbshw/LLM-Agents-Ecosystem-Handbook" target="_blank" rel="noopener noreferrer">oxbshw/LLM-Agents-Ecosystem-Handbook</a> <span class="repo-meta">⭐⭐530</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/joinly-ai/joinly" target="_blank" rel="noopener noreferrer">joinly-ai/joinly</a> <span class="repo-meta">⭐⭐527</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/salesforce/DialogStudio" target="_blank" rel="noopener noreferrer">salesforce/DialogStudio</a> <span class="repo-meta">⭐⭐525</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/qdrant/awesome-metric-learning" target="_blank" rel="noopener noreferrer">qdrant/awesome-metric-learning</a> <span class="repo-meta">⭐⭐520</span> <span class="repo-lang"></span></li>
+<li><a href="https://github.com/Enderfga/claw-orchestrator" target="_blank" rel="noopener noreferrer">Enderfga/claw-orchestrator</a> <span class="repo-meta">⭐⭐519</span> <span class="repo-lang">TypeScript</span></li>
+<li><a href="https://github.com/YunjueTech/Yunjue-Agent" target="_blank" rel="noopener noreferrer">YunjueTech/Yunjue-Agent</a> <span class="repo-meta">⭐⭐513</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/w3c/payment-request" target="_blank" rel="noopener noreferrer">w3c/payment-request</a> <span class="repo-meta">⭐⭐511</span> <span class="repo-lang">HTML</span></li>
+<li><a href="https://github.com/tgoai/tgo" target="_blank" rel="noopener noreferrer">tgoai/tgo</a> <span class="repo-meta">⭐⭐511</span> <span class="repo-lang">TypeScript</span></li>
+<li><a href="https://github.com/vibeeval/vibecosystem" target="_blank" rel="noopener noreferrer">vibeeval/vibecosystem</a> <span class="repo-meta">⭐⭐510</span> <span class="repo-lang">C#</span></li>
+<li><a href="https://github.com/pariskang/CMLM-ZhongJing" target="_blank" rel="noopener noreferrer">pariskang/CMLM-ZhongJing</a> <span class="repo-meta">⭐⭐509</span> <span class="repo-lang">Jupyter Notebook</span></li>
+<li><a href="https://github.com/JacopoPan/aerial-autonomy-stack" target="_blank" rel="noopener noreferrer">JacopoPan/aerial-autonomy-stack</a> <span class="repo-meta">⭐⭐506</span> <span class="repo-lang">C++</span></li>
+<li><a href="https://github.com/CopilotKit/open-multi-agent-canvas" target="_blank" rel="noopener noreferrer">CopilotKit/open-multi-agent-canvas</a> <span class="repo-meta">⭐⭐506</span> <span class="repo-lang">TypeScript</span></li>
+<li><a href="https://github.com/DaniilDonskoy/Shop-bot" target="_blank" rel="noopener noreferrer">DaniilDonskoy/Shop-bot</a> <span class="repo-meta">⭐⭐501</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/mynaparrot/plugNmeet-server" target="_blank" rel="noopener noreferrer">mynaparrot/plugNmeet-server</a> <span class="repo-meta">⭐⭐501</span> <span class="repo-lang">Go</span></li>
+<li><a href="https://github.com/caserec/CaseRecommender" target="_blank" rel="noopener noreferrer">caserec/CaseRecommender</a> <span class="repo-meta">⭐⭐500</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/obra/superpowers" target="_blank" rel="noopener noreferrer">obra/superpowers</a> <span class="repo-meta">⭐⭐242k</span> <span class="repo-lang">Shell</span></li>
+<li><a href="https://github.com/msitarzewski/agency-agents" target="_blank" rel="noopener noreferrer">msitarzewski/agency-agents</a> <span class="repo-meta">⭐⭐120k</span> <span class="repo-lang">Shell</span></li>
+<li><a href="https://github.com/microsoft/AI-For-Beginners" target="_blank" rel="noopener noreferrer">microsoft/AI-For-Beginners</a> <span class="repo-meta">⭐⭐49k</span> <span class="repo-lang">Jupyter Notebook</span></li>
+<li><a href="https://github.com/roboflow/supervision" target="_blank" rel="noopener noreferrer">roboflow/supervision</a> <span class="repo-meta">⭐⭐45k</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/usestrix/strix" target="_blank" rel="noopener noreferrer">usestrix/strix</a> <span class="repo-meta">⭐⭐28k</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/HKUDS/Vibe-Trading" target="_blank" rel="noopener noreferrer">HKUDS/Vibe-Trading</a> <span class="repo-meta">⭐⭐15k</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/browser-use/video-use" target="_blank" rel="noopener noreferrer">browser-use/video-use</a> <span class="repo-meta">⭐⭐12k</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/ogulcancelik/herdr" target="_blank" rel="noopener noreferrer">ogulcancelik/herdr</a> <span class="repo-meta">⭐⭐9.0k</span> <span class="repo-lang">Rust</span></li>
+<li><a href="https://github.com/diegosouzapw/OmniRoute" target="_blank" rel="noopener noreferrer">diegosouzapw/OmniRoute</a> <span class="repo-meta">⭐⭐8.5k</span> <span class="repo-lang">TypeScript</span></li>
+<li><a href="https://github.com/xbtlin/ai-berkshire" target="_blank" rel="noopener noreferrer">xbtlin/ai-berkshire</a> <span class="repo-meta">⭐⭐7.5k</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/google/agents-cli" target="_blank" rel="noopener noreferrer">google/agents-cli</a> <span class="repo-meta">⭐⭐4.2k</span> <span class="repo-lang">Python</span></li>
+<li><a href="https://github.com/facebook/astryx" target="_blank" rel="noopener noreferrer">facebook/astryx</a> <span class="repo-meta">⭐⭐1.8k</span> <span class="repo-lang">TypeScript</span></li>
+</ul>
+</div>
+    </section>
+
+    
+    <section class="report-section" id="official-tracker">
+      <h2>Part 3 — 官方动态跟踪</h2>
+      <p class="empty-state">今日无 Anthropic Research 或 OpenAI 新文章。</p>
+    </section>
+    
+
+    
+    <section class="report-section" id="blog-subs">
+      <h2>Part 4 — 独立博客订阅</h2>
+      <p class="meta-note">共 11 篇新文章（180 天内）。</p>
+<h3 class="source-heading">Simon Willison</h3>
+<ul class="blog-list">
+<li><a href="https://simonwillison.net/2026/Jun/30/anthropic/#atom-everything" target="_blank">Quoting Anthropic</a> <span class="blog-date">(2026-06-30)</span><br><span class="blog-summary">Anthropic宣布商务部解除两款模型出口管制，即将恢复访问。</span></li>
+<li><a href="https://simonwillison.net/2026/Jun/30/nano-banana-2-lite/#atom-everything" target="_blank">Nano Banana 2 Lite</a> <span class="blog-date">(2026-06-30)</span><br><span class="blog-summary">谷歌推出Nano Banana 2 Lite，即最快的Gemini图像生成模型。</span></li>
+</ul>
+<h3 class="source-heading">OpenAI Blog</h3>
+<ul class="blog-list">
+<li><a href="https://openai.com/index/how-chatgpt-adoption-has-expanded" target="_blank">How ChatGPT adoption has expanded</a> <span class="blog-date">(Tue, 30 Ju)</span><br><span class="blog-summary">OpenAI用数据告诉你，ChatGPT在全球越用越广、越用越深。</span></li>
+<li><a href="https://openai.com/index/introducing-genebench-pro" target="_blank">Introducing GeneBench-Pro</a> <span class="blog-date">(Tue, 30 Ju)</span><br><span class="blog-summary">OpenAI推出GeneBench-Pro，一个用真实数据测AI在基因组学和生物学研究能力的基准。</span></li>
+</ul>
+<h3 class="source-heading">Google DeepMind</h3>
+<ul class="blog-list">
+<li><a href="https://deepmind.google/blog/start-building-with-nano-banana-2-lite-and-gemini-omni-flash/" target="_blank">Start building with Nano Banana 2 Lite and Gemini Omni Flash</a> <span class="blog-date">(Tue, 30 Ju)</span><br><span class="blog-summary">Google教你用Nano Banana 2 Lite和Gemini Omni Flash快速构建应用</span></li>
+</ul>
+<h3 class="source-heading">NVIDIA Tech Blog</h3>
+<ul class="blog-list">
+<li><a href="https://developer.nvidia.com/blog/designing-gpu-accelerated-query-engines-with-nvidia-gqe/" target="_blank">Designing GPU-Accelerated Query Engines with NVIDIA GQE</a> <span class="blog-date">(2026-06-30)</span><br><span class="blog-summary">用NVIDIA GQE打造GPU加速查询引擎的设计思路</span></li>
+<li><a href="https://developer.nvidia.com/blog/optimizing-a-neural-reconstruction-pipeline-using-nvidia-nsight-developer-tools/" target="_blank">Optimizing a Neural Reconstruction Pipeline Using NVIDIA Nsight Developer Tools</a> <span class="blog-date">(2026-06-30)</span><br><span class="blog-summary">用Nsight工具优化Omniverse神经重建管线的性能</span></li>
+</ul>
+<h3 class="source-heading">NVIDIA Blog</h3>
+<ul class="blog-list">
+<li><a href="https://blogs.nvidia.com/blog/claude-science-bionemo-agent-toolkit/" target="_blank">NVIDIA BioNeMo Agent Toolkit Brings Accelerated AI to Life Sciences Researchers </a> <span class="blog-date">(Tue, 30 Ju)</span><br><span class="blog-summary">NVIDIA 推出 BioNeMo 工具包，让生命科学研究在 Claude Science 中也能用上加速 AI。</span></li>
+<li><a href="https://blogs.nvidia.com/blog/inference-software-lowest-token-cost/" target="_blank">How NVIDIA’s Inference Software Stack Powers the Lowest Token Cost</a> <span class="blog-date">(Tue, 30 Ju)</span><br><span class="blog-summary">英伟达推理软件栈如何通过软硬协同实现最低的每token成本。</span></li>
+</ul>
+<h3 class="source-heading">AWS ML Blog</h3>
+<ul class="blog-list">
+<li><a href="https://aws.amazon.com/blogs/machine-learning/introducing-claude-sonnet-5-on-aws-anthropics-most-capable-sonnet-model/" target="_blank">Introducing Claude Sonnet 5 on AWS: Anthropic’s most capable Sonnet model</a> <span class="blog-date">(Tue, 30 Ju)</span><br><span class="blog-summary">Anthropic在AWS上发布其最强Sonnet模型Claude Sonnet 5。</span></li>
+<li><a href="https://aws.amazon.com/blogs/machine-learning/build-generative-ui-for-ai-agents-on-amazon-bedrock-agentcore-with-the-ag-ui-protocol/" target="_blank">Build generative UI for AI agents on Amazon Bedrock AgentCore with the AG-UI pro</a> <span class="blog-date">(Tue, 30 Ju)</span><br><span class="blog-summary">用AG-UI协议在亚马逊Bedrock AgentCore上快速搭建智能体交互界面</span></li>
+</ul>
+    </section>
+    
+
+    <footer class="footer">Generated by Ascan</footer>
+  </main>
+
+  <script>
+(function() {
+  // ── TOC card collapse/expand ──
+  var tocHeader = document.querySelector('.toc-card-header');
+  var tocCard = document.querySelector('.toc-card');
+  if (tocHeader && tocCard) {
+    tocHeader.addEventListener('click', function() {
+      tocCard.classList.toggle('collapsed');
+    });
+  }
+
+  // ── Scroll-spy: highlight active section in TOC ──
+  var sections = document.querySelectorAll('.report-section[id]');
+  var tocEntries = document.querySelectorAll('.toc-entry[data-target]');
+  var tocDots = document.querySelectorAll('.toc-dot[data-target]');
+
+  function setActive(id) {
+    tocEntries.forEach(function(el) {
+      el.classList.toggle('active', el.getAttribute('data-target') === id);
+    });
+    tocDots.forEach(function(el) {
+      el.classList.toggle('active', el.getAttribute('data-target') === id);
+    });
+  }
+
+  if ('IntersectionObserver' in window && sections.length > 0) {
+    setActive(sections[0].id);
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          setActive(entry.target.id);
+        }
+      });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+    sections.forEach(function(s) { observer.observe(s); });
+  }
+
+  // ── Smooth scroll on TOC click ──
+  document.querySelectorAll('a[href^="#"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      var href = this.getAttribute('href');
+      if (href.length > 1) {
+        var target = document.getElementById(href.slice(1));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', href);
+        }
+      }
+    });
+  });
+
+  // ── Floating dot click → scroll to section ──
+  tocDots.forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      var id = this.getAttribute('data-target');
+      var target = document.getElementById(id);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

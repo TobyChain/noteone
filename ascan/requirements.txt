@@ -1,0 +1,37 @@
+# Ascan 依赖
+
+# 核心依赖
+openai>=1.0.0
+arxiv>=2.0.0
+feedparser>=6.0.11
+requests>=2.31.0
+python-dotenv>=1.0.0
+loguru>=0.7.0
+truststore>=0.9.0  # 复用系统证书库(macOS/Windows/Linux 均生效),适配企业代理
+
+# 配置和数据验证
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# 数据库
+sqlalchemy>=2.0.0
+
+# 重试机制
+tenacity>=8.0.0
+
+# 定时任务(Python 内置调度器,launchd 路径不依赖)
+apscheduler>=3.10.0
+
+# Web 界面
+streamlit>=1.28.0
+plotly>=5.18.0
+pandas>=2.0.0
+
+# 工具
+jinja2>=3.0.0
+pyyaml>=6.0
+pytest>=8.0.0
+
+# GitHub Agent + Conference Scraper
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
