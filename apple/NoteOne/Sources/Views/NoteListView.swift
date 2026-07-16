@@ -79,8 +79,8 @@ struct NoteListView: View {
                 }
             }
         }
-        .navigationTitle("NoteOne")
-        .searchable(text: $searchText, prompt: "搜索笔记...")
+        .navigationTitle("往事")
+        .searchable(text: $searchText, prompt: "搜索往事...")
         .onSubmit(of: .search) { search() }
         #if !os(macOS)
         .navigationDestination(for: String.self) { noteId in

@@ -18,7 +18,7 @@ struct AscanView: View {
                 AscanConfigView()
             }
         }
-        .navigationTitle("Ascan")
+        .navigationTitle("新知")
         #if os(iOS)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

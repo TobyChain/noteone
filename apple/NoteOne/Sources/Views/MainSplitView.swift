@@ -133,7 +133,7 @@ struct MainSplitView: View {
         case .ascanReports:
             AscanReportListView()
         case .ascanConfig:
-            AscanConfigView()
+            UnifiedSettingsView()
         case .empty:
             emptyPlaceholder("从左侧选择笔记或写作文件")
         }

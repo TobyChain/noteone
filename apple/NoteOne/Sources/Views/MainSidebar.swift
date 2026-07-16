@@ -36,6 +36,9 @@ struct MainSidebar: View {
 
     @State private var searchText = ""
     @State private var filterType: ContentType?
+    @State private var isWriterExpanded = true
+    @State private var isNotesExpanded = true
+    @State private var isAscanExpanded = true
 
     private var filteredNotes: [Note] {
         guard let filter = filterType else { return notes }
@@ -75,28 +78,40 @@ struct MainSidebar: View {
         List(selection: bindingSelection) {
             // --- Markdown writer files ---
             Section {
-                if mdFiles.isEmpty {
-                    Text("暂无写作文件")
-                        .font(.caption)
-                        .foregroundStyle(Color.inkTertiary)
-                        .listRowBackground(Color.clear)
-                } else {
-                    ForEach(mdFiles) { file in
-                        markdownRow(file)
-                            .tag(SidebarSelection.markdown(file))
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    onDeleteMarkdown(file)
-                                } label: {
-                                    Label("删除", systemImage: "trash")
+                if isWriterExpanded {
+                    if mdFiles.isEmpty {
+                        Text("暂无写作文件")
+                            .font(.caption)
+                            .foregroundStyle(Color.inkTertiary)
+                            .listRowBackground(Color.clear)
+                    } else {
+                        ForEach(mdFiles) { file in
+                            markdownRow(file)
+                                .tag(SidebarSelection.markdown(file))
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        onDeleteMarkdown(file)
+                                    } label: {
+                                        Label("删除", systemImage: "trash")
+                                    }
                                 }
-                            }
+                        }
                     }
                 }
             } header: {
                 HStack {
-                    Label("写作文件", systemImage: "pencil.and.outline")
-                        .font(.caption.bold())
+                    Button {
+                        withAnimation { isWriterExpanded.toggle() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                                .rotationEffect(.degrees(isWriterExpanded ? 90 : 0))
+                            Label("记实", systemImage: "pencil.and.outline")
+                                .font(.caption.bold())
+                        }
+                    }
+                    .buttonStyle(.plain)
                     Spacer()
                     Button(action: onCreateMarkdown) {
                         Image(systemName: "plus.circle")
@@ -108,41 +123,53 @@ struct MainSidebar: View {
 
             // --- Notes (with inline insert-ref when writer is active) ---
             Section {
-                ForEach(groupedNotes, id: \.0) { (title, sectionNotes) in
-                    Section {
-                        ForEach(sectionNotes) { note in
-                            HStack(spacing: 6) {
-                                NoteRowView(note: note)
-                                if writerActive {
-                                    Button {
-                                        onInsertCitation(citation(for: note))
-                                    } label: {
-                                        Image(systemName: "text.append")
-                                            .font(.caption)
+                if isNotesExpanded {
+                    ForEach(groupedNotes, id: \.0) { (title, sectionNotes) in
+                        Section {
+                            ForEach(sectionNotes) { note in
+                                HStack(spacing: 6) {
+                                    NoteRowView(note: note)
+                                    if writerActive {
+                                        Button {
+                                            onInsertCitation(citation(for: note))
+                                        } label: {
+                                            Image(systemName: "text.append")
+                                                .font(.caption)
+                                        }
+                                        .buttonStyle(.borderless)
+                                        .help("插入引用到写作")
                                     }
-                                    .buttonStyle(.borderless)
-                                    .help("插入引用到写作")
+                                }
+                                .contentShape(Rectangle())
+                                .onTapGesture { selection = .note(note.id) }
+                                .tag(SidebarSelection.note(note.id))
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        onDeleteNote(note)
+                                    } label: {
+                                        Label("移到垃圾箱", systemImage: "trash")
+                                    }
                                 }
                             }
-                            .contentShape(Rectangle())
-                            .onTapGesture { selection = .note(note.id) }
-                            .tag(SidebarSelection.note(note.id))
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    onDeleteNote(note)
-                                } label: {
-                                    Label("移到垃圾箱", systemImage: "trash")
-                                }
-                            }
+                        } header: {
+                            Text(title).font(.caption2)
                         }
-                    } header: {
-                        Text(title).font(.caption2)
                     }
                 }
             } header: {
                 HStack {
-                    Label("笔记", systemImage: "note.text")
-                        .font(.caption.bold())
+                    Button {
+                        withAnimation { isNotesExpanded.toggle() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                                .rotationEffect(.degrees(isNotesExpanded ? 90 : 0))
+                            Label("往事", systemImage: "note.text")
+                                .font(.caption.bold())
+                        }
+                    }
+                    .buttonStyle(.plain)
                     Spacer()
                     Menu {
                         Button {
@@ -184,16 +211,28 @@ struct MainSidebar: View {
 
             // --- Ascan ---
             Section {
-                Label("日报浏览", systemImage: "doc.text")
-                    .tag(SidebarSelection.ascanReports)
-                Label("配置管理", systemImage: "gearshape")
-                    .tag(SidebarSelection.ascanConfig)
+                if isAscanExpanded {
+                    Label("日报浏览", systemImage: "doc.text")
+                        .tag(SidebarSelection.ascanReports)
+                    Label("配置管理", systemImage: "gearshape")
+                        .tag(SidebarSelection.ascanConfig)
+                }
             } header: {
-                Label("Ascan", systemImage: "globe")
-                    .font(.caption.bold())
+                Button {
+                    withAnimation { isAscanExpanded.toggle() }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                            .rotationEffect(.degrees(isAscanExpanded ? 90 : 0))
+                        Label("新知", systemImage: "globe")
+                            .font(.caption.bold())
+                    }
+                }
+                .buttonStyle(.plain)
             }
         }
-        .searchable(text: $searchText, prompt: "搜索笔记...")
+        .searchable(text: $searchText, prompt: "搜索往事...")
         .onSubmit(of: .search) { Task { await onSearch(searchText) } }
         .onChange(of: searchText) { _, newValue in
             if newValue.isEmpty { Task { await onSearch("") } }

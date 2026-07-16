@@ -45,7 +45,7 @@ struct AscanReportListView: View {
                 EmptyStateView(
                     icon: "globe",
                     title: "还没有日报",
-                    subtitle: "点击上方按钮运行 Ascan pipeline\n生成今天的科技前沿日报"
+                    subtitle: "点击上方按钮运行新知 pipeline\n生成今天的科技前沿日报"
                 )
             } else {
                 List {
@@ -85,7 +85,7 @@ struct AscanReportListView: View {
                     .clipShape(RoundedRectangle(cornerRadius: DG.r12))
 
                 VStack(alignment: .leading, spacing: DG.sp4) {
-                    Text("Ascan 科技日报")
+                    Text("新知科技日报")
                         .font(.headline)
                         .foregroundStyle(Color.ink)
                     Text("arXiv · GitHub · 官方动态 · 博客 · 会议论文 · 微信")
@@ -162,7 +162,7 @@ struct AscanReportListView: View {
 
             // Info
             VStack(alignment: .leading, spacing: DG.sp4) {
-                Text("Ascan 日报")
+                Text("新知日报")
                     .font(.subheadline)
                     .foregroundStyle(Color.ink)
                 HStack(spacing: DG.sp8) {

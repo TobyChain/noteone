@@ -83,8 +83,10 @@
 		D93A6AA6BE5BADE41BB54865 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82FA9FA28AD13D36EB22561F /* Theme.swift */; };
 		DA236F8F411BE8264DB35516 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F652DB919B58BC615BE4B57 /* Assets.xcassets */; };
 		DB89638BBDCE0136E772803D /* TrashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE43870CCBC22B239AB8DFFD /* TrashView.swift */; };
+		DB918CB34CC939B90F2DCA24 /* UnifiedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90E817CE5C78342A6CC13B7 /* UnifiedSettingsView.swift */; };
 		DC616C076ECDAADD95034C6C /* ReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BEA8C791A16C5CC865643D6 /* ReportsView.swift */; };
 		DF5D981F89DBB27AA09D34B5 /* NoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490BB48DEEA279237A8A473B /* NoteDetailView.swift */; };
+		E2C4A2A8486497040D2ED8F8 /* UnifiedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90E817CE5C78342A6CC13B7 /* UnifiedSettingsView.swift */; };
 		E821B6AB0140CC645D83574C /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */; };
 		EC71192E9677EAA4E2F5A2C0 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1079E75DF4BD08C37A84A968 /* Note.swift */; };
 		ED95702218A9FF3F35F3495D /* SyncQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E6C7017395B182C0EB0733 /* SyncQueue.swift */; };
@@ -124,6 +126,7 @@
 		9509847332E1CD6E94D93766 /* NottyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NottyView.swift; sourceTree = "<group>"; };
 		A147139B5F8A558D8AB007CC /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthModels.swift; sourceTree = "<group>"; };
+		A90E817CE5C78342A6CC13B7 /* UnifiedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedSettingsView.swift; sourceTree = "<group>"; };
 		B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteOneApp.swift; sourceTree = "<group>"; };
 		BB46C733EEE8D8AAF3202E30 /* LocalFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalFileStore.swift; sourceTree = "<group>"; };
 		C1C58163DA04DCC6DB3C1161 /* AscanConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanConfigView.swift; sourceTree = "<group>"; };
@@ -250,6 +253,7 @@
 				911F636E42753FB7FF9E305E /* SelectionAwareTextView.swift */,
 				1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */,
 				CE43870CCBC22B239AB8DFFD /* TrashView.swift */,
+				A90E817CE5C78342A6CC13B7 /* UnifiedSettingsView.swift */,
 				2768CB8ABA998BD65A929B8C /* WriterAssistantView.swift */,
 				130E091F41A7CF69FC4A0A83 /* WriterEditorPane.swift */,
 				F56D11B30D5D53DBE0488236 /* WriterView.swift */,
@@ -425,6 +429,7 @@
 				2BC4131212ABE644E3B8DAEA /* Tag.swift in Sources */,
 				1618DF935486DBE43FD7E509 /* Theme.swift in Sources */,
 				25DBE5C91BD9DA63F932CF98 /* TrashView.swift in Sources */,
+				DB918CB34CC939B90F2DCA24 /* UnifiedSettingsView.swift in Sources */,
 				19914E1F482EC237C0BB30B4 /* WriterAssistantView.swift in Sources */,
 				CEFF4C7E592C882B91B88F4C /* WriterEditorPane.swift in Sources */,
 				A2C83BDFFE40092E67C16B04 /* WriterView.swift in Sources */,
@@ -480,6 +485,7 @@
 				5802ECF1F8EF845155DFD2C4 /* Tag.swift in Sources */,
 				D93A6AA6BE5BADE41BB54865 /* Theme.swift in Sources */,
 				DB89638BBDCE0136E772803D /* TrashView.swift in Sources */,
+				E2C4A2A8486497040D2ED8F8 /* UnifiedSettingsView.swift in Sources */,
 				7D6EE094F73B1D01F395DE79 /* WriterAssistantView.swift in Sources */,
 				D8BE51C6E79FBB7DEBA3105C /* WriterEditorPane.swift in Sources */,
 				88841CA48C9E734FB912EACB /* WriterView.swift in Sources */,

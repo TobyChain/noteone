@@ -22,7 +22,7 @@ struct AscanReportDetailView: View {
                         .foregroundStyle(Color.inkTertiary)
                 }
                 Spacer()
-                Text("Ascan-\(date)")
+                Text("新知-\(date)")
                     .font(.headline)
                     .foregroundStyle(Color.ink)
                 Spacer()

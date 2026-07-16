@@ -23,7 +23,7 @@ struct NottyView: View {
                 Spacer()
 
                 Button { startNewSession() } label: {
-                    Image(systemName: "square.and.pencil")
+                    Image(systemName: "plus")
                         .foregroundStyle(Color.inkSecondary)
                 }
                 .buttonStyle(.plain)

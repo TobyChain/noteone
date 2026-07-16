@@ -54,7 +54,7 @@ router.delete("/:id", async (req: AuthRequest, res) => {
   });
   if (!session) { res.status(404).json({ error: "Not found" }); return; }
   await db.delete(chatSessions).where(eq(chatSessions.id, session.id));
-  res.json({ ok: true });
+  res.json({ deleted: true });
 });
 
 const sendSchema = z.object({
