@@ -24,7 +24,7 @@ struct ContentView: View {
                 NoteListView()
             }
             .tabItem {
-                Label("笔记", systemImage: "note.text")
+                Label("往事", systemImage: "note.text")
             }
             .tag(0)
 
@@ -59,15 +59,15 @@ struct ContentView: View {
             .tag(4)
 
             NavigationStack {
-                AscanView()
+                AscanReportListView()
             }
             .tabItem {
-                Label("Ascan", systemImage: "globe")
+                Label("新知", systemImage: "globe")
             }
             .tag(5)
 
             NavigationStack {
-                SettingsView()
+                UnifiedSettingsView()
             }
             .tabItem {
                 Label("设置", systemImage: "gear")

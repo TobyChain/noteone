@@ -64,7 +64,7 @@ struct NoteOneApp: App {
 
         #if os(macOS)
         Settings {
-            SettingsView()
+            UnifiedSettingsView()
                 .environmentObject(authService)
         }
         #endif

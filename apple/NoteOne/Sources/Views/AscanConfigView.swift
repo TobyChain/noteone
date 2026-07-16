@@ -44,7 +44,7 @@ struct AscanConfigView: View {
                 }
             }
         }
-        .navigationTitle("Ascan 配置")
+        .navigationTitle("新知配置")
         .task { await loadConfig() }
         .toolbar {
             #if os(macOS)

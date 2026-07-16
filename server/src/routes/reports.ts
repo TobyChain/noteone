@@ -128,5 +128,5 @@ reportsRouter.delete("/:id", async (req: AuthRequest, res) => {
   }
 
   await db.delete(dailyReports).where(eq(dailyReports.id, reportId));
-  res.json({ ok: true });
+  res.json({ deleted: true });
 });

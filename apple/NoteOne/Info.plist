@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>NoteOne</string>
+	<string>壹识</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

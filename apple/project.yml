@@ -29,7 +29,7 @@ targets:
     info:
       path: NoteOne/Info.plist
       properties:
-        CFBundleDisplayName: NoteOne
+        CFBundleDisplayName: 壹识
         # ATS: enforce HTTPS in release; allow plaintext localhost / Bonjour for dev only.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
