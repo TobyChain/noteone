@@ -313,9 +313,11 @@ tr:last-child td { border-bottom: none; }
 .toc-entry {
   display: flex;
   align-items: center;
-  padding: var(--sp-sm) var(--sp-md);
+  gap: var(--sp-sm);
+  padding: var(--sp-xs) var(--sp-sm);
   border-radius: var(--r-sm);
   font-size: 14px;
+  line-height: 1.5;
   color: var(--charcoal);
   transition: background 0.15s ease, color 0.15s ease;
   text-decoration: none;
@@ -326,15 +328,16 @@ tr:last-child td { border-bottom: none; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
   border-radius: var(--r-full);
   background: var(--canvas);
   border: 1px solid var(--hairline);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  line-height: 1;
   color: var(--slate);
-  margin-right: var(--sp-sm);
   flex-shrink: 0;
 }
 .toc-entry.active .toc-entry-num { background: var(--primary); border-color: var(--primary); color: #fff; }
@@ -395,34 +398,26 @@ tr:last-child td { border-bottom: none; }
 </head>
 <body>
   <div class="toc-floating">
-  <span class="toc-dot" data-target="arxiv-papers"><span class="toc-floating-label">Part 1 · arXiv 论文精选</span></span>
-  <span class="toc-dot" data-target="github-repos"><span class="toc-floating-label">Part 2 · GitHub 项目挖掘</span></span>
-  <span class="toc-dot" data-target="official-tracker"><span class="toc-floating-label">Part 3 · 官方动态跟踪</span></span>
-  <span class="toc-dot" data-target="blog-subs"><span class="toc-floating-label">Part 4 · 独立博客订阅</span></span>
-  <span class="toc-dot" data-target="conference-papers"><span class="toc-floating-label">Part 5 · 会议论文追踪</span></span>
-  </div>
-  <main class="page">
-    <header class="hero">
-      <h1>Ascan-20260707</h1>
-      <p>科技前沿日报 · 2026-07-07 · arXiv 论文精选 + GitHub 项目挖掘 + 官方动态跟踪 + 独立博客 + 会议论文追踪</p>
-    </header>
-
+  <span class="toc-dot" data-target="arxiv-papers"><span class="toc-floating-label">1 · arXiv 论文精选</span></span>
+  <span class="toc-dot" data-target="github-repos"><span class="toc-floating-label">2 · GitHub 项目挖掘</span></span>
+  <span class="toc-dot" data-target="official-tracker"><span class="toc-floating-label">3 · 官方动态跟踪</span></span>
+  <span class="toc-dot" data-target="blog-subs"><span class="toc-floating-label">4 · 独立博客订阅</span></span>
+  <span class="toc-dot" data-target="conference-papers"><span class="toc-floating-label">5 · 会议论文追踪</span></span>
+  </div><main class="page">
     <nav class="toc-card" id="toc-card">
       <div class="toc-card-header">
-        <span class="toc-card-title">📑 大纲</span>
+        <span class="toc-card-title">大纲</span>
         <span class="toc-card-toggle">▼</span>
       </div>
       <div class="toc-list">
-      <a href="#arxiv-papers" class="toc-entry" data-target="arxiv-papers"><span class="toc-entry-num">Part 1</span><span class="toc-entry-text">arXiv 论文精选</span><span class="toc-entry-count">有内容</span></a>
-      <a href="#github-repos" class="toc-entry" data-target="github-repos"><span class="toc-entry-num">Part 2</span><span class="toc-entry-text">GitHub 项目挖掘</span><span class="toc-entry-count">有内容</span></a>
-      <a href="#official-tracker" class="toc-entry" data-target="official-tracker"><span class="toc-entry-num">Part 3</span><span class="toc-entry-text">官方动态跟踪</span><span class="toc-entry-count">有内容</span></a>
-      <a href="#blog-subs" class="toc-entry" data-target="blog-subs"><span class="toc-entry-num">Part 4</span><span class="toc-entry-text">独立博客订阅</span><span class="toc-entry-count">有内容</span></a>
-      <a href="#conference-papers" class="toc-entry" data-target="conference-papers"><span class="toc-entry-num">Part 5</span><span class="toc-entry-text">会议论文追踪</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#arxiv-papers" class="toc-entry" data-target="arxiv-papers"><span class="toc-entry-num">1</span><span class="toc-entry-text">arXiv 论文精选</span></a>
+      <a href="#github-repos" class="toc-entry" data-target="github-repos"><span class="toc-entry-num">2</span><span class="toc-entry-text">GitHub 项目挖掘</span></a>
+      <a href="#official-tracker" class="toc-entry" data-target="official-tracker"><span class="toc-entry-num">3</span><span class="toc-entry-text">官方动态跟踪</span></a>
+      <a href="#blog-subs" class="toc-entry" data-target="blog-subs"><span class="toc-entry-num">4</span><span class="toc-entry-text">独立博客订阅</span></a>
+      <a href="#conference-papers" class="toc-entry" data-target="conference-papers"><span class="toc-entry-num">5</span><span class="toc-entry-text">会议论文追踪</span></a>
       </div>
-    </nav>
-
-    <section class="report-section" id="arxiv-papers">
-      <h2>Part 1 — arXiv 论文精选</h2>
+    </nav><section class="report-section" id="arxiv-papers">
+      <h2>1 — arXiv 论文精选</h2>
       <div class="report-list arxiv-list" data-date="2026-07-07">
 <article class="card paper-card">
 <h3>1. Agentic and Generative AI for Open-Source Intelligence and Cyber Investigations: Taxonomy, Evaluation, Challenges, and Future Directions</h3>
@@ -608,7 +603,7 @@ tr:last-child td { border-bottom: none; }
     </section>
 
     <section class="report-section" id="github-repos">
-      <h2>Part 2 — GitHub 项目挖掘</h2>
+      <h2>2 — GitHub 项目挖掘</h2>
       <div class="report-list github-list" data-date="20260707">
 <p class="section-note">聚焦大模型与智能体相关项目（大模型算法/Agent算法/智能体架构/智能体记忆/大模型前沿），共发现 16 个仓库。</p>
 <h3>今日精选（高度相关，共 6 个）</h3>
@@ -858,7 +853,7 @@ tr:last-child td { border-bottom: none; }
 
     
     <section class="report-section" id="official-tracker">
-      <h2>Part 3 — 官方动态跟踪</h2>
+      <h2>3 — 官方动态跟踪</h2>
       <p class="meta-note">共发现 278 条官方动态（30 天内），来自 anthropic、openai、deepmind。</p>
 <div class="summary-table-wrapper"><table class="summary-table">
 <thead><tr><th>来源</th><th>标题</th><th>日期</th><th>一句话</th></tr></thead>
@@ -2885,7 +2880,7 @@ tr:last-child td { border-bottom: none; }
 
     
     <section class="report-section" id="blog-subs">
-      <h2>Part 4 — 独立博客订阅</h2>
+      <h2>4 — 独立博客订阅</h2>
       <p class="meta-note">共 6 篇新文章（30 天内）。</p>
 <h3 class="source-heading">Lilian Weng</h3>
 <ul class="blog-list">
@@ -2913,7 +2908,7 @@ tr:last-child td { border-bottom: none; }
 
     
     <section class="report-section" id="conference-papers">
-      <h2>Part 5 — 会议论文追踪</h2>
+      <h2>5 — 会议论文追踪</h2>
       <div class="conf-stats"><span class="stat-chip">共 20 篇论文</span><span class="stat-chip stat-a">A 类 20 篇</span><span class="stat-chip stat-b">B 类 0 篇</span></div>
 <div class="report-list conf-list" data-date="20260707">
 <article class="card paper-card"><h3>1. Towards Sub-Second Molecular Docking as a Structural Primitive: A Quantized Consistency Diffusion Framework</h3><p class="meta"><strong>作者：</strong>Kexin Zhang, Weichen Qin, Yue Teng, Jiale Yu, Yuanyuan Ma 等 (9 人)</p><div class="tags"><span class="tag tag-venue">ICML 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-type">ICML.2026 - Oral</span><span class="tag tag-relevance">极度推荐</span></div><div class="tags"><span class="tag">分子对接</span><span class="tag">一致性扩散模型</span><span class="tag">量化加速</span><span class="tag">AI智能体</span><span class="tag">结构基元</span></div><p><strong>一句话总结：</strong>亚秒级分子对接成为实时结构基元</p><p class="links"><a href="https://openreview.net/forum?id=NyPHOtsJfE" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://openreview.net/pdf?id=NyPHOtsJfE" target="_blank" rel="noopener noreferrer">PDF</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出量化一致性扩散框架，将分子对接从离线生成器转变为亚秒级结构基元。核心贡献包括：渐进一致性正则化（PCR）将扩散动力学压缩为可靠少步推理；残差安全量化保留高保真残差流与几何敏感操作，仅量化计算密集线性层。在匹配信息级协议下达到最先进对接精度，256-token复合物单H20 GPU生成5构象仅需0.17秒，较AlphaFold3加速超300倍，支撑AI智能体高频药物发现循环。</p></section><p class="recommendation"><strong>核心推荐：</strong>将扩散模型、一致性训练与量化技术深度融合，实现亚秒级高精度对接，为AI智能体驱动的药物发现提供实时结构反馈，是AI for Science与智能体架构交叉的重要进展。</p></article>
@@ -2941,7 +2936,6 @@ tr:last-child td { border-bottom: none; }
     
 
   </main>
-
   <script>
 (function() {
   // ── TOC card collapse/expand ──

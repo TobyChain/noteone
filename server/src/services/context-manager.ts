@@ -91,7 +91,7 @@ export function buildSummarizationPrompt(
   const conversationText = messagesToCompact
     .filter((m) => m.role !== "tool")
     .map((m) => {
-      const role = m.isSummary ? "摘要" : m.role === "user" ? "用户" : "Notty";
+      const role = m.isSummary ? "摘要" : m.role === "user" ? "用户" : "闹闹";
       return `${role}: ${m.content || ""}`;
     })
     .join("\n\n");

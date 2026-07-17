@@ -1,31 +1,25 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
-/// Sidebar selection model for the main split view: either a server note, a local
-/// markdown file, the trash bin, or nothing selected.
 enum SidebarSelection: Hashable {
-    case note(String)               // note id
+    case note(String)
     case markdown(LocalMarkdownFile)
     case trash
     case ascanReports
+    case ascanReport(String)
     case ascanConfig
     case empty
 }
 
-/// Combined macOS sidebar: top section is the local markdown writer's files; bottom is
-/// the server-backed notes list with search and content-type filter. When the user is
-/// editing a markdown file, each note row shows an "插入引用" button that calls
-/// `onInsertCitation` with a markdown citation block — keeping the right-drawer purely
-/// for Notty.
 struct MainSidebar: View {
     @Binding var selection: SidebarSelection
     @Binding var notes: [Note]
     @Binding var mdFiles: [LocalMarkdownFile]
+    @Binding var ascanReports: [AscanReportMeta]
 
-    /// True when the user is actively editing a markdown file — drives the "insert ref"
-    /// button visibility on each note row.
     var writerActive: Bool
-
-    /// Called with a markdown citation snippet when the user taps a row's "insert ref".
     var onInsertCitation: (String) -> Void
     var onCreateMarkdown: () -> Void
     var onDeleteMarkdown: (LocalMarkdownFile) -> Void
@@ -33,30 +27,68 @@ struct MainSidebar: View {
     var onDeleteNote: (Note) -> Void
     var onSearch: (String) async -> Void
     var onShowTrash: () -> Void
+    var onShowConfig: () -> Void
+    var onDeleteAscanReport: (String) -> Void
 
     @State private var searchText = ""
     @State private var filterType: ContentType?
     @State private var isWriterExpanded = true
     @State private var isNotesExpanded = true
     @State private var isAscanExpanded = true
+    @State private var collapsedDateGroups: Set<String> = ["本月", "更早"]
+    @State private var collapsedAscanGroups: Set<String> = ["更早"]
+    @State private var isAscanRunning = false
+    @State private var ascanRunningStatus: String?
+    @State private var ascanTimer: Timer?
 
     private var filteredNotes: [Note] {
         guard let filter = filterType else { return notes }
         return notes.filter { $0.contentType == filter }
     }
 
+    private var todayString: String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyyMMdd"
+        f.timeZone = TimeZone(identifier: "Asia/Shanghai")
+        return f.string(from: Date())
+    }
+
+    private var groupedAscanReports: [(String, [AscanReportMeta])] {
+        let cal = Calendar.current
+        let now = Date()
+        let f = DateFormatter()
+        f.dateFormat = "yyyyMMdd"
+        f.timeZone = TimeZone(identifier: "Asia/Shanghai")
+        var groups: [String: [AscanReportMeta]] = [:]
+        let order = ["今日", "昨日", "本月", "更早"]
+
+        for r in ascanReports {
+            guard let d = f.date(from: r.date) else { continue }
+            let key: String
+            if cal.isDateInToday(d) { key = "今日" }
+            else if cal.isDateInYesterday(d) { key = "昨日" }
+            else if let monthAgo = cal.date(byAdding: .month, value: -1, to: now), d >= monthAgo { key = "本月" }
+            else { key = "更早" }
+            groups[key, default: []].append(r)
+        }
+        return order.compactMap { key in
+            guard let rs = groups[key], !rs.isEmpty else { return nil }
+            return (key, rs)
+        }
+    }
+
     private var groupedNotes: [(String, [Note])] {
         let calendar = Calendar.current
         let now = Date()
         var groups: [String: [Note]] = [:]
-        let order = ["今天", "昨天", "本周", "本月", "更早"]
+        let order = ["今日", "昨日", "本周", "本月", "更早"]
 
         for note in filteredNotes {
             let key: String
             if calendar.isDateInToday(note.createdAt) {
-                key = "今天"
+                key = "今日"
             } else if calendar.isDateInYesterday(note.createdAt) {
-                key = "昨天"
+                key = "昨日"
             } else if let weekAgo = calendar.date(byAdding: .day, value: -7, to: now),
                       note.createdAt >= weekAgo {
                 key = "本周"
@@ -75,20 +107,38 @@ struct MainSidebar: View {
     }
 
     var body: some View {
-        List(selection: bindingSelection) {
-            // --- Markdown writer files ---
-            Section {
-                if isWriterExpanded {
-                    if mdFiles.isEmpty {
-                        Text("暂无写作文件")
-                            .font(.caption)
-                            .foregroundStyle(Color.inkTertiary)
-                            .listRowBackground(Color.clear)
-                    } else {
+        VStack(spacing: 0) {
+            // 记实
+            moduleHeader(
+                title: "记实",
+                icon: "pencil.and.outline",
+                isExpanded: $isWriterExpanded,
+                action: { if !mdFiles.isEmpty { selection = .markdown(mdFiles[0]) } }
+            ) {
+                Button(action: onCreateMarkdown) {
+                    Image(systemName: "plus.circle")
+                }
+                .buttonStyle(.plain)
+                .help("新建 Markdown 文件")
+            }
+
+            if isWriterExpanded && !mdFiles.isEmpty {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 2) {
                         ForEach(mdFiles) { file in
                             markdownRow(file)
-                                .tag(SidebarSelection.markdown(file))
+                                .background(selection == .markdown(file) ? Color.accent.opacity(0.1) : Color.clear)
+                                .cornerRadius(DG.r6)
+                                .contentShape(Rectangle())
+                                .onTapGesture { selection = .markdown(file) }
                                 .contextMenu {
+                                    #if os(macOS)
+                                    Button {
+                                        NSWorkspace.shared.activateFileViewerSelecting([file.url])
+                                    } label: {
+                                        Label("在 Finder 中显示", systemImage: "folder")
+                                    }
+                                    #endif
                                     Button(role: .destructive) {
                                         onDeleteMarkdown(file)
                                     } label: {
@@ -97,173 +147,320 @@ struct MainSidebar: View {
                                 }
                         }
                     }
-                }
-            } header: {
-                HStack {
-                    Button {
-                        withAnimation { isWriterExpanded.toggle() }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.right")
-                                .font(.caption2)
-                                .rotationEffect(.degrees(isWriterExpanded ? 90 : 0))
-                            Label("记实", systemImage: "pencil.and.outline")
-                                .font(.caption.bold())
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    Spacer()
-                    Button(action: onCreateMarkdown) {
-                        Image(systemName: "plus.circle")
-                    }
-                    .buttonStyle(.plain)
-                    .help("新建 Markdown 文件")
+                    .padding(.horizontal, DG.sp8)
+                    .padding(.bottom, DG.sp4)
                 }
             }
 
-            // --- Notes (with inline insert-ref when writer is active) ---
-            Section {
-                if isNotesExpanded {
-                    ForEach(groupedNotes, id: \.0) { (title, sectionNotes) in
-                        Section {
-                            ForEach(sectionNotes) { note in
-                                HStack(spacing: 6) {
-                                    NoteRowView(note: note)
-                                    if writerActive {
-                                        Button {
-                                            onInsertCitation(citation(for: note))
-                                        } label: {
-                                            Image(systemName: "text.append")
-                                                .font(.caption)
-                                        }
-                                        .buttonStyle(.borderless)
-                                        .help("插入引用到写作")
-                                    }
-                                }
-                                .contentShape(Rectangle())
-                                .onTapGesture { selection = .note(note.id) }
-                                .tag(SidebarSelection.note(note.id))
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        onDeleteNote(note)
-                                    } label: {
-                                        Label("移到垃圾箱", systemImage: "trash")
-                                    }
-                                }
-                            }
-                        } header: {
-                            Text(title).font(.caption2)
-                        }
-                    }
-                }
-            } header: {
-                HStack {
+            Divider()
+
+            // 往事
+            moduleHeader(
+                title: "往事",
+                icon: "note.text",
+                isExpanded: $isNotesExpanded,
+                action: { if let firstNote = groupedNotes.first?.1.first { selection = .note(firstNote.id) } }
+            ) {
+                Menu {
                     Button {
-                        withAnimation { isNotesExpanded.toggle() }
+                        filterType = nil
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.right")
-                                .font(.caption2)
-                                .rotationEffect(.degrees(isNotesExpanded ? 90 : 0))
-                            Label("往事", systemImage: "note.text")
-                                .font(.caption.bold())
+                        if filterType == nil {
+                            Label("全部类型", systemImage: "checkmark")
+                        } else {
+                            Text("全部类型")
                         }
                     }
-                    .buttonStyle(.plain)
-                    Spacer()
-                    Menu {
+                    Divider()
+                    ForEach(ContentType.allCases, id: \.rawValue) { type in
                         Button {
-                            filterType = nil
+                            filterType = type
                         } label: {
-                            if filterType == nil {
-                                Label("全部类型", systemImage: "checkmark")
+                            if filterType == type {
+                                Label(type.displayName, systemImage: "checkmark")
                             } else {
-                                Text("全部类型")
+                                Text(type.displayName)
                             }
                         }
-                        Divider()
-                        ForEach(ContentType.allCases, id: \.rawValue) { type in
-                            Button {
-                                filterType = type
-                            } label: {
-                                if filterType == type {
-                                    Label(type.displayName, systemImage: "checkmark")
-                                } else {
-                                    Text(type.displayName)
-                                }
-                            }
-                        }
-                    } label: {
-                        Image(systemName: filterType == nil
-                              ? "line.3.horizontal.decrease.circle"
-                              : "line.3.horizontal.decrease.circle.fill")
                     }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                    .help("按类型筛选")
-                    Button(action: { Task { await onRefresh() } }) {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .buttonStyle(.plain)
-                    .help("刷新笔记列表")
-                }
-            }
-
-            // --- Ascan ---
-            Section {
-                if isAscanExpanded {
-                    Label("日报浏览", systemImage: "doc.text")
-                        .tag(SidebarSelection.ascanReports)
-                    Label("配置管理", systemImage: "gearshape")
-                        .tag(SidebarSelection.ascanConfig)
-                }
-            } header: {
-                Button {
-                    withAnimation { isAscanExpanded.toggle() }
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                            .rotationEffect(.degrees(isAscanExpanded ? 90 : 0))
-                        Label("新知", systemImage: "globe")
-                            .font(.caption.bold())
-                    }
+                    Image(systemName: filterType == nil
+                          ? "line.3.horizontal.decrease.circle"
+                          : "line.3.horizontal.decrease.circle.fill")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .help("按类型筛选")
+                Button(action: { Task { await onRefresh() } }) {
+                    Image(systemName: "arrow.clockwise")
                 }
                 .buttonStyle(.plain)
+                .help("刷新笔记列表")
+            }
+
+            if isNotesExpanded && !groupedNotes.isEmpty {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(groupedNotes, id: \.0) { (title, sectionNotes) in
+                            dateGroupHeader(title, count: sectionNotes.count)
+                            if !collapsedDateGroups.contains(title) {
+                                ForEach(sectionNotes) { note in
+                                    HStack(spacing: 6) {
+                                        NoteRowView(note: note)
+                                        if writerActive {
+                                            Button {
+                                                onInsertCitation(citation(for: note))
+                                            } label: {
+                                                Image(systemName: "text.append")
+                                                    .font(.caption)
+                                            }
+                                            .buttonStyle(.borderless)
+                                            .help("插入引用到写作")
+                                        }
+                                    }
+                                    .padding(.horizontal, DG.sp8)
+                                    .padding(.vertical, 2)
+                                    .background(selection == .note(note.id) ? Color.accent.opacity(0.1) : Color.clear)
+                                    .cornerRadius(DG.r6)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { selection = .note(note.id) }
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            onDeleteNote(note)
+                                        } label: {
+                                            Label("移到垃圾箱", systemImage: "trash")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            // 新知
+            Button {
+                withAnimation { isAscanExpanded.toggle() }
+            } label: {
+                HStack(spacing: DG.sp4) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .rotationEffect(.degrees(isAscanExpanded ? 90 : 0))
+                        .foregroundStyle(Color.inkTertiary)
+                    Label("新知", systemImage: "globe")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(Color.ink)
+                    Spacer()
+                    if isAscanRunning {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+                .contentShape(Rectangle())
+                .padding(.horizontal, DG.sp12)
+                .padding(.vertical, DG.sp8)
+                .background(Color.canvasSecondary.opacity(0.5))
+            }
+            .buttonStyle(.plain)
+
+            if isAscanRunning, let status = ascanRunningStatus {
+                Text(status)
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color.inkTertiary)
+                    .lineLimit(2)
+                    .padding(.horizontal, DG.sp16)
+                    .padding(.bottom, DG.sp4)
+            }
+
+            if isAscanExpanded && !groupedAscanReports.isEmpty {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(groupedAscanReports, id: \.0) { (title, reports) in
+                            let isCollapsed = collapsedAscanGroups.contains(title)
+                            Button {
+                                withAnimation {
+                                    if isCollapsed {
+                                        collapsedAscanGroups.remove(title)
+                                    } else {
+                                        collapsedAscanGroups.insert(title)
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: DG.sp4) {
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 8))
+                                        .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                                    Text(title)
+                                        .font(.caption2)
+                                    if isCollapsed {
+                                        Text("\(reports.count)")
+                                            .font(.system(size: 9))
+                                            .foregroundStyle(Color.inkTertiary)
+                                    }
+                                    Spacer()
+                                }
+                                .padding(.horizontal, DG.sp12)
+                                .padding(.top, DG.sp4)
+                                .padding(.bottom, 2)
+                            }
+                            .buttonStyle(.plain)
+
+                            if !isCollapsed {
+                                ForEach(reports) { report in
+                                    let isSel: Bool = {
+                                        if case .ascanReport(let d) = selection { return d == report.date }
+                                        return false
+                                    }()
+                                    Button {
+                                        selection = .ascanReport(report.date)
+                                    } label: {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(report.formattedDate)
+                                                .font(.subheadline)
+                                                .foregroundStyle(Color.ink)
+                                            if !report.summary.isEmpty {
+                                                Text(report.summary)
+                                                    .font(.system(size: 10))
+                                                    .foregroundStyle(Color.inkTertiary)
+                                                    .lineLimit(2)
+                                            }
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal, DG.sp8)
+                                        .padding(.vertical, 3)
+                                        .background(isSel ? Color.accent.opacity(0.1) : Color.clear)
+                                        .cornerRadius(DG.r6)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .padding(.horizontal, DG.sp4)
+                                    .contextMenu {
+                                        #if os(macOS)
+                                        Button {
+                                            Task {
+                                                do {
+                                                    let path = try await APIClient.shared.getAscanReportPath(date: report.date)
+                                                    let url = URL(fileURLWithPath: path)
+                                                    NSWorkspace.shared.activateFileViewerSelecting([url])
+                                                } catch {}
+                                            }
+                                        } label: {
+                                            Label("在 Finder 中显示", systemImage: "folder")
+                                        }
+                                        #endif
+                                        Button(role: .destructive) {
+                                            onDeleteAscanReport(report.date)
+                                        } label: {
+                                            Label("删除", systemImage: "trash")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
+        .background(Color.canvas)
+        .onAppear { startAscanPolling() }
         .searchable(text: $searchText, prompt: "搜索往事...")
         .onSubmit(of: .search) { Task { await onSearch(searchText) } }
         .onChange(of: searchText) { _, newValue in
             if newValue.isEmpty { Task { await onSearch("") } }
         }
         .safeAreaInset(edge: .bottom) {
-            Button(action: onShowTrash) {
-                HStack {
-                    Image(systemName: "trash")
-                    Text("垃圾箱")
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                        .foregroundStyle(Color.inkTertiary)
+            HStack(spacing: 0) {
+                Button(action: onShowTrash) {
+                    Label("垃圾箱", systemImage: "trash")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.inkSecondary)
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
                 }
-                .font(.subheadline)
-                .foregroundStyle(Color.inkSecondary)
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .background(.ultraThinMaterial)
+                .buttonStyle(.plain)
+
+                Divider().frame(height: 20)
+
+                Button(action: onShowConfig) {
+                    Label("设置", systemImage: "gearshape")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.inkSecondary)
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .background(Color.canvasSecondary)
         }
     }
 
-    // SwiftUI's List(selection:) wants a non-optional Hashable; we map .empty <-> nil.
-    private var bindingSelection: Binding<SidebarSelection?> {
-        Binding(
-            get: { selection == .empty ? nil : selection },
-            set: { selection = $0 ?? .empty }
-        )
+    // MARK: - Module Header
+
+    @ViewBuilder
+    private func moduleHeader(title: String, icon: String, isExpanded: Binding<Bool>, action: @escaping () -> Void, @ViewBuilder trailing: () -> some View) -> some View {
+        HStack(spacing: 0) {
+            Button {
+                withAnimation { isExpanded.wrappedValue.toggle() }
+            } label: {
+                HStack(spacing: DG.sp4) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .rotationEffect(.degrees(isExpanded.wrappedValue ? 90 : 0))
+                        .foregroundStyle(Color.inkTertiary)
+                    Label(title, systemImage: icon)
+                        .font(.subheadline.bold())
+                        .foregroundStyle(Color.ink)
+                    Spacer(minLength: DG.sp8)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            trailing()
+        }
+        .padding(.horizontal, DG.sp12)
+        .padding(.vertical, DG.sp8)
+        .background(Color.canvasSecondary.opacity(0.5))
     }
+
+    // MARK: - Date Group Header
+
+    @ViewBuilder
+    private func dateGroupHeader(_ title: String, count: Int) -> some View {
+        let isCollapsed = collapsedDateGroups.contains(title)
+        Button {
+            withAnimation {
+                if isCollapsed {
+                    collapsedDateGroups.remove(title)
+                } else {
+                    collapsedDateGroups.insert(title)
+                }
+            }
+        } label: {
+            HStack(spacing: DG.sp4) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8))
+                    .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                Text(title)
+                    .font(.caption2)
+                if isCollapsed {
+                    Text("\(count)")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Color.inkTertiary)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, DG.sp12)
+            .padding(.top, DG.sp4)
+            .padding(.bottom, 2)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Helpers
 
     private func markdownRow(_ file: LocalMarkdownFile) -> some View {
         HStack(spacing: 8) {
@@ -282,6 +479,7 @@ struct MainSidebar: View {
             Spacer()
         }
         .padding(.vertical, 2)
+        .padding(.horizontal, DG.sp8)
     }
 
     private func citation(for note: Note) -> String {
@@ -297,5 +495,27 @@ struct MainSidebar: View {
             lines.append("> — " + meta.joined(separator: " · "))
         }
         return "\n" + lines.joined(separator: "\n") + "\n"
+    }
+
+    private func startAscanPolling() {
+        stopAscanPolling()
+        ascanTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+            Task { @MainActor in
+                do {
+                    let status = try await APIClient.shared.getAscanStatus()
+                    isAscanRunning = status.isRunning
+                    ascanRunningStatus = status.recentLog ?? (status.isRunning ? "运行中…" : nil)
+                    if !status.isRunning {
+                        ascanRunningStatus = nil
+                        await onRefresh()
+                    }
+                } catch {}
+            }
+        }
+    }
+
+    private func stopAscanPolling() {
+        ascanTimer?.invalidate()
+        ascanTimer = nil
     }
 }

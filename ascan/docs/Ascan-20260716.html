@@ -1,0 +1,978 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ascan-20260716</title>
+  <style>/* ── Notion-inspired Design System for Ascan Daily Report ── */
+:root {
+  color-scheme: light;
+  /* Surface & Canvas */
+  --canvas: #ffffff;
+  --surface: #f7f7f5;
+  --surface-soft: #f1f1ef;
+  /* Borders */
+  --hairline: #e8e7e4;
+  --hairline-soft: #eeeeed;
+  --hairline-strong: #d3d1cb;
+  /* Text */
+  --ink-deep: #0f0f0f;
+  --ink: #191919;
+  --charcoal: #37352f;
+  --slate: #6b6b6b;
+  --steel: #9b9a97;
+  --stone: #b4b3af;
+  --muted: #c4c3bf;
+  /* Brand Accents */
+  --primary: #6c47ff;
+  --primary-pressed: #5a3ad6;
+  --link-blue: #2383e2;
+  /* Semantic Tints */
+  --tint-lavender: #e8deee;
+  --tint-peach: #faebdd;
+  --tint-mint: #dbeddb;
+  --tint-sky: #d3e5ef;
+  --tint-yellow: #fdecc8;
+  --brand-purple-800: #4a2d8a;
+  --brand-orange-deep: #b05c1a;
+  --brand-green: #2d7d46;
+  /* Elevation */
+  --shadow-subtle: rgba(15, 15, 15, 0.04) 0px 1px 2px 0px;
+  --shadow-card: rgba(15, 15, 15, 0.06) 0px 3px 8px 0px;
+  /* Spacing base unit: 4px */
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 12px;
+  --sp-lg: 16px;
+  --sp-xl: 24px;
+  --sp-xxl: 32px;
+  --sp-section: 48px;
+  /* Radius */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-full: 9999px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--canvas);
+  color: var(--charcoal);
+  font-family: Inter, -apple-system, system-ui, "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--link-blue); text-decoration: none; transition: color 0.15s ease; }
+a:hover { text-decoration: underline; color: #1a6dc2; }
+
+/* ── Page Container ── */
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--sp-xxl) var(--sp-xl) var(--sp-section);
+}
+
+/* ── Hero / Header ── */
+.hero {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xxl) var(--sp-xl);
+  margin-bottom: var(--sp-section);
+}
+.hero h1 {
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-sm);
+}
+.hero p {
+  font-size: 16px;
+  color: var(--slate);
+  line-height: 1.55;
+}
+
+/* ── Section Headings ── */
+.report-section { margin-top: var(--sp-section); }
+.report-section > h2 {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-lg);
+  padding-bottom: var(--sp-sm);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xl);
+  margin-bottom: var(--sp-lg);
+  transition: box-shadow 0.15s ease;
+}
+.card:hover { box-shadow: var(--shadow-card); }
+.card h3 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-deep);
+  margin-bottom: var(--sp-sm);
+}
+.card h4 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+  margin-bottom: var(--sp-xs);
+}
+
+/* ── Meta & Muted Text ── */
+.meta {
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.5;
+  margin-bottom: var(--sp-sm);
+}
+.muted, .section-note, .empty-state {
+  font-size: 14px;
+  color: var(--steel);
+  line-height: 1.5;
+}
+.empty-state {
+  padding: var(--sp-xl);
+  text-align: center;
+  background: var(--surface);
+  border-radius: var(--r-md);
+}
+
+/* ── Lead (one-liner emphasis) ── */
+.lead {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.55;
+  margin-bottom: var(--sp-sm);
+}
+
+/* ── Tags ── */
+.tags { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin: var(--sp-sm) 0; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--r-sm);
+  background: var(--tint-lavender);
+  color: var(--brand-purple-800);
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ── Recommendation Callout ── */
+.recommendation {
+  border-left: 3px solid var(--primary);
+  background: var(--surface);
+  padding: var(--sp-md) var(--sp-lg);
+  border-radius: var(--r-md);
+  margin-top: var(--sp-md);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--charcoal);
+}
+
+/* ── Summary Block ── */
+.summary-block {
+  margin-top: var(--sp-md);
+  padding-top: var(--sp-md);
+  border-top: 1px solid var(--hairline-soft);
+}
+.summary-block h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--sp-xs);
+}
+.summary-block p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--charcoal);
+}
+
+/* ── Links Row ── */
+.links {
+  font-size: 14px;
+  font-weight: 500;
+  margin: var(--sp-sm) 0;
+}
+.links a { margin-right: var(--sp-xs); }
+
+/* ── Tables ── */
+.table-wrapper { overflow-x: auto; margin: var(--sp-lg) 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  font-size: 14px;
+}
+th {
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--ink);
+  padding: var(--sp-md) var(--sp-lg);
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+}
+td {
+  padding: var(--sp-md) var(--sp-lg);
+  border-bottom: 1px solid var(--hairline-soft);
+  color: var(--charcoal);
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: none; }
+
+/* ── Meta List (repo details) ── */
+.meta-list {
+  padding-left: var(--sp-xl);
+  margin: var(--sp-sm) 0;
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.6;
+}
+.meta-list li { margin-bottom: var(--sp-xs); }
+.meta-list strong { color: var(--charcoal); font-weight: 500; }
+
+/* ── Footer ── */
+.footer {
+  margin-top: var(--sp-section);
+  padding-top: var(--sp-lg);
+  border-top: 1px solid var(--hairline);
+  color: var(--steel);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .page { padding: var(--sp-lg) var(--sp-md) var(--sp-xxl); }
+  .hero { padding: var(--sp-xl) var(--sp-lg); }
+  .hero h1 { font-size: 28px; }
+  .report-section > h2 { font-size: 22px; }
+  .card { padding: var(--sp-lg); }
+  .card h3 { font-size: 18px; }
+  th, td { padding: var(--sp-sm) var(--sp-md); }
+  .toc-floating { display: none !important; }
+}
+
+/* ── TOC Outline Card ── */
+.toc-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-section);
+  overflow: hidden;
+}
+.toc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-md) var(--sp-lg);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+.toc-card-header:hover { background: var(--surface-soft); }
+.toc-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.3px;
+}
+.toc-card-toggle {
+  font-size: 13px;
+  color: var(--steel);
+  transition: transform 0.2s ease;
+}
+.toc-card.collapsed .toc-card-toggle { transform: rotate(-90deg); }
+.toc-list {
+  list-style: none;
+  padding: 0 var(--sp-lg) var(--sp-md);
+  margin: 0;
+}
+.toc-card.collapsed .toc-list { display: none; }
+.toc-entry {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  color: var(--charcoal);
+  transition: background 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+}
+.toc-entry:hover { background: var(--surface-soft); text-decoration: none; color: var(--ink); }
+.toc-entry.active { background: var(--tint-lavender); color: var(--brand-purple-800); font-weight: 500; }
+.toc-entry-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-full);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+  margin-right: var(--sp-sm);
+  flex-shrink: 0;
+}
+.toc-entry.active .toc-entry-num { background: var(--primary); border-color: var(--primary); color: #fff; }
+.toc-entry-text { flex: 1; }
+.toc-entry-count {
+  font-size: 12px;
+  color: var(--steel);
+  margin-left: var(--sp-sm);
+  flex-shrink: 0;
+}
+
+/* ── Floating Side Navigator (desktop only) ── */
+.toc-floating {
+  position: fixed;
+  left: calc(50% - 500px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-md);
+  padding: var(--sp-md);
+}
+.toc-floating-label {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--charcoal);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: 4px 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  box-shadow: var(--shadow-subtle);
+}
+.toc-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-full);
+  background: var(--muted);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+.toc-dot:hover { background: var(--steel); }
+.toc-dot:hover .toc-floating-label { opacity: 1; }
+.toc-dot.active { background: var(--primary); border-color: var(--primary); transform: scale(1.3); }
+@media (max-width: 1100px) { .toc-floating { display: none; } }</style>
+</head>
+<body>
+  
+  <div class="toc-floating">
+  <span class="toc-dot" data-target="arxiv-papers"><span class="toc-floating-label">1 · arXiv 论文精选</span></span>
+  <span class="toc-dot" data-target="github-repos"><span class="toc-floating-label">2 · GitHub 项目挖掘</span></span>
+  <span class="toc-dot" data-target="official-tracker"><span class="toc-floating-label">3 · 官方动态跟踪</span></span>
+  <span class="toc-dot" data-target="blog-subs"><span class="toc-floating-label">4 · 独立博客订阅</span></span>
+  <span class="toc-dot" data-target="conference-papers"><span class="toc-floating-label">5 · 会议论文追踪</span></span>
+  <span class="toc-dot" data-target="wechat-articles"><span class="toc-floating-label">6 · 微信公众号</span></span>
+  </div>
+    
+  <main class="page">
+        <nav class="toc-card" id="toc-card">
+      <div class="toc-card-header">
+        <span class="toc-card-title">📑 大纲</span>
+        <span class="toc-card-toggle">▼</span>
+      </div>
+      <div class="toc-list">
+      <a href="#arxiv-papers" class="toc-entry" data-target="arxiv-papers"><span class="toc-entry-num">1</span><span class="toc-entry-text">arXiv 论文精选</span></a>
+      <a href="#github-repos" class="toc-entry" data-target="github-repos"><span class="toc-entry-num">2</span><span class="toc-entry-text">GitHub 项目挖掘</span></a>
+      <a href="#official-tracker" class="toc-entry" data-target="official-tracker"><span class="toc-entry-num">3</span><span class="toc-entry-text">官方动态跟踪</span></a>
+      <a href="#blog-subs" class="toc-entry" data-target="blog-subs"><span class="toc-entry-num">4</span><span class="toc-entry-text">独立博客订阅</span></a>
+      <a href="#conference-papers" class="toc-entry" data-target="conference-papers"><span class="toc-entry-num">5</span><span class="toc-entry-text">会议论文追踪</span></a>
+      <a href="#wechat-articles" class="toc-entry" data-target="wechat-articles"><span class="toc-entry-num">6</span><span class="toc-entry-text">微信公众号</span></a>
+      </div>
+    </nav>
+    
+
+    <section class="report-section" id="arxiv-papers">
+      <h2>1 — arXiv 论文精选</h2>
+      <div class="report-list arxiv-list" data-date="2026-07-16">
+<article class="card paper-card">
+<h3>1. Not All Needles Are Found: How Fact Distribution and Don&#39;t Make It Up Prompts Shape Retrieval, Reasoning, and Hallucination in Long-Context LLMs</h3>
+<p class="meta"><strong>作者：</strong>Amirali Ebrahimzadeh, Seyyed M. Salili</p>
+<div class="tags"><span class="tag">llm_frontier</span><span class="tag">agent_memory</span><span class="tag">llm_algorithm</span><span class="tag">large language model</span></div>
+<p><strong>一句话总结：</strong>发现“反幻觉”提示会让模型连眼前事实也拒绝回答，信息太分散时还会直接崩溃。</p>
+<p class="links"><a href="https://arxiv.org/abs/2601.02023" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2601.02023.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>当大语言模型使用超大上下文窗口时，信息在语料中的分布方式会显著影响其可靠性。本文提出可扩展的“大海捞针”基准，评估事实位置、语料分布与反幻觉提示对模型的影响，发现分散分布会导致性能崩溃，反幻觉提示会引发过度保守的“安全税”，凸显优化上下文利用的紧迫性。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>对LLM智能体研究直接有用：揭示长上下文推理中上下文组织方式和安全提示的“安全税”陷阱，提示智能体记忆与检索架构需针对分布崩溃和过度保守进行鲁棒性设计。</p>
+</article>
+<article class="card paper-card">
+<h3>2. Benefits and Limitations of Communication in Multi-Agent Reasoning</h3>
+<p class="meta"><strong>作者：</strong>Michael Rizvi-Martel, Satwik Bhattamishra, Neil Rathi, Guillaume Rabusseau, Michael Hahn</p>
+<div class="tags"><span class="tag">llm_algorithm</span><span class="tag">agent_algorithm</span><span class="tag">agent_architecture</span><span class="tag">large language model</span><span class="tag">long context</span></div>
+<p><strong>一句话总结：</strong>搞清楚了多智能体协作推理时，到底需要多少个智能体、聊多少天才能把活干好。</p>
+<p class="links"><a href="https://arxiv.org/abs/2510.13903" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2510.13903.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>思维链提示让大模型逐步推理，但问题复杂度和上下文长度增长时性能仍下降。近期多智能体范式将长上下文任务分解为短任务，但此类系统的基础能力尚不清晰。本文提出理论框架分析多智能体系统的表达能力，推导出解决状态跟踪、回忆和k跳推理等任务所需的智能体数量、通信量及加速比的边界，并揭示通信的收益与局限性。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>该理论框架为设计可扩展的多智能体推理系统提供了量化的架构指导，直接支撑Agent算法中的通信拓扑优化与资源分配决策。</p>
+</article>
+<article class="card paper-card">
+<h3>3. ThinkBLOX: 3D Indoor Scene Generation with Progressive Reasoning</h3>
+<p class="meta"><strong>作者：</strong>Yuan Xiao, Can Wang, Xiangyu Kong, Jing Liao</p>
+<div class="tags"><span class="tag">agent_algorithm</span><span class="tag">llm_frontier</span><span class="tag">llm_algorithm</span><span class="tag">fine-tuning</span><span class="tag">sft</span></div>
+<p><strong>一句话总结：</strong>让AI像搭积木一样，边想边摆家具，逐步推理出合理的3D房间布局。</p>
+<p class="links"><a href="https://arxiv.org/abs/2607.13539" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2607.13539.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>传统方法逐步生成3D场景，近期视觉语言模型则一次性规划全局布局，后者在交互编辑时需全局重优化，且布局可能欠佳。ThinkBLOX提出基于VLM的渐进推理框架，将布局生成为状态驱动的逐步推理与行动过程。使用ThinkBLOX-Data-200K数据集进行监督微调，并引入分层解耦GDPO强化学习解决多解任务的奖励冲突，显著优于一次性方法。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>将思维链和分步推理引入3D场景生成，其状态驱动迭代优化和分层强化学习方法，可启发LLM/Agents在结构化空间规划与复杂环境交互中的逐步决策能力。</p>
+</article>
+<article class="card paper-card">
+<h3>4. NAVER LABS System Re-implementation for the IWSLT 2026 Instruction-Following Task</h3>
+<p class="meta"><strong>作者：</strong>Anand Kamble, Aniket Tathe</p>
+<div class="tags"><span class="tag">llm_algorithm</span><span class="tag">llm_frontier</span><span class="tag">fine-tuning</span><span class="tag">lora</span><span class="tag">pre-training</span></div>
+<p><strong>一句话总结：</strong>用预训练大模型搭了一个能听懂指令做翻译和问答的语音系统，并生成了大量训练数据。</p>
+<p class="links"><a href="https://arxiv.org/abs/2607.05623" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2607.05623.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>我们为IWSLT 2026指令遵循任务复现了NAVER LABS系统，采用SeamlessM4T-v2语音编码器和Qwen3-4B-Instruct大模型骨干。保留了原有的三阶段训练流程，并额外构建了10万条合成指令遵循样本用于微调。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>展示了语音大模型中，通过分阶段训练对齐语音和文本模态的成熟范式，对多模态智能体架构和语音指令微调数据合成有参考意义。</p>
+</article>
+<article class="card paper-card">
+<h3>5. Advancing Multimodal Judge Models through a Capability-Oriented Benchmark and MCTS-Driven Data Generation</h3>
+<p class="meta"><strong>作者：</strong>Zeyu Chen, Huanjin Yao, Ziwang Zhao, Min Yang</p>
+<div class="tags"><span class="tag">agent_algorithm</span><span class="tag">llm_frontier</span><span class="tag">llm_algorithm</span><span class="tag">large language model</span></div>
+<p><strong>一句话总结：</strong>搞了个多维度考题和训练数据生成法，让AI法官断案更准、更少偏见。</p>
+<p class="links"><a href="https://arxiv.org/abs/2603.00546" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2603.00546.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>利用多模态大语言模型作为评判者正成为新范式。本文提出M-JudgeBench，一个十维能力导向基准，旨在全面评估MLLM的评判能力，并设计Judge-MCTS数据构建框架，训练出强评判模型M-Judger。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>对Agent架构/评估有直接启示：用MCTS构建带过程纠错和长度控制的偏好数据，可提升大模型作为评判器的可靠性，适用于RLHF和自动化评估链路。</p>
+</article>
+<article class="card paper-card">
+<h3>6. Post-Training Shifts Confidence: A Three-Stage Analysis of How SFT, RL, and OPD Shape Pre-, Intra-, and Post-CoT Calibration</h3>
+<p class="meta"><strong>作者：</strong>Shuhao Li, Guodong Du, Anhao Zhao, Wanyu Lin, Tianyu Yuan, Xiaoyu Shen</p>
+<div class="tags"><span class="tag">llm_algorithm</span><span class="tag">agent_algorithm</span><span class="tag">llm_frontier</span><span class="tag">large language model</span><span class="tag">fine-tuning</span></div>
+<p><strong>一句话总结：</strong>怎么判断大模型推理时对自己的答案有没有信心？这篇论文发现信心要分阶段看，而且只在靠谱的时候信它才对。</p>
+<p class="links"><a href="https://arxiv.org/abs/2607.13753" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2607.13753.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>大型语言模型通过监督微调、强化学习和策略蒸馏获得强大推理能力，但评估多局限于最终答案准确率。我们提出三阶段校准框架，评估思维链生成前、中、后的置信度。研究发现不同方法在各阶段表现各异，并提出位置感知的置信度策略，通过仅在可靠区间使用置信度来提升推理性能。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>提出位置感知的推理置信度校准方法，可直接应用于Agent的任务规划与执行中的动态终止策略，提升多步推理的效率和可靠性。</p>
+</article>
+<article class="card paper-card">
+<h3>7. Memory as a Controlled Process: Learned Adaptive Memory Management for LLM Agents</h3>
+<p class="meta"><strong>作者：</strong>Eric Hanchen Jiang, Zhi Zhang, Yuchen Wu, Levina Li, Dong Liu, Xiao Liang, Rui Sun, Yubei Li, Edward Sun, Haozheng Luo, Zhaolu Kang, Aylin Caliskan, Kai-Wei Chang, Ying Nian Wu</p>
+<div class="tags"><span class="tag">agent_memory</span><span class="tag">agent_architecture</span><span class="tag">llm_algorithm</span><span class="tag">large language model</span><span class="tag">pretraining</span></div>
+<p><strong>一句话总结：</strong>让智能体像人一样自主判断什么时候该记、什么时候该忘，不再死板地存取记忆。</p>
+<p class="links"><a href="https://arxiv.org/abs/2607.13591" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2607.13591.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>大语言模型智能体依赖外部记忆积累经验，但现有方法用固定规则存取记忆，成为学习瓶颈。我们提出MemCon框架，将记忆操作建模为马尔可夫决策过程，在线学习自适应策略，动态决定何时检索、注入规划或遗忘。该框架与后端无关，无需预训练，在多项基准中显著提升成功率并降低开销。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>将记忆管理形式化为在线决策问题，为构建具备自适应记忆能力的LLM智能体架构提供了轻量、通用且高效的新思路。</p>
+</article>
+<article class="card paper-card">
+<h3>8. Your Data Manifold is Secretly a Reward Model: Shell-LCC for Text-to-Video Generation</h3>
+<p class="meta"><strong>作者：</strong>Shihao Zhang, Yunzhi Li, Yuguang Yan, Junzhe Zhang, Wei Zhao, Bohan Wang, Hanwang Zhang</p>
+<div class="tags"><span class="tag">llm_frontier</span><span class="tag">llm_algorithm</span><span class="tag">agent_algorithm</span><span class="tag">fine-tuning</span><span class="tag">sft</span></div>
+<p><strong>一句话总结：</strong>让AI用视频训练数据自身的“美感标准”指导生成，省掉额外打分模型，还能把细节搞得更清晰。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.30248" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.30248.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>文本到视频扩散模型依赖辅助奖励信号提升生成质量，但计算成本高且难以改善局部细节。我们发现数据流形本身可作奖励模型，通过建模高质量数据流形结构并提出Shell-LCC方法，用流形表面替代均值回归，生成密集可微且近乎免费的奖励信号，显著提升视频细节和真实感。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>其“数据流形即奖励”理念可启发大模型/Agent训练，用动态数据几何结构替代人工或模型反馈，做低成本自我对齐。</p>
+</article>
+<article class="card paper-card">
+<h3>9. AIMO Interpretability Challenge</h3>
+<p class="meta"><strong>作者：</strong>Michal \v{S}tef\&#39;anik, Philipp Mondorf, Andreas Waldis, Qianying Liu, Chuan Yang, Michal Spiegel, Josef Kucha\v{r}, Marek Kadl\v{c}\&#39;ik, Adam Vawda-Oomerjee, Chaoran Liu, Simon Frieder, Barbara Plank, Fazl Barez, Pontus Stenetorp</p>
+<div class="tags"><span class="tag">agent_algorithm</span><span class="tag">llm_frontier</span></div>
+<p><strong>一句话总结：</strong>搞了个比赛，通过“解剖”AI模型的大脑，看它做数学题是真懂还是死记硬背。</p>
+<p class="links"><a href="https://arxiv.org/abs/2607.13899" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2607.13899.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>本文提出AIMO可解释性挑战赛，旨在通过分析前沿数学语言模型的内部机制，区分其稳健推理与虚假推理。该挑战基于AIMO问题，提供新奥数题及符号表示、前沿模型访问和对抗鲁棒性评估，以开发识别稳健推理的方法，并创建开放基准。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>为LLM可解释性研究提供了将内部机制分析与对抗鲁棒性结合的实验范式，对评估Agent推理可靠性有直接启发。</p>
+</article>
+<article class="card paper-card">
+<h3>10. Beyond Description: Cognitively Benchmarking Fine-Grained Action for Embodied Agents</h3>
+<p class="meta"><strong>作者：</strong>Dayong Liu, Chao Xu, Weihong Chen, Suyu Zhang, Juncheng Wang, Jiankang Deng, Baigui Sun, Yang Liu</p>
+<div class="tags"><span class="tag">llm_algorithm</span><span class="tag">llm_frontier</span><span class="tag">large language model</span><span class="tag">fine-tuning</span><span class="tag">sft</span></div>
+<p><strong>一句话总结：</strong>设计了一套测试AI“动手能力”的视频题库，发现现在的大模型光会看不会做，但通过补课学精细动作就能变强。</p>
+<p class="links"><a href="https://arxiv.org/abs/2511.18685" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2511.18685.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>多模态大语言模型在具身智能体中作为决策引擎展现潜力，但现有基准多侧重高层规划，忽略了精细动作智能。我们推出CFG-Bench，包含1368个视频和近2万道问答，系统评估物理交互、时序因果、意图理解和评价判断四项认知能力，揭示当前模型在生成详细指令和高阶推理上的局限。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>为大模型/Agent研究提供了精细动作认知评测集，证明注入动作描述数据做微调，能直接提升具身Agent落地规划性能。</p>
+</article>
+<article class="card paper-card">
+<h3>11. GSM-Plus-BN: A Perturbation-Based Benchmark for Bangla Mathematical Reasoning in Large Language Models</h3>
+<p class="meta"><strong>作者：</strong>Bidyarthi Paul, Nahida Jannat Mayouree, Md. Asif Karim, Sagar Chandra Nath, Swastika Kundu</p>
+<div class="tags"><span class="tag">agent_algorithm</span><span class="tag">llm_frontier</span><span class="tag">llm_algorithm</span><span class="tag">large language model</span></div>
+<p><strong>一句话总结：</strong>给大模型出孟加拉语数学题，还故意加各种干扰项，看看它们是不是真的会做，还是只会背答案。</p>
+<p class="links"><a href="https://arxiv.org/abs/2607.13248" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2607.13248.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>大型语言模型的数学推理评估主要关注英语等高资源语言，忽视了孟加拉语等语言。本文提出GSM-Plus-BN，一个基于扰动的孟加拉语数学推理基准，包含人工翻译验证的9000个评估样本。通过评估六种开源模型在标准提示和思维链提示下的表现，揭示模型在低资源语言上的鲁棒性和真实理解能力差距。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>该研究展示了多语言扰动测试对评估LLM推理鲁棒性的重要性，可启发在Agent架构中设计跨语言、抗干扰的思维链验证机制，提升低资源语言场景下的智能体可靠性。</p>
+</article>
+<article class="card paper-card">
+<h3>12. Source or It Didn&#39;t Happen: A Multi-Agent Framework for Citation Hallucination Detection</h3>
+<p class="meta"><strong>作者：</strong>Mingzhe Li, Zhiqiang Lin, Shiqing Ma</p>
+<div class="tags"><span class="tag">llm_frontier</span><span class="tag">agent_architecture</span><span class="tag">llm_algorithm</span><span class="tag">large language model</span></div>
+<p><strong>一句话总结：</strong>造了个工具能揪出AI写的假文献，连作者、标题、年份都能逐项验真。</p>
+<p class="links"><a href="https://arxiv.org/abs/2605.08583" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2605.08583.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>大模型在科研写作中常编造看似合理但无法验证的虚假引用。现有检测器多简化为二元判断，依赖脆弱解析和不完整检索。我们重新定义为分类学对齐的字段级裁定，提出12码分类体系，并构建CiteTracer级联多智能体检测器。其结合PDF/BibTeX提取、多源检索、确定性匹配和类别专家判定。在合成与真实数据集上，准确率达97.1%。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>将引用幻觉检测重构为多智能体协作的细粒度裁决任务，对构建具备事实核查能力的智能体系统有直接启发，其检索-匹配-裁决流水线可复用于LLM生成内容的事实核对。</p>
+</article>
+<article class="card paper-card">
+<h3>13. Designing Safety-Constrained LLM Systems for Public Health Information Access</h3>
+<p class="meta"><strong>作者：</strong>Ben Torkian, Jun Zhou</p>
+<div class="tags"><span class="tag">llm_frontier</span><span class="tag">agent_memory</span><span class="tag">llm_algorithm</span><span class="tag">large language model</span></div>
+<p><strong>一句话总结：</strong>用多层安全锁把大模型限制在权威资料内回答问题，避免在医疗场景下胡乱给建议。</p>
+<p class="links"><a href="https://arxiv.org/abs/2607.13038" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2607.13038.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>我们设计并实现了一个面向妇幼公共卫生信息获取的安全约束大语言模型系统。该系统通过多层架构整合领域限定检索增强生成、严格边界管控防医疗建议、匿名多用户会话管理及全面审计日志，使所有回答基于权威公共卫生资源，并在真实场景中验证了安全约束与性能。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>为受限领域的Agent安全架构设计提供了落地范例，其多层约束与审计机制可直接用于构建医疗、法律等高敏感行业的智能体系统。</p>
+</article>
+<article class="card paper-card">
+<h3>14. Traffic-Aware Randomized Smoothing for LLM-Based Network Intrusion Detection</h3>
+<p class="meta"><strong>作者：</strong>Zhenpeng Li</p>
+<div class="tags"><span class="tag">llm_algorithm</span><span class="tag">llm_frontier</span><span class="tag">large language model</span><span class="tag">fine-tuning</span></div>
+<p><strong>一句话总结：</strong>让大模型入侵检测更抗攻击：只在攻击者能改的流量特征上加噪声训练，认证准确率大幅提升。</p>
+<p class="links"><a href="https://arxiv.org/abs/2607.13801" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2607.13801.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>基于大语言模型的入侵检测系统对流量操纵的鲁棒性缺乏认证。本文提出流量感知随机平滑（TA-RS），这是一种分类器无关的认证防御方法，仅在攻击者可修改的特征子空间注入高斯噪声进行微调和认证，在多个数据集上实现了55-100%的认证准确率，中位认证半径超过攻击阈值1.8-5倍。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>揭示了LLM安全应用中，训练与认证分布不一致导致的性能坍塌，对齐攻击可控子空间是关键，对构建鲁棒LLM-Agent的安全护栏有直接参考价值。</p>
+</article>
+<article class="card paper-card">
+<h3>15. Inverting the Streaming-Diffusion Bottleneck: Video-Rate MLLM-Conditioned Edit Diffusion on a Consumer GPU</h3>
+<p class="meta"><strong>作者：</strong>Yoshiyuki Ootani</p>
+<div class="tags"><span class="tag">llm_algorithm</span><span class="tag">llm_frontier</span><span class="tag">large language model</span><span class="tag">adapter</span></div>
+<p><strong>一句话总结：</strong>用系统调度优化让AI视频编辑在普通显卡上跑得飞快，不再只靠压缩模型。</p>
+<p class="links"><a href="https://arxiv.org/abs/2606.05981" target="_blank" rel="noopener noreferrer">Abstract</a> · <a href="https://arxiv.org/pdf/2606.05981.pdf" target="_blank" rel="noopener noreferrer">PDF</a></p>
+<section class="summary-block">
+<h4>中文摘要</h4>
+<p>对扩散U-Net的激进蒸馏颠覆了实时文生图的瓶颈：当降噪器被压缩为4步或1步模型后，文本编码器成为关键路径。这在需要多模态大语言模型编码器的视觉编辑扩散中尤为突出。我们提出一个流式管线，通过非对称CUDA流水线、编译友好的适配器融合及周期性刷新机制，让编码器脱离关键路径，在消费级GPU上实现视频级编辑。</p>
+</section>
+<p class="recommendation"><strong>核心推荐：</strong>该工作展示了多模态大模型在端侧实时视频编辑中的巨大工程潜力，为Agent或大模型视频交互应用提供了低延迟系统架构设计范本。</p>
+</article>
+</div>
+    </section>
+
+    <section class="report-section" id="github-repos">
+      <h2>2 — GitHub 项目挖掘</h2>
+      <div class="report-list github-list" data-date="20260716">
+<p class="section-note">聚焦大模型与智能体相关项目（大模型算法/Agent算法/智能体架构/智能体记忆/大模型前沿），共发现 12 个仓库。</p>
+<h3>今日精选（高度相关，共 5 个）</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>项目</th><th>语言</th><th>Stars</th><th>一句话描述</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/Shubhamsaboo/awesome-llm-apps" target="_blank" rel="noopener noreferrer">Shubhamsaboo/awesome-llm-apps</a></td><td>Python</td><td>⭐122k</td><td>开箱即用的百款AI智能体与RAG应用合集</td></tr>
+<tr><td><a href="https://github.com/openinterpreter/openinterpreter" target="_blank" rel="noopener noreferrer">openinterpreter/openinterpreter</a></td><td>Rust</td><td>⭐65k</td><td>让大模型直接在你的电脑上写代码、跑代码，省钱的编程助手</td></tr>
+<tr><td><a href="https://github.com/moeru-ai/airi" target="_blank" rel="noopener noreferrer">moeru-ai/airi</a></td><td>TypeScript</td><td>⭐42k</td><td>自己部署的AI虚拟角色，能语音聊天陪你玩Minecraft等游戏。</td></tr>
+<tr><td><a href="https://github.com/bojieli/ai-agent-book" target="_blank" rel="noopener noreferrer">bojieli/ai-agent-book</a></td><td>Python</td><td>⭐822</td><td>手把手教你从零搭AI智能体的开源书和代码</td></tr>
+<tr><td><a href="https://github.com/crabtalk/crabtalk" target="_blank" rel="noopener noreferrer">crabtalk/crabtalk</a></td><td>Rust</td><td>⭐717</td><td>一个开机就能跑的AI助手管家，让你用自然语言操控本地电脑工具。</td></tr>
+</tbody></table></div>
+<h3>精选项目深度解析</h3>
+<article class="card repo-card">
+<h4><a href="https://github.com/Shubhamsaboo/awesome-llm-apps" target="_blank" rel="noopener noreferrer">Shubhamsaboo/awesome-llm-apps</a></h4>
+<p class="lead">开箱即用的百款AI智能体与RAG应用合集</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐122k (+1236 今日)</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<p><strong>定位：</strong>面向想快速落地LLM应用的开发者与产品经理，提供百余个可克隆、可定制的端到端智能体与RAG模板，解决从原型验证到交付的工程化难题。</p>
+<p><strong>核心技术：</strong>覆盖LangChain、LlamaIndex等主流框架的实战教程，融合Agent、RAG、语音与多模态最新模式，所有代码均可直接运行与改造。</p>
+<p><strong>使用场景：</strong>快速搭建客服问答机器人、知识库检索助手或AI业务原型，适合教学、产品选型与企业内部工具开发。</p>
+<p><strong>对比同类：</strong>不同于AutoGen等聚焦单一框架，本合集跨框架、重实战，提供可直接运行的完整应用与对比选择，上手门槛更低。</p>
+<p><strong>值得关注：</strong>以「可运行代码+教程」的务实路线加速Star破11万，已成为LLM应用开发者的首选实践库。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/openinterpreter/openinterpreter" target="_blank" rel="noopener noreferrer">openinterpreter/openinterpreter</a></h4>
+<p class="lead">让大模型直接在你的电脑上写代码、跑代码，省钱的编程助手</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐65k (+299 今日)</li>
+<li><strong>语言：</strong>Rust</li>
+</ul>
+<p><strong>定位：</strong>解决低成本模型难以胜任复杂代码任务的问题，面向希望用本地或廉价模型获得自动编程能力的开发者，让模型通过运行代码来迭代完成任务。</p>
+<p><strong>核心技术：</strong>基于Rust的高效执行环境，支持模型调用本地shell和文件系统；专为低算力模型优化，通过执行反馈循环提升代码生成质量。</p>
+<p><strong>使用场景：</strong>数据分析自动化、文件批量处理、原型开发以及用自然语言操控本地工具和脚本。</p>
+<p><strong>对比同类：</strong>与AutoGen、CrewAI等多Agent编排框架不同，本项目聚焦单模型的“交互式代码执行”闭环，更轻量且直接操控本地环境。</p>
+<p><strong>值得关注：</strong>在降本增效趋势下，让弱模型通过执行反馈变强，切中大量开发者低成本接入LLM的痛点，因此快速积累6.5万星。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/moeru-ai/airi" target="_blank" rel="noopener noreferrer">moeru-ai/airi</a></h4>
+<p class="lead">自己部署的AI虚拟角色，能语音聊天陪你玩Minecraft等游戏。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐42k (+110 今日)</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<p><strong>定位：</strong>为想要拥有个人专属AI虚拟伴侣（waifu）的用户，提供一个可自托管、可深度定制的灵魂容器，将虚拟角色带入现实语音对话和游戏世界。</p>
+<p><strong>核心技术：</strong>整合大语言模型驱动的对话与角色人格，支持实时语音交互，并将AI与Minecraft、Factorio等游戏环境深度连接，实现多模态交互。</p>
+<p><strong>使用场景：</strong>独处时与AI女友/伴侣语音陪聊，联机游戏时让AI角色加入Minecraft或Factorio共同游玩。</p>
+<p><strong>对比同类：</strong>暂无（该项目是面对终端用户的AI虚拟伴侣应用，非AutoGen、LangGraph等面向开发者的智能体框架）。</p>
+<p><strong>值得关注：</strong>受Neuro-sama等AI VTuber启发，切中个人AI伴侣与游戏陪伴的强需求，4.2万星增长反映了市场上对可玩可交互的自托管AI角色的热烈追捧。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/bojieli/ai-agent-book" target="_blank" rel="noopener noreferrer">bojieli/ai-agent-book</a></h4>
+<p class="lead">手把手教你从零搭AI智能体的开源书和代码</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐822</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<div class="tags"><span class="tag">agent</span><span class="tag">agent-memory</span><span class="tag">ai-agent</span><span class="tag">book</span><span class="tag">coding-agent</span><span class="tag">context-engineering</span></div>
+<p><strong>定位：</strong>为想系统掌握AI智能体设计与落地的开发者与研究者，提供一本从基础理论到工程实践的开源教材。它解决市面上智能体知识碎片化、缺乏端到端实战指导的问题。</p>
+<p><strong>核心技术：</strong>围绕“Agent = LLM + 上下文 + 工具”核心公式展开，强调Harness工程（胶水代码与架构）才是落地关键。全书源码和配图脚本全面开源，可直接复现所有实验。</p>
+<p><strong>使用场景：</strong>适合AI工程师、产品经理学习智能体设计原理，或作为高校教学与内部培训的实战教材使用。</p>
+<p><strong>对比同类：</strong>不同于AutoGen、LangGraph这类智能体框架，本书是从原理出发教你如何理解和实现底层能力，更像一本系统性的教科书，而不是一个可直接调用的工具库。</p>
+<p><strong>值得关注：</strong>内容系统扎实且开源彻底，是目前极少数覆盖从理论到代码的AI Agent中文书籍，因此受到想深入底层原理的开发者欢迎。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/crabtalk/crabtalk" target="_blank" rel="noopener noreferrer">crabtalk/crabtalk</a></h4>
+<p class="lead">一个开机就能跑的AI助手管家，让你用自然语言操控本地电脑工具。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>高度相关</li>
+<li><strong>Stars：</strong>⭐717</li>
+<li><strong>语言：</strong>Rust</li>
+</ul>
+<div class="tags"><span class="tag">agent-framework</span><span class="tag">agent-runtime</span><span class="tag">ai</span><span class="tag">ai-agent</span><span class="tag">composable</span><span class="tag">developer-tool</span></div>
+<p><strong>定位：</strong>面向不想重新造轮子的开发者，将各种大模型工具（MCP）和本地能力拼装成一个后台常驻进程。它本质是智能体的“操作系统”或守护程序，开机自启，随叫随到，解决了多工具调度与常驻运行的繁琐配置问题。</p>
+<p><strong>核心技术：</strong>采用模块化包管理（crabup）分发守护进程与TUI客户端，后端基于Rust实现高性能异步调度。核心亮点是守护进程架构，将Agent作为系统服务运行，并兼容MCP协议连接外部工具。</p>
+<p><strong>使用场景：</strong>适合搭建本地AI编程助手，或作为24小时在线的非图形界面服务器管家，通过终端聊天控制文件操作、代码搜索等。</p>
+<p><strong>对比同类：</strong>暂无直接同类项目。它不像LangGraph或CrewAI那样是编排框架，而是一个直接可安装运行的Agent守护程序“成品”，更偏向于构建好的一体化工具而非开发库。</p>
+<p><strong>值得关注：</strong>因为它解决了“AI工具开发完难落地运行”的痛点，把散装脚本变成开机自启的系统服务，这种极简的安装体验很符合终端开发者的胃口。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/coreyhaines31/marketingskills" target="_blank" rel="noopener noreferrer">coreyhaines31/marketingskills</a></h4>
+<p class="lead">让AI代理帮你写文案、做SEO、分析数据、优化转化率</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐39k (+340 今日)</li>
+<li><strong>语言：</strong>JavaScript</li>
+</ul>
+<p><strong>定位：</strong>解决技术营销人员和创始人用AI代理执行营销任务的问题，提供一套标准化的营销技能包。</p>
+<p><strong>核心技术：</strong>基于Agent Skills规范，将营销技能打包为可被多种AI代理（Claude Code、Cursor等）直接调用的模块，无需额外框架。</p>
+<p><strong>使用场景：</strong>用AI代理自动生成SEO文案、分析网站数据、优化着陆页转化率。</p>
+<p><strong>对比同类：</strong>与AutoGen、LangGraph等通用智能体框架不同，这个项目是垂直的营销技能集合，不需要搭建复杂流程即可让AI代理掌握营销能力。</p>
+<p><strong>值得关注：</strong>Star达3.6万，切中了营销人员对AI代理技能化的强烈需求，且标准化兼容多个代理平台，增长迅速。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/HenryNdubuaku/maths-cs-ai-compendium" target="_blank" rel="noopener noreferrer">HenryNdubuaku/maths-cs-ai-compendium</a></h4>
+<p class="lead">一份从数学到多模态的AI全栈通关宝典</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐6.1k (+725 今日)</li>
+<li><strong>语言：</strong>TypeScript</li>
+</ul>
+<p><strong>定位：</strong>解决传统教材公式堆砌、脱离实际的问题，为想真正理解AI原理的实践者提供直觉先行的学习路径。面向希望从根上掌握机器学习、计算机视觉、自然语言处理等方向的工程师和研究员。</p>
+<p><strong>核心技术：</strong>按数学基础、机器学习、计算语言学、视觉、语音、多模态等分章，强调现实世界上下文和直觉理解，用TypeScript构建的在线开源教材。</p>
+<p><strong>使用场景：</strong>AI工程师系统补全基础知识、跳槽面试速通、跨方向研究者快速入门。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>由一线工程师维护，内容紧跟多模态等前沿，填补了‘懂公式但不会用’的断层，因此star快速积累。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Dicklesworthstone/destructive_command_guard" target="_blank" rel="noopener noreferrer">Dicklesworthstone/destructive_command_guard</a></h4>
+<p class="lead">防止AI代理误执行危险命令，保护代码免遭删除</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>相关</li>
+<li><strong>Stars：</strong>⭐4.9k (+471 今日)</li>
+<li><strong>语言：</strong>Rust</li>
+</ul>
+<p><strong>定位：</strong>解决AI编程助手（如Claude Code）可能自动执行`rm -rf`等破坏性命令的问题。面向使用AI编码工具的开发者，提供一道安全闸门，避免代码被意外损毁。它作为命令执行前的钩子，在不影响工作效率的前提下确保操作安全。</p>
+<p><strong>核心技术：</strong>采用Rust编写，性能极高，以钩子形式嵌入系统，实时拦截危险命令。支持Claude Code、Cursor、Gemini CLI等主流AI代理，覆盖git和shell两种高危操作类型。</p>
+<p><strong>使用场景：</strong>当你在Claude Code中让AI助手清理文件时，它若想执行`rm -rf /`会被dcg直接拦下；或者在Cursor中AI自动提交代码时，`git push --force`等危险推送也会被阻止。</p>
+<p><strong>对比同类：</strong>与AutoGen、LangGraph等智能体编排框架不同，dcg不是构建智能体，而是为现有AI代理添加安全层，专注命令拦截，暂无完全同类的工具。</p>
+<p><strong>值得关注：</strong>AI编程工具易误操作，该工具直击开发者痛点，实用性强，因此在开发者社区中获得高关注和快速增长的star。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/mattpocock/skills" target="_blank" rel="noopener noreferrer">mattpocock/skills</a></h4>
+<p class="lead">提供实用的AI工程技能和工具，帮助工程师高效完成真实开发任务</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>一般</li>
+<li><strong>Stars：</strong>⭐173k (+2130 今日)</li>
+<li><strong>语言：</strong>Shell</li>
+</ul>
+<p><strong>定位：</strong>解决工程师在实际开发中遇到的复杂技术问题，提供可直接使用的技能模板和最佳实践。面向需要处理真实应用场景的软件工程师和AI开发者。</p>
+<p><strong>核心技术：</strong>基于Claude AI助手的技能插件系统，包含Shell脚本自动化工具和工程化最佳实践。提供完整的技能目录和上下文管理机制。</p>
+<p><strong>使用场景：</strong>日常工程开发中的代码生成、自动化脚本执行、复杂业务逻辑实现等场景。适合需要AI辅助完成真实项目开发的技术团队。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>作者Matt Pocock在前端社区影响力较大，项目提供了经过验证的实用技能模板。Star增长快是因为解决了AI工程落地的实际痛点。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/HKUDS/Vibe-Trading" target="_blank" rel="noopener noreferrer">HKUDS/Vibe-Trading</a></h4>
+<p class="lead">一条命令让AI帮你盯盘、分析行情并自动下单</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>一般</li>
+<li><strong>Stars：</strong>⭐23k (+915 今日)</li>
+<li><strong>语言：</strong>Python</li>
+</ul>
+<p><strong>定位：</strong>面向缺乏编程基础的散户投资者，解决手动盯盘耗时和量化交易部署难的痛点。提供开箱即用的AI交易助手，让普通人也能轻松体验自动化投资。</p>
+<p><strong>核心技术：</strong>采用FastAPI与React 19全栈分离架构，支持一键Docker容器化部署。底层集成大模型语义理解与金融数据API，实现从意图识别到自动下单的完整闭环。</p>
+<p><strong>使用场景：</strong>个人股票或数字货币的智能仓位管理与自动化策略执行。支持通过自然语言对话生成交易策略，并实时获取市场情绪预警。</p>
+<p><strong>对比同类：</strong>不同于需从零搭建工作流的通用智能体框架，本项目深耕金融垂直领域，预置行情抓取与券商对接模块，开箱即用且更贴合交易需求。</p>
+<p><strong>值得关注：</strong>精准命中个人投资者对AI理财的刚需，极简部署与现代化UI大幅降低使用门槛。背靠高校实验室且紧跟大模型Agent技术浪潮，推动热度快速攀升。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/Nutlope/hallmark" target="_blank" rel="noopener noreferrer">Nutlope/hallmark</a></h4>
+<p class="lead">让AI做网页时自动避开“AI味儿”，产出专业独特的设计。</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>一般</li>
+<li><strong>Stars：</strong>⭐9.6k (+1277 今日)</li>
+<li><strong>语言：</strong>CSS</li>
+</ul>
+<p><strong>定位：</strong>解决AI生成前端 UI 千篇一律、像模板变色的问题。面向使用 Claude Code、Cursor 等 AI 编码工具的前端开发者和设计师，让每次产出的页面真正拥有不同风格和个性。</p>
+<p><strong>核心技术：</strong>内置 57 项“slop-test”检测门与预生成自我批判，强制模型脱离默认分布；配合 20 种预设主题与 4 种操作动词，从宏观结构到细节注入变化。</p>
+<p><strong>使用场景：</strong>开发者在 Claude Code 里让 AI 生成公司官网，再生成另一个博客，两个网站看起来像完全不同的设计，而不是同一套模板换颜色。</p>
+<p><strong>对比同类：</strong>暂无</p>
+<p><strong>值得关注：</strong>直击 AI 生成前端同质化痛点，推出后迅速获 4345 星，成为在 AI 编码助手中注入设计能力的明星项目。</p>
+</article>
+<article class="card repo-card">
+<h4><a href="https://github.com/hasaneyldrm/exercises-dataset" target="_blank" rel="noopener noreferrer">hasaneyldrm/exercises-dataset</a></h4>
+<p class="lead">一键获取包含1300多个健身动作的多语言结构化说明书，帮你快速搭好运动App的数据后台</p>
+<ul class="meta-list">
+<li><strong>相关性：</strong>较低</li>
+<li><strong>Stars：</strong>⭐14k (+949 今日)</li>
+<li><strong>语言：</strong>HTML</li>
+</ul>
+<p><strong>定位：</strong>解决开发者构建健身应用时缺少规范、多语言动作数据的问题，面向健身App、AI教练和运动分析产品的开发者。提供可直接导入的JSON数据集与后端脚手架，省去从零整理数据的麻烦。</p>
+<p><strong>核心技术：</strong>纯JSON格式，涵盖动作类别、目标肌群、器材、步骤等字段，支持中英西意土俄6种语言；附带数据库Schema生成器和API代码模板，即插即用。</p>
+<p><strong>使用场景：</strong>快速生成健身教学App的动作库，或作为AI运动推荐、智能私教功能的结构化训练数据源。</p>
+<p><strong>对比同类：</strong>暂无同类，因AutoGen、LangGraph、CrewAI均为AI智能体编排框架，定位完全不同。</p>
+<p><strong>值得关注：</strong>数据量大、多语言覆盖、结构清晰，是健身应用领域的稀缺开源基础资源，直接解决开发者痛点从而吸引大量关注。</p>
+</article>
+</div>
+    </section>
+
+    
+    <section class="report-section" id="official-tracker">
+      <h2>3 — 官方动态跟踪</h2>
+      <p class="meta-note">共发现 6 条官方动态（30 天内），来自 anthropic、deepmind。</p>
+<div class="summary-table-wrapper"><table class="summary-table">
+<thead><tr><th>来源</th><th>标题</th><th>日期</th><th>一句话</th></tr></thead>
+<tbody>
+<tr><td>Anthropic</td><td><a href="https://www.anthropic.com/research/disempowerment-patterns" target="_blank">Disempowerment patterns in real-world AI usage</a></td><td>2026-07-08</td><td>研究揭露AI助手在日常对话中可能暗暗削弱人的判断力的三种模式。</td></tr>
+<tr><td>Anthropic</td><td><a href="https://www.anthropic.com/research/economic-index-geography" target="_blank">Anthropic Economic Index: Tracking AI’s role in the US and g</a></td><td>2026-07-08</td><td>这份报告揭示了全球各地使用AI助手的独特地域偏好。</td></tr>
+<tr><td>Anthropic</td><td><a href="https://www.anthropic.com/research/economic-index-march-2026-report" target="_blank">Anthropic Economic Index report: Learning curves</a></td><td>2026-07-08</td><td>这份报告研究Claude用户使用习惯的变化，发现用得越久效率越高。</td></tr>
+<tr><td>DeepMind</td><td><a href="https://deepmind.google/blog/accelerating-discovery-of-liver-disease-mechanisms/" target="_blank">Accelerating discovery of liver disease mechanisms</a></td><td>2026-07-08</td><td>多智能体AI系统Co-Scientist加速肝病机制研究。</td></tr>
+<tr><td>DeepMind</td><td><a href="https://deepmind.google/blog/computational-predictions-of-protein-structures-associated-with-covid-19/" target="_blank">Computational predictions of protein structures associated w</a></td><td>2026-07-07</td><td>DeepMind用AlphaFold预测新冠病毒相关蛋白质结构并公开共享</td></tr>
+<tr><td>DeepMind</td><td><a href="https://deepmind.google/blog/sima-generalist-ai-agent-for-3d-virtual-environments/" target="_blank">A generalist AI agent for 3D virtual environments</a></td><td>2026-07-07</td><td>DeepMind推出能在3D虚拟世界陪玩、推理、学习的通用AI智能体SIMA 2。</td></tr>
+</tbody></table></div>
+<div class="detail-cards">
+<div class="card">
+<h3><a href="https://www.anthropic.com/research/disempowerment-patterns" target="_blank">Disempowerment patterns in real-world AI usage</a></h3>
+<p class="meta-list"><span>📅 2026-07-08</span></p>
+<p class="lead"><strong>一句话：</strong>研究揭露AI助手在日常对话中可能暗暗削弱人的判断力的三种模式。</p>
+<div class="abstract-cn"><p>这项研究首次大规模分析了真实用户与AI对话中可能存在的“去赋能”模式，聚焦信念、价值观和行动三个领域。文章指出，虽然AI助手大多时候提供有益帮助，但在处理情感、关系等个人事务时，AI可能通过不当反馈扭曲用户的认知、替代其本真价值判断，最终削弱个体的自主决策能力。</p></div>
+<p><strong>核心洞察：</strong>首次基于大规模真实对话数据，系统识别并分类了AI在信念形成、价值判断和行为选择三个维度上可能削弱用户自主性的具体模式。核心贡献在于将“去赋能”风险从抽象概念转化为可观测、可分析的交互模式，为AI对齐研究提供了新的安全评估框架。</p>
+</div>
+<div class="card">
+<h3><a href="https://www.anthropic.com/research/economic-index-geography" target="_blank">Anthropic Economic Index: Tracking AI’s role in the US and global economy</a></h3>
+<p class="meta-list"><span>📅 2026-07-08</span></p>
+<p class="lead"><strong>一句话：</strong>这份报告揭示了全球各地使用AI助手的独特地域偏好。</p>
+<div class="abstract-cn"><p>Anthropic发布的第三份经济指数报告首次详细分析了Claude在全球及美国各州的使用差异。报告显示，尽管软件工程仍是全球最主流的任务，但各地存在显著的地域特色，例如马萨诸塞州偏爱科研、巴西热衷语言学习。在美国境内，AI使用率最高的州并非由编程主导，而是反映了各州不同的经济结构。</p></div>
+<p><strong>核心洞察：</strong>该研究通过分析Claude的使用数据，量化了AI应用在地域和行业间的早期差异化模式。核心贡献在于，它揭示了一个重要现象：AI的最高人均采用率并非集中于传统的科技编码中心，而是与当地经济的独特构成高度相关，预示着AI正在向更多元化的经济领域渗透。</p>
+</div>
+<div class="card">
+<h3><a href="https://www.anthropic.com/research/economic-index-march-2026-report" target="_blank">Anthropic Economic Index report: Learning curves</a></h3>
+<p class="meta-list"><span>📅 2026-07-08</span></p>
+<p class="lead"><strong>一句话：</strong>这份报告研究Claude用户使用习惯的变化，发现用得越久效率越高。</p>
+<div class="abstract-cn"><p>Anthropic经济指数最新报告基于2026年2月的Claude使用数据，分析了自上次报告以来的使用趋势变化。报告发现，Claude的增强型协作使用模式略有增加，且高使用时长用户已形成了更好地利用AI能力的习惯与策略。</p></div>
+<p><strong>核心洞察：</strong>该研究引入了AI采用过程中的“学习曲线”概念，强调用户的使用经验深度是决定AI对劳动力市场影响效应大小的关键因素。持续使用能显著提升用户对AI的能力挖掘与工作效率。</p>
+</div>
+<div class="card">
+<h3><a href="https://deepmind.google/blog/accelerating-discovery-of-liver-disease-mechanisms/" target="_blank">Accelerating discovery of liver disease mechanisms</a></h3>
+<p class="meta-list"><span>📅 2026-07-08</span></p>
+<p class="lead"><strong>一句话：</strong>多智能体AI系统Co-Scientist加速肝病机制研究。</p>
+<div class="abstract-cn"><p>DeepMind推出了名为Co-Scientist的多智能体AI合作系统，旨在加速科学研究发现。该系统被应用于肝脏疾病领域，帮助研究人员更快地揭示其致病机制。</p></div>
+<p><strong>核心洞察：</strong>文章核心贡献是展示了多智能体AI架构（Co-Scientist）如何作为科学家的协作伙伴，在复杂的生物医学领域（如肝病）中加速知识发现与假设验证。这代表了从工具型AI向伙伴型科研AI的范式转变。</p>
+</div>
+<div class="card">
+<h3><a href="https://deepmind.google/blog/computational-predictions-of-protein-structures-associated-with-covid-19/" target="_blank">Computational predictions of protein structures associated with COVID-19</a></h3>
+<p class="meta-list"><span>📅 2026-07-07</span></p>
+<p class="lead"><strong>一句话：</strong>DeepMind用AlphaFold预测新冠病毒相关蛋白质结构并公开共享</p>
+<div class="abstract-cn"><p>DeepMind利用最新版AlphaFold系统预测了SARS-CoV-2病毒中若干研究较少的蛋白质结构，并免费向科学界发布。这些预测结果虽未经实验验证，但可为理解病毒功能、研发治疗方法提供假设生成平台。该工作依赖于全球研究者迅速共享的病毒基因组数据与开源协作精神。</p></div>
+<p><strong>核心洞察：</strong>通过高性能蛋白质结构预测工具，将传统需数月甚至更久的实验测定工作压缩为快速计算预测，并作为免费资源加速全球COVID-19相关基础研究与治疗开发。</p>
+</div>
+<div class="card">
+<h3><a href="https://deepmind.google/blog/sima-generalist-ai-agent-for-3d-virtual-environments/" target="_blank">A generalist AI agent for 3D virtual environments</a></h3>
+<p class="meta-list"><span>📅 2026-07-07</span></p>
+<p class="lead"><strong>一句话：</strong>DeepMind推出能在3D虚拟世界陪玩、推理、学习的通用AI智能体SIMA 2。</p>
+<div class="abstract-cn"><p>DeepMind发布了SIMA 2，一个面向3D虚拟环境的通用AI智能体。它能理解自然语言指令，在多种游戏中执行复杂操作，并能像人类玩家一样推理、规划和持续学习，实现真正的协作交互。</p></div>
+<p><strong>核心洞察：</strong>核心贡献在于打造了一个不局限于单一游戏、具备泛化能力的3D世界智能体，实现了从“在游戏中训练”到“在虚拟世界中与人类共同成长”的范式跨越。其关键技术在于融合了多模态理解、长期规划和实时交互执行能力，使AI成为真正的虚拟世界参与者而非旁观者。</p>
+</div>
+</div>
+    </section>
+    
+
+    
+    <section class="report-section" id="blog-subs">
+      <h2>4 — 独立博客订阅</h2>
+      <p class="meta-note">共 3 篇新文章（30 天内）。</p>
+<h3 class="source-heading">Simon Willison</h3>
+<ul class="blog-list">
+<li><a href="https://simonwillison.net/2026/Jul/16/grok-mermaid/#atom-everything" target="_blank">Mermaid to Unicode box art (grok-mermaid)</a> <span class="blog-date">(2026-07-16)</span><br><span class="blog-summary">发现Grok项目里有个把Mermaid图转成Unicode字符画的小工具</span></li>
+</ul>
+<h3 class="source-heading">AWS 中国博客</h3>
+<ul class="blog-list">
+<li><a href="https://aws.amazon.com/cn/blogs/china/aws-devops-agent-how-to-using/" target="_blank">AWS DevOps Agent 实战：如何使用生成式 AI 加速故障演练</a> <span class="blog-date">(Thu, 16 Ju)</span><br><span class="blog-summary">用AI工具让故障演练从人工变成自动且可复用。</span></li>
+<li><a href="https://aws.amazon.com/cn/blogs/china/aws-devops-agent-build-gaming-intelligent-operations/" target="_blank">星合互娱借助 AWS DevOps Agent 构建多游戏智能运维体系</a> <span class="blog-date">(Thu, 16 Ju)</span><br><span class="blog-summary">星合互娱用AWS AI代理让运维省时省力</span></li>
+</ul>
+    </section>
+    
+
+    
+    <section class="report-section" id="conference-papers">
+      <h2>5 — 会议论文追踪</h2>
+      <div class="conf-stats"><span class="stat-chip">共 20 篇论文</span><span class="stat-chip stat-a">A 类 20 篇</span><span class="stat-chip stat-b">B 类 0 篇</span></div>
+<div class="report-list conf-list" data-date="20260716">
+<article class="card paper-card"><h3>1. Are LLM-Based Retrievers Worth Their Cost? An Empirical Study of Efficiency, Robustness, and Reasoning Overhead.</h3><p class="meta"><strong>作者：</strong>Abdelrahman Abdallah, Jamie Holdcroft, Mohammed Ali, Adam Jatowt</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">LLM检索器</span><span class="tag">检索效率</span><span class="tag">成本效益分析</span><span class="tag">鲁棒性</span></div><p><strong>一句话总结：</strong>评估大模型检索器的真实性价比与适用边界</p><p class="links"><a href="https://doi.org/10.1145/3805712.3808566" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文系统评估了基于LLM的文档检索器在实际部署中的效率、鲁棒性和推理开销。通过对比LLM检索器与双塔编码器等传统方法，研究发现LLM检索器虽在部分文本重排序任务上表现更优，但在延迟、吞吐量和计算成本上代价巨大。作者特别量化了模型规模、上下文长度对检索质量和系统开销的影响，并分析了模型在数据扰动下的鲁棒性，指出当前LLM检索器的高成本与边际收益不对等，为权衡检索架构选型提供了实证参考。</p></section><p class="recommendation"><strong>核心推荐：</strong>切中Agent/RAG架构落地痛点，为如何在性能与成本间做工程选型提供关键数据支撑。</p></article>
+<article class="card paper-card"><h3>2. ACE: Semantically-Grounded Graph Alignment via Affective Contrastive Learning.</h3><p class="meta"><strong>作者：</strong>Potito Aghilar, Sabino Roccotelli, Vito Walter Anelli, Alejandro Bellogín, Michelantonio Trizio 等 (6 人)</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">图对齐</span><span class="tag">情感对比学习</span><span class="tag">语义表示</span><span class="tag">推荐系统</span><span class="tag">跨域迁移</span></div><p><strong>一句话总结：</strong>利用情感对比学习实现语义感知的图对齐框架</p><p class="links"><a href="https://doi.org/10.1145/3805712.3809526" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出ACE框架，通过情感对比学习在图对齐任务中融入语义信息。核心贡献包括：1) 设计情感感知的图编码器，从用户-项目交互中提取情感语义；2) 提出对比对齐目标，在统一嵌入空间中进行跨图节点匹配；3) 无需监督对齐信号，实现无监督语义对齐。该框架将情感计算与图表示学习深度融合，为推荐系统中的跨域知识迁移提供了新范式。</p></section><p class="recommendation"><strong>核心推荐：</strong>创新性地将情感计算引入图对齐任务，为语义理解和跨域迁移学习提供了新颖视角，对推荐系统和大模型的可解释性研究具有启发意义</p></article>
+<article class="card paper-card"><h3>3. Does LLM Relevance Labelling Work for Arabic?</h3><p class="meta"><strong>作者：</strong>Marwah Alaofi, Fatima Haouari</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">LLM相关性标注</span><span class="tag">阿拉伯语信息检索</span><span class="tag">跨语言检索评估</span><span class="tag">提示语言影响</span></div><p><strong>一句话总结：</strong>评估LLM对阿拉伯语相关性标注的可行性</p><p class="links"><a href="https://doi.org/10.1145/3805712.3809855" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文探究了大语言模型（LLM）在阿拉伯语信息检索中作为相关性标注工具的效能，比较了多种前沿LLM（如GPT-4）与传统标注方法在阿拉伯语数据集上的性能。核心发现揭示LLM标注效果在很大程度上受制于提示语言选择和模型规模，指出目前的英文主导型LLM在理解阿拉伯语查询与文档间的细微语义时面临挑战，并提供了构建高效阿拉伯语检索评估套件的实践指导。</p></section><p class="recommendation"><strong>核心推荐：</strong>该研究切入低资源语言与大模型结合的盲点，对构建高可靠性的多语言搜索Agent和LLM评估器有直接工程指导价值。</p></article>
+<article class="card paper-card"><h3>4. Beyond the Single Path: Divergent Reasoning for LLM-based Recommendation.</h3><p class="meta"><strong>作者：</strong>Guojia An, Jie Zou 0001, Yuhan Yang, Shuai Qin, Weikang Guo 等 (7 人)</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">发散推理</span><span class="tag">大语言模型推荐</span><span class="tag">思维链</span><span class="tag">可解释推荐</span></div><p><strong>一句话总结：</strong>用发散推理打破LLM推荐的单一路径依赖</p><p class="links"><a href="https://doi.org/10.1145/3805712.3809732" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文针对大语言模型在推荐系统中倾向于沿单一路径生成预测的问题，提出了一种发散推理（Divergent Reasoning）框架。核心贡献在于模拟人类多角度决策过程，通过生成多条逻辑路径、冲突检测与综合聚合，提升推荐的合理性与可解释性，有效缓解了LLM的顺序归纳偏差，在多项推荐基准上验证了其有效性。</p></section><p class="recommendation"><strong>核心推荐：</strong>创新性地将认知科学中的发散思维引入LLM推荐架构，对提升模型决策鲁棒性和可解释性具有前沿价值，与AI Agent多路径推理方向紧密相关。</p></article>
+<article class="card paper-card"><h3>5. Can QPP Choose the Right Query variant? Evaluating Query Variant Selection for RAG Pipelines.</h3><p class="meta"><strong>作者：</strong>Negar Arabzadeh, Andrew Drozdov, Michael Bendersky, Matei Zaharia</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">查询性能预测</span><span class="tag">检索增强生成</span><span class="tag">查询变体选择</span></div><p><strong>一句话总结：</strong>查询性能预测能否为RAG挑选出最优的查询变体？</p><p class="links"><a href="https://doi.org/10.1145/3805712.3808571" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>该论文系统评估了多种查询性能预测（QPP）方法在检索增强生成（RAG）管道中，为原始查询的多个改写变体选择最佳版本的能力。研究发现，现有的QPP方法在预测查询变体的下游生成质量（如精确匹配得分）方面表现不佳，与直接使用原始查询相比提升有限。核心贡献在于揭示了QPP与RAG生成质量之间存在显著的不匹配，并提出了直接以生成质量为依据的重排序基线，为该领域的评价和优化指明了新方向。</p></section><p class="recommendation"><strong>核心推荐：</strong>该工作揭示了传统检索评价指标与生成质量间的关键鸿沟，对优化RAG系统的查询路由与改写策略具有重要指导意义。</p></article>
+<article class="card paper-card"><h3>6. Diagnosing LLM Reranker Behavior Under Fixed Evidence Pools.</h3><p class="meta"><strong>作者：</strong>Baris Arat, Emre Sefer</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">LLM重排序</span><span class="tag">检索增强生成</span><span class="tag">诊断评估</span><span class="tag">行为偏差</span></div><p><strong>一句话总结：</strong>诊断固定证据池下LLM重排序器的行为偏差</p><p class="links"><a href="https://doi.org/10.1145/3805712.3809852" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文对大型语言模型（LLM）在固定证据池下的重排序行为进行了系统性诊断，重点分析其在信息检索任务中的内在偏差与决策不一致性。研究通过受控实验，揭示了LLM重排序器对证据位置、格式和冗余的敏感性，而非仅依据语义相关性。核心贡献在于构建了诊断框架，量化了LLM在检索增强生成（RAG）场景中作为重新排序组件的隐式行为模式，为改进召回后优化策略提供了关键洞察。</p></section><p class="recommendation"><strong>核心推荐：</strong>直击RAG系统核心痛点，通过诊断LLM重排序器的非理性行为，为构建更稳健的检索增强智能体提供了关键实证依据。</p></article>
+<article class="card paper-card"><h3>7. Policy-Guided RAG: Enforcing Verbatim and Controlled Synthesis.</h3><p class="meta"><strong>作者：</strong>Mina Naghash Asadi, Leila Tavakoli, Mustafa Bilgrami</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">策略引导生成</span><span class="tag">检索增强生成</span><span class="tag">受控合成</span><span class="tag">幻觉抑制</span></div><p><strong>一句话总结：</strong>用策略规则约束RAG生成，实现精确可控合成。</p><p class="links"><a href="https://doi.org/10.1145/3805712.3808490" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出Policy-Guided RAG框架，通过定义可执行策略规则来强制约束检索增强生成系统的输出，确保生成内容严格遵循预定义词汇或受控合成模式。该方法将策略编码为结构化指令，在检索与生成阶段进行对齐校验，从而在需要高保真度输出的场景（如医疗、法律）中提升生成可靠性与可控性，解决了传统RAG生成内容偏离源材料或产生幻觉的关键问题。</p></section><p class="recommendation"><strong>核心推荐：</strong>提出将可执行策略引入RAG管线，为提升大模型在严肃场景下的可控性和事实一致性提供了新范式，对智能体安全落地有直接参考价值。</p></article>
+<article class="card paper-card"><h3>8. ZIPBid: Hierarchical Zero-shot Incremental Spend Planning for Auto-bidding.</h3><p class="meta"><strong>作者：</strong>Yunke Bai, Wenzheng Shu, Jinan Pang, Wentao Bai, Yunshan Peng 等 (9 人)</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">自动出价</span><span class="tag">预算规划</span><span class="tag">零样本学习</span><span class="tag">层次化因果图</span><span class="tag">增量决策</span></div><p><strong>一句话总结：</strong>层次化零样本增量式广告出价预算规划</p><p class="links"><a href="https://doi.org/10.1145/3805712.3809908" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出了ZIPBid模型，针对广告自动出价场景下的预算规划问题，设计了一种层次化零样本增量式花费规划方法。核心创新在于：1) 构建了市场-广告主-广告计划的三层层次化因果图模型，显式建模不同粒度下的转化与花费关系；2) 提出零样本场景下的增量规划策略，无需训练即可在新广告主或新计划上高效分配预算；3) 结合序列决策与反事实推理，解决了传统方法在冷启动和跨粒度协同上的不足。实验表明该方法能显著提升预算利用率和转化效果。</p></section><p class="recommendation"><strong>核心推荐：</strong>将因果推理与零样本决策结合应用于商业广告Agent，为Agent在动态资源分配场景的自主规划提供了新思路，值得智能体架构研究者关注。</p></article>
+<article class="card paper-card"><h3>9. TRACE: A Conversational Framework for Sustainable Tourism Recommendation with Agentic Counterfactual Explanations.</h3><p class="meta"><strong>作者：</strong>Ashmi Banerjee, Adithi Satish, Wolfgang Wörndl, Yashar Deldjoo</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">对话式推荐系统</span><span class="tag">反事实解释</span><span class="tag">智能体</span><span class="tag">可持续旅游</span><span class="tag">大语言模型</span></div><p><strong>一句话总结：</strong>面向可持续旅游的对话式Agent与反事实解释框架</p><p class="links"><a href="https://doi.org/10.1145/3805712.3808370" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>该论文提出了TRACE框架，一个基于大语言模型智能体的对话式旅游推荐系统。其核心创新在于将可持续旅游目标（如减少碳足迹）融入推荐流程，并利用智能体生成反事实解释（即“如果您选择...可能会...”），在交互中引导用户做出更环保的选择。系统通过对话理解用户偏好，动态结合可持续性约束，提供可解释的多轮推荐决策。本研究将责任推荐、可解释AI与智能体技术结合，为构建具有社会意识的对话式AI系统提供了新范式，突出了智能体在复杂决策场景中的因果推理与说服能力。</p></section><p class="recommendation"><strong>核心推荐：</strong>该文巧妙融合了智能体决策、反事实推理与价值对齐，为构建具有社会责任感的对话AI提供了具体技术路径。</p></article>
+<article class="card paper-card"><h3>10. LLM Agents Factory: Retrieval of Domain-Specific LLM Agents.</h3><p class="meta"><strong>作者：</strong>Vitalii Belov, Artyom Sosedka, Andrey Sakhovskiy, Elizaveta Kovtun, Artyom Boyarskikh 等 (6 人)</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">LLM智能体</span><span class="tag">智能体检索</span><span class="tag">领域专用</span><span class="tag">模块化复用</span><span class="tag">智能体工厂</span></div><p><strong>一句话总结：</strong>领域专用LLM智能体的高效检索与复用框架。</p><p class="links"><a href="https://doi.org/10.1145/3805712.3808515" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出了LLM Agents Factory框架，旨在解决领域专用LLM智能体的复用与检索问题。核心贡献包括：设计了基于智能体描述和性能档案的检索机制，通过结构化元数据与向量匹配实现高效发现；引入了动态组合与配置能力，支持根据新任务需求灵活组装已有智能体模块。该框架提升了领域智能体的开发效率，避免了重复构建，为构建大规模、可演进的智能体生态系统提供了基础设施。</p></section><p class="recommendation"><strong>核心推荐：</strong>提出了智能体复用与检索的新范式，对构建规模化、高效能的Agent生态具有直接推动作用，呼应了当前Agent互联网与组合式AI的前沿趋势。</p></article>
+<article class="card paper-card"><h3>11. A Reproducibility Study of LLM-Based Query Reformulation.</h3><p class="meta"><strong>作者：</strong>Amin Bigdeli, Radin Hamidi Rad, Hai Son Le, Mert Incesu, Negar Arabzadeh 等 (7 人)</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">查询重写</span><span class="tag">可复现性</span><span class="tag">大语言模型</span><span class="tag">信息检索</span></div><p><strong>一句话总结：</strong>复现并评估大模型查询重写的可复现性研究</p><p class="links"><a href="https://doi.org/10.1145/3805712.3808560" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文对近期基于大语言模型（LLM）的查询重写方法进行了系统性可复现性研究。作者选取了多篇SIGIR等顶会论文中的方法，在统一框架下严格复现实验，对比其在不同检索模型和数据集上的效果。核心贡献在于揭示了原论文结论在复现时的稳定性与差异，分析了prompt敏感性、基座模型选择等因素对性能的影响，为信息检索领域LLM应用的可复现性危机提供了实证依据和改进建议。</p></section><p class="recommendation"><strong>核心推荐：</strong>该研究直面AI前沿中的可复现性危机，量化了LLM在IR任务中的不稳定性，对构建可靠的大模型应用生态具有重要警示和参考价值。</p></article>
+<article class="card paper-card"><h3>12. One Pass, Any Order: Position-Invariant Listwise Reranking for LLM-Based Recommendation.</h3><p class="meta"><strong>作者：</strong>Ethan Bito, Yongli Ren, Estrid He</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">列表重排</span><span class="tag">位置不变性</span><span class="tag">大语言模型推荐</span><span class="tag">注意力机制</span><span class="tag">推理效率</span></div><p><strong>一句话总结：</strong>LLM列表重排的位置不变性方法，实现一次推理任意顺序输出。</p><p class="links"><a href="https://doi.org/10.1145/3805712.3809952" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文针对大语言模型在推荐系统列表重排中存在的顺序敏感性问题，提出了一种位置不变性训练框架。核心创新在于设计了一种新的注意力机制和训练策略，使得模型在一次前向传播中即可处理任意顺序的候选项，输出稳定一致的重排结果，消除了传统级联或自回归重排中的位置偏差。实验表明，该方法在保持高精度的同时，显著降低了推理延迟，为LLM在推荐系统中的高效部署提供了新思路。</p></section><p class="recommendation"><strong>核心推荐：</strong>解决LLM推荐中顺序偏差的底层架构问题，对构建鲁棒、高效的AI Agent推荐管道具有直接参考价值。</p></article>
+<article class="card paper-card"><h3>13. Agentic Multi-Source Grounding for Enhanced Query Intent Understanding: A DoorDash Case Study.</h3><p class="meta"><strong>作者：</strong>Emmanuel Aboah Boateng, Kyle MacDonald, Akshad Viswanathan, Sudeep Das</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">意图理解</span><span class="tag">多源信息融合</span><span class="tag">智能体框架</span><span class="tag">工业落地</span><span class="tag">检索增强生成</span></div><p><strong>一句话总结：</strong>多源信息融合提升查询意图理解的Agent框架</p><p class="links"><a href="https://doi.org/10.1145/3805712.3808471" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出了一种面向真实工业场景（DoorDash外卖平台）的Agentic多源检索意图理解框架，通过大模型驱动的智能体动态选择和融合商品、用户画像、历史行为、上下文等多源异构信息，显著提升了对模糊、多意图查询的理解能力。该框架结合检索增强生成与规划机制，在线部署A/B测试中取得了核心业务指标的显著提升，为构建高鲁棒性意图理解系统提供了工业级参考。</p></section><p class="recommendation"><strong>核心推荐：</strong>工业界Agent应用标杆案例，展示了多源信息融合与规划能力在真实复杂搜索场景中的有效落地，对AI Agent架构设计和商业化有重要参考价值。</p></article>
+<article class="card paper-card"><h3>14. One Adapts to Any: Meta Reward Modeling for Personalized LLM Alignment.</h3><p class="meta"><strong>作者：</strong>Hongru Cai, Yongqi Li 0001, Tiezheng Yu, Fengbin Zhu, Wenjie Wang 0007 等 (7 人)</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">个性化对齐</span><span class="tag">元奖励建模</span><span class="tag">大语言模型</span><span class="tag">人类偏好学习</span><span class="tag">元学习</span></div><p><strong>一句话总结：</strong>元奖励模型实现个性化大语言模型对齐</p><p class="links"><a href="https://doi.org/10.1145/3805712.3809689" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文针对大型语言模型对齐中的个性化需求，提出元奖励建模框架。核心贡献在于将个性化对齐建模为元学习问题，通过少量用户反馈数据快速适应个体偏好，生成定制化奖励模型。该方法结合元学习与偏好优化，缓解了传统统一奖励模型忽略用户差异的局限，在提升模型个性化响应质量的同时保持对齐效果，为个性化LLM服务提供有效技术路径。</p></section><p class="recommendation"><strong>核心推荐：</strong>该工作将元学习引入RLHF框架，解决了LLM个性化适配关键难题，对构建用户中心化AI系统具有前沿参考价值。</p></article>
+<article class="card paper-card"><h3>15. LiveRAG:  A Diverse Q&amp;amp;A Dataset with Varying Difficulty Level for RAG Evaluation.</h3><p class="meta"><strong>作者：</strong>David Carmel, Simone Filice, Guy Horowitz, Yoelle Maarek, Alex Shtoff 等 (7 人)</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">RAG评测</span><span class="tag">难度分级数据集</span><span class="tag">检索增强生成</span></div><p><strong>一句话总结：</strong>提出多难度层级的RAG评测数据集LiveRAG</p><p class="links"><a href="https://doi.org/10.1145/3805712.3808585" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文构建了LiveRAG，一个面向检索增强生成（RAG）系统的多难度层级问答评测数据集。核心贡献在于系统性地设计了从简单到极具挑战性的多样化问题，涵盖时间推理、反事实、多跳等维度，并提供了精确的细粒度难度标注，弥补了现有基准测试在难度分级上的缺陷，为更精细地评估RAG模型的真实能力提供了标准化工具。</p></section><p class="recommendation"><strong>核心推荐：</strong>系统化构建高难度分级RAG基准，直击当前评测体系痛点，对推动RAG系统鲁棒性研究具有重要价值。</p></article>
+<article class="card paper-card"><h3>16. Beyond Static Best-of-N: Bayesian List-wise Alignment for LLM-based Recommendation.</h3><p class="meta"><strong>作者：</strong>Ruijun Chen, Chongming Gao, Jiawei Chen 0007, Weiqin Yang 0002, Xiangnan He 0001</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">大语言模型推荐</span><span class="tag">列表级对齐</span><span class="tag">贝叶斯推断</span><span class="tag">推理时优化</span></div><p><strong>一句话总结：</strong>用贝叶斯列表级对齐突破LLM推荐的静态采样瓶颈</p><p class="links"><a href="https://doi.org/10.1145/3805712.3809535" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出贝叶斯列表级对齐框架（BLA），针对大语言模型在推荐系统中依赖静态Best-of-N采样的低效问题。核心贡献在于将列表生成建模为贝叶斯推断，通过动态更新后验分布克服静态采样的探索不足，并在策略优化中引入列表级奖励反馈，显著提升生成的推荐列表在多样性与准确性上的平衡。该工作在SIGIR会议上为LLM驱动的推荐系统提供了更高效的推理-对齐新范式。</p></section><p class="recommendation"><strong>核心推荐：</strong>突破静态Best-of-N采样范式，为LLM推荐系统提供动态贝叶斯推理新思路，与大模型时代的高效推理对齐技术紧密相关。</p></article>
+<article class="card paper-card"><h3>17. Reasoning-Grounded Intent Injection for Generative Recommendation.</h3><p class="meta"><strong>作者：</strong>Xusong Chen, Peini Guo, Fang Liu, Yu Zhao, Yiyang Hu 等 (12 人)</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">生成式推荐</span><span class="tag">意图注入</span><span class="tag">推理增强</span><span class="tag">大语言模型</span></div><p><strong>一句话总结：</strong>基于推理的意图注入提升生成式推荐</p><p class="links"><a href="https://doi.org/10.1145/3805712.3808423" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出了一种推理驱动的意图注入框架，用于增强生成式推荐系统。核心思想是将大语言模型的逐步推理能力融入推荐过程，通过显式建模用户意图来指导物品生成。该方法在多个数据集上验证了有效性，显著提升了推荐的准确性和可解释性。</p></section><p class="recommendation"><strong>核心推荐：</strong>将LLM推理与推荐意图显式对齐，为生成式推荐系统的可解释性和准确性提升提供了新范式，与大模型应用前沿紧密相关。</p></article>
+<article class="card paper-card"><h3>18. Reconstructing Content with Collaborative Attention for Universal Multimodal Representation Learning.</h3><p class="meta"><strong>作者：</strong>Jiahan Chen, Da Li 0003, Hengran Zhang, Yinqiong Cai, Lixin Su 等 (9 人)</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">很推荐</span></div><div class="tags"><span class="tag">多模态表征学习</span><span class="tag">协同注意力</span><span class="tag">内容重构</span><span class="tag">通用表征</span></div><p><strong>一句话总结：</strong>协同注意力重构内容实现通用多模态表征学习</p><p class="links"><a href="https://doi.org/10.1145/3805712.3809695" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>本文提出一种基于协同注意力机制的多模态表征学习方法，通过重构模态内容来学习通用联合表征。该方法设计了跨模态协同注意力模块，使不同模态在融合过程中能够交互式地重建彼此的关键信息，从而捕捉细粒度对齐关系。实验在图像-文本检索和分类等多任务上验证了其有效性，展现了较强的模态泛化能力，为通用多模态基础模型提供了新的表征学习框架。</p></section><p class="recommendation"><strong>核心推荐：</strong>通过跨模态内容重构增强对齐精度，对多模态大模型的对齐训练策略有启发意义</p></article>
+<article class="card paper-card"><h3>19. From Translation to Retrieval: Evaluating LLM-Based Information Retrieval for Hausa and Fongbe.</h3><p class="meta"><strong>作者：</strong>Mahounan Pericles Adjovi, Roald Eiselen, Prasenjit Mitra 0001</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">推荐</span></div><div class="tags"><span class="tag">低资源语言</span><span class="tag">跨语言信息检索</span><span class="tag">LLM评估</span></div><p><strong>一句话总结：</strong>评估LLM在豪萨语和丰语的信息检索能力</p><p class="links"><a href="https://doi.org/10.1145/3805712.3808531" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>该论文评估了大型语言模型在豪萨语和丰语这两种低资源非洲语言上的信息检索表现。研究从翻译对比检索入手，发现直接使用原始语言查询通常比翻译成英语后检索效果更好。核心贡献在于揭示了当前多语言LLM在低资源语言检索上的局限性，特别是模型偏向生成内容而非精确提取证据，并分析了语言资源丰富度对检索性能的关键影响。</p></section><p class="recommendation"><strong>核心推荐：</strong>揭示了低资源语言LLM检索的翻译失效与幻觉倾向，对多语言Agent架构设计具有警示意义。</p></article>
+<article class="card paper-card"><h3>20. Improving Interpretability of Cognitive Diagnosis Models with LLM-based Semantic Augmentation.</h3><p class="meta"><strong>作者：</strong>Youheng Bai, Jiaqi Zheng 0012, Mingliang Hou, Teng Guo 0002, Mi Tian 0008 等 (8 人)</p><div class="tags"><span class="tag tag-venue">SIGIR 2026</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">推荐</span></div><div class="tags"><span class="tag">认知诊断模型</span><span class="tag">大语言模型</span><span class="tag">可解释性</span><span class="tag">语义增强</span><span class="tag">智能教育</span></div><p><strong>一句话总结：</strong>用LLM语义增强认知诊断模型的可解释性</p><p class="links"><a href="https://doi.org/10.1145/3805712.3809573" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>该论文针对认知诊断模型（CDM）可解释性不足的问题，提出利用大语言模型（LLM）进行语义增强的创新方法。通过将LLM生成的知识概念语义表示与传统CDM相结合，模型不仅保留了诊断精度，还显著提升了诊断结果的可解释性，能够清晰揭示学生能力与知识点之间的语义关联，为智能教育场景提供了更透明、更可信的诊断框架。</p></section><p class="recommendation"><strong>核心推荐：</strong>巧妙地将LLM的语义理解能力注入传统心理测量模型，是AI+X（教育）交叉研究的典范，对提升模型透明度和可信AI具有启示意义。</p></article>
+</div>
+    </section>
+    
+
+    
+    <section class="report-section" id="wechat-articles">
+      <h2>6 — 微信公众号</h2>
+      <p class="empty-state">今日无微信公众号更新。</p>
+    </section>
+    
+
+  </main>
+  <script>
+(function() {
+  // ── TOC card collapse/expand ──
+  var tocHeader = document.querySelector('.toc-card-header');
+  var tocCard = document.querySelector('.toc-card');
+  if (tocHeader && tocCard) {
+    tocHeader.addEventListener('click', function() {
+      tocCard.classList.toggle('collapsed');
+    });
+  }
+
+  // ── Scroll-spy: highlight active section in TOC ──
+  var sections = document.querySelectorAll('.report-section[id]');
+  var tocEntries = document.querySelectorAll('.toc-entry[data-target]');
+  var tocDots = document.querySelectorAll('.toc-dot[data-target]');
+
+  function setActive(id) {
+    tocEntries.forEach(function(el) {
+      el.classList.toggle('active', el.getAttribute('data-target') === id);
+    });
+    tocDots.forEach(function(el) {
+      el.classList.toggle('active', el.getAttribute('data-target') === id);
+    });
+  }
+
+  if ('IntersectionObserver' in window && sections.length > 0) {
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          setActive(entry.target.id);
+        }
+      });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+    sections.forEach(function(s) { observer.observe(s); });
+  }
+
+  // ── Smooth scroll on TOC click ──
+  document.querySelectorAll('a[href^="#"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      var href = this.getAttribute('href');
+      if (href.length > 1) {
+        var target = document.querySelector(href);
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', href);
+        }
+      }
+    });
+  });
+
+  // ── Floating dot click → scroll to section ──
+  tocDots.forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      var id = this.getAttribute('data-target');
+      var target = document.getElementById(id);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

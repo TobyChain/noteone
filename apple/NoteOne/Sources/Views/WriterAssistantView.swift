@@ -35,16 +35,26 @@ struct WriterAssistantView: View {
                 rewriteConfirm = nil
             }
         } message: { action in
-            Text("Notty 想用 \(action.text.count) 字的新内容覆盖整篇文档。当前文档共 \(documentText.count) 字。")
+            Text("闹闹想用 \(action.text.count) 字的新内容覆盖整篇文档。当前文档共 \(documentText.count) 字。")
         }
         .task {
-            // Bootstrap a session lazily on first send to avoid creating empty sessions
-            // every time the user opens the writer.
             if messages.isEmpty {
-                messages.append(ChatMessage(
-                    role: "assistant",
-                    content: "我是 Notty 写作助手。告诉我你想写什么，我可以在你的光标处插入草稿、替换选中段落、追加章节，或整篇重写。也可以用「找一下我笔记里关于…的内容」让我先检索素材。"
-                ))
+                // Load the latest session (shared with NottyView) so context carries over
+                do {
+                    let sessions = try await APIClient.shared.listChatSessions()
+                    if let latest = sessions.first {
+                        sessionId = latest.id
+                        let detail = try await APIClient.shared.getChatSession(id: latest.id)
+                        messages = detail.messages.map { ChatMessage(role: $0.role, content: $0.content) }
+                    }
+                } catch {}
+
+                if messages.isEmpty {
+                    messages.append(ChatMessage(
+                        role: "assistant",
+                        content: "我是闹闹写作助手。告诉我你想写什么，我可以在你的光标处插入草稿、替换选中段落、追加章节，或整篇重写。也可以用「找一下我笔记里关于…的内容」让我先检索素材。"
+                    ))
+                }
             }
         }
     }
@@ -55,7 +65,7 @@ struct WriterAssistantView: View {
                 .resizable()
                 .frame(width: 22, height: 22)
                 .clipShape(Circle())
-            Text("Notty 写作助手")
+            Text("闹闹")
                 .font(.subheadline.bold())
             Spacer()
             if selection.length > 0 {
@@ -79,7 +89,7 @@ struct WriterAssistantView: View {
                     if isLoading {
                         HStack(spacing: 6) {
                             ProgressView().controlSize(.small)
-                            Text("Notty 思考中…")
+                            Text("闹闹思考中…")
                                 .font(.caption)
                                 .foregroundStyle(Color.inkTertiary)
                         }
@@ -120,7 +130,7 @@ struct WriterAssistantView: View {
 
     private var composer: some View {
         HStack(spacing: 8) {
-            TextField("让 Notty 帮你写…", text: $input, axis: .vertical)
+            TextField("让闹闹帮你写…", text: $input, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(1...4)
                 .onSubmit { send() }

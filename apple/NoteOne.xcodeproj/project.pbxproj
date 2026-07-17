@@ -80,6 +80,8 @@
 		D2AB1E78DFD98BB543335A16 /* NoteOneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */; };
 		D8974388C3F186B91C9DC7DF /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F93BB424A479EE7F81E50F0 /* LoginView.swift */; };
 		D8BE51C6E79FBB7DEBA3105C /* WriterEditorPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130E091F41A7CF69FC4A0A83 /* WriterEditorPane.swift */; };
+		A1B2C3D4E5F6A1B2C3D4E5F6 /* MarkdownLiveEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F6A1B2C3D4E5F6A1B2 /* MarkdownLiveEditor.swift */; };
+		B2C3D4E5F6A1B2C3D4E5F6A1 /* MarkdownLiveEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F6A1B2C3D4E5F6A1B2 /* MarkdownLiveEditor.swift */; };
 		D93A6AA6BE5BADE41BB54865 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82FA9FA28AD13D36EB22561F /* Theme.swift */; };
 		DA236F8F411BE8264DB35516 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F652DB919B58BC615BE4B57 /* Assets.xcassets */; };
 		DB89638BBDCE0136E772803D /* TrashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE43870CCBC22B239AB8DFFD /* TrashView.swift */; };
@@ -102,6 +104,7 @@
 		0F652DB919B58BC615BE4B57 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1079E75DF4BD08C37A84A968 /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
 		130E091F41A7CF69FC4A0A83 /* WriterEditorPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WriterEditorPane.swift; sourceTree = "<group>"; };
+		C3D4E5F6A1B2C3D4E5F6A1B2 /* MarkdownLiveEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownLiveEditor.swift; sourceTree = "<group>"; };
 		14E6C7017395B182C0EB0733 /* SyncQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncQueue.swift; sourceTree = "<group>"; };
 		1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		1F93BB424A479EE7F81E50F0 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -256,6 +259,7 @@
 				A90E817CE5C78342A6CC13B7 /* UnifiedSettingsView.swift */,
 				2768CB8ABA998BD65A929B8C /* WriterAssistantView.swift */,
 				130E091F41A7CF69FC4A0A83 /* WriterEditorPane.swift */,
+				C3D4E5F6A1B2C3D4E5F6A1B2 /* MarkdownLiveEditor.swift */,
 				F56D11B30D5D53DBE0488236 /* WriterView.swift */,
 			);
 			path = Views;
@@ -432,6 +436,7 @@
 				DB918CB34CC939B90F2DCA24 /* UnifiedSettingsView.swift in Sources */,
 				19914E1F482EC237C0BB30B4 /* WriterAssistantView.swift in Sources */,
 				CEFF4C7E592C882B91B88F4C /* WriterEditorPane.swift in Sources */,
+				A1B2C3D4E5F6A1B2C3D4E5F6 /* MarkdownLiveEditor.swift in Sources */,
 				A2C83BDFFE40092E67C16B04 /* WriterView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -488,6 +493,7 @@
 				E2C4A2A8486497040D2ED8F8 /* UnifiedSettingsView.swift in Sources */,
 				7D6EE094F73B1D01F395DE79 /* WriterAssistantView.swift in Sources */,
 				D8BE51C6E79FBB7DEBA3105C /* WriterEditorPane.swift in Sources */,
+				B2C3D4E5F6A1B2C3D4E5F6A1 /* MarkdownLiveEditor.swift in Sources */,
 				88841CA48C9E734FB912EACB /* WriterView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

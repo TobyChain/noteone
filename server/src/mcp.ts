@@ -8,6 +8,9 @@ import { eq, and, desc, inArray, ne, sql } from "drizzle-orm";
 import { processNote } from "./services/pipeline.js";
 import { generateEmbedding } from "./services/llm.js";
 import { attachPromptTags } from "./services/prompt-tagging.js";
+import { listReports, getReport, deleteReport } from "./services/ascan/reports.js";
+import { getRunStatus, runModule, mergeReport } from "./services/ascan/runner.js";
+import { getUserChatConfig } from "./services/user-config.js";
 
 const server = new McpServer({
   name: "noteone",
@@ -237,6 +240,108 @@ server.tool(
       .map(([dim, names]) => `[${dim}] ${names.join(", ")}`)
       .join("\n");
     return { content: [{ type: "text" as const, text: text || "暂无标签" }] };
+  }
+);
+
+server.tool(
+  "list_ascan_reports",
+  "列出最近的 新知 日报（科技前沿日报），包含日期和摘要",
+  {},
+  async () => {
+    const reports = await listReports();
+    const text = reports.map(r =>
+      `[${r.date}] ${r.summary || "无摘要"} (${r.size}B)`
+    ).join("\n");
+    return { content: [{ type: "text" as const, text: text || "暂无日报" }] };
+  }
+);
+
+server.tool(
+  "get_ascan_report",
+  "获取指定日期的新知日报内容（纯文本）",
+  { date: z.string().describe("日期，格式 YYYYMMDD，如 20260716") },
+  async ({ date }) => {
+    const html = await getReport(date);
+    if (!html) return { content: [{ type: "text" as const, text: `未找到 ${date} 的日报` }] };
+    const text = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&[a-z]+;/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 8000);
+    return { content: [{ type: "text" as const, text }] };
+  }
+);
+
+server.tool(
+  "get_ascan_status",
+  "查看新知 pipeline 的运行状态",
+  {},
+  async () => {
+    const status = await getRunStatus();
+    const parts = [
+      `运行中: ${status.isRunning ? "是" : "否"}`,
+      status.recentLog ? `最新日志: ${status.recentLog}` : null,
+      status.lockAge ? `锁文件时长: ${status.lockAge}` : null,
+    ].filter(Boolean);
+    return { content: [{ type: "text" as const, text: parts.join("\n") }] };
+  }
+);
+
+server.tool(
+  "delete_ascan_report",
+  "删除指定日期的新知日报（同时清理 html/md/summary 文件）。运行中的当日日报无法删除。",
+  { date: z.string().describe("日期，格式 YYYYMMDD，如 20260716") },
+  async ({ date }) => {
+    try {
+      const result = await deleteReport(date);
+      return {
+        content: [{
+          type: "text" as const,
+          text: result.deleted
+            ? `已删除日报 ${date}`
+            : `${date} 无可删除的日报文件`,
+        }],
+      };
+    } catch (err: any) {
+      return { content: [{ type: "text" as const, text: `删除失败: ${err?.message || err}` }] };
+    }
+  }
+);
+
+server.tool(
+  "run_ascan_module",
+  "运行新知的单个模块（阻塞，可能耗时 1-5 分钟）。模块：arxiv/github/official/blog/conference/wechat。补充新知时依次调用各模块，再 merge_ascan_report 合并。",
+  {
+    module: z.enum(["arxiv", "github", "official", "blog", "conference", "wechat"]),
+    date: z.string().optional().describe("报告日期 YYYYMMDD，默认今天"),
+  },
+  async ({ module, date }) => {
+    const llmConfig = await getUserChatConfig(USER_ID);
+    const r = await runModule(module, date, llmConfig);
+    return {
+      content: [{
+        type: "text" as const,
+        text: `${module} 模块${r.ok ? "完成" : "失败"}：${r.chars} 字符${r.error ? "；错误：" + r.error : ""}`,
+      }],
+    };
+  }
+);
+
+server.tool(
+  "merge_ascan_report",
+  "合并已运行模块的片段为新知日报（阻塞，数秒）。在 run_ascan_module 跑完所需模块后调用。",
+  { date: z.string().optional().describe("报告日期 YYYYMMDD，默认今天") },
+  async ({ date }) => {
+    const r = await mergeReport(date);
+    return {
+      content: [{
+        type: "text" as const,
+        text: r.ok ? `日报已合并生成：Ascan-${r.date}` : `合并失败：${r.md_path}`,
+      }],
+    };
   }
 );
 

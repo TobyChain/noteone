@@ -6,6 +6,7 @@ struct AscanReportMeta: Identifiable, Decodable, Hashable {
     let filename: String
     let size: Int
     let hasMarkdown: Bool
+    let summary: String
 
     var formattedDate: String {
         guard date.count == 8 else { return date }
@@ -23,8 +24,8 @@ struct AscanReportMeta: Identifiable, Decodable, Hashable {
 }
 
 struct AscanConfig: Codable, Hashable {
-    var idealabApiKey: String = ""
-    var idealabBaseUrl: String = ""
+    var llmApiKey: String = ""
+    var llmBaseUrl: String = ""
     var llmModel: String = ""
     var llmMaxConcurrency: Int = 5
 
@@ -45,18 +46,50 @@ struct AscanConfig: Codable, Hashable {
     var conferenceCategories: [String] = []
 
     var blogMaxPerSource: Int = 2
-    var wechatRssBaseUrl: String = ""
-    var wechatLimitPerMp: Int = 20
 
     var outputDir: String = "./docs"
     var logLevel: String = "INFO"
 }
 
+struct AscanModuleProgress: Decodable, Hashable {
+    let name: String
+    let label: String
+    let status: String  // pending | running | done | failed
+    let chars: Int
+    let error: String?
+}
+
+struct AscanSupplementProgress: Decodable, Hashable {
+    let isRunning: Bool
+    let date: String
+    let startedAt: String?
+    let phase: String  // running | merging | done | failed
+    let modules: [AscanModuleProgress]
+    let currentModule: String?
+    let error: String?
+
+    var doneCount: Int {
+        modules.filter { $0.status == "done" || $0.status == "failed" }.count
+    }
+
+    var currentLabel: String {
+        if currentModule == "merge" { return "合并日报" }
+        return modules.first { $0.name == currentModule }?.label ?? "准备中"
+    }
+
+    var failedModules: [AscanModuleProgress] {
+        modules.filter { $0.status == "failed" }
+    }
+}
+
 struct AscanRunStatus: Decodable {
     let isRunning: Bool
+    let pid: Int?
     let lastLockTime: String?
     let lockAge: String?
     let recentLog: String?
+    let recentLogs: [String]
+    let supplement: AscanSupplementProgress?
 }
 
 struct AscanTriggerResponse: Decodable {

@@ -313,9 +313,11 @@ tr:last-child td { border-bottom: none; }
 .toc-entry {
   display: flex;
   align-items: center;
-  padding: var(--sp-sm) var(--sp-md);
+  gap: var(--sp-sm);
+  padding: var(--sp-xs) var(--sp-sm);
   border-radius: var(--r-sm);
   font-size: 14px;
+  line-height: 1.5;
   color: var(--charcoal);
   transition: background 0.15s ease, color 0.15s ease;
   text-decoration: none;
@@ -326,15 +328,16 @@ tr:last-child td { border-bottom: none; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
   border-radius: var(--r-full);
   background: var(--canvas);
   border: 1px solid var(--hairline);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  line-height: 1;
   color: var(--slate);
-  margin-right: var(--sp-sm);
   flex-shrink: 0;
 }
 .toc-entry.active .toc-entry-num { background: var(--primary); border-color: var(--primary); color: #fff; }
@@ -395,32 +398,24 @@ tr:last-child td { border-bottom: none; }
 </head>
 <body>
   <div class="toc-floating">
-  <span class="toc-dot" data-target="arxiv-papers"><span class="toc-floating-label">Part 1 · arXiv 论文精选</span></span>
-  <span class="toc-dot" data-target="github-repos"><span class="toc-floating-label">Part 2 · GitHub 项目挖掘</span></span>
-  <span class="toc-dot" data-target="official-tracker"><span class="toc-floating-label">Part 3 · 官方动态跟踪</span></span>
-  <span class="toc-dot" data-target="blog-subs"><span class="toc-floating-label">Part 4 · 独立博客订阅</span></span>
-  </div>
-  <main class="page">
-    <header class="hero">
-      <h1>Ascan-20260624</h1>
-      <p>科技前沿日报 · 2026-06-24 · arXiv 论文精选 + GitHub 项目挖掘 + 官方动态跟踪 + 独立博客</p>
-    </header>
-
+  <span class="toc-dot" data-target="arxiv-papers"><span class="toc-floating-label">1 · arXiv 论文精选</span></span>
+  <span class="toc-dot" data-target="github-repos"><span class="toc-floating-label">2 · GitHub 项目挖掘</span></span>
+  <span class="toc-dot" data-target="official-tracker"><span class="toc-floating-label">3 · 官方动态跟踪</span></span>
+  <span class="toc-dot" data-target="blog-subs"><span class="toc-floating-label">4 · 独立博客订阅</span></span>
+  </div><main class="page">
     <nav class="toc-card" id="toc-card">
       <div class="toc-card-header">
-        <span class="toc-card-title">📑 大纲</span>
+        <span class="toc-card-title">大纲</span>
         <span class="toc-card-toggle">▼</span>
       </div>
       <div class="toc-list">
-      <a href="#arxiv-papers" class="toc-entry" data-target="arxiv-papers"><span class="toc-entry-num">Part 1</span><span class="toc-entry-text">arXiv 论文精选</span><span class="toc-entry-count">有内容</span></a>
-      <a href="#github-repos" class="toc-entry" data-target="github-repos"><span class="toc-entry-num">Part 2</span><span class="toc-entry-text">GitHub 项目挖掘</span><span class="toc-entry-count">有内容</span></a>
-      <a href="#official-tracker" class="toc-entry" data-target="official-tracker"><span class="toc-entry-num">Part 3</span><span class="toc-entry-text">官方动态跟踪</span><span class="toc-entry-count">有内容</span></a>
-      <a href="#blog-subs" class="toc-entry" data-target="blog-subs"><span class="toc-entry-num">Part 4</span><span class="toc-entry-text">独立博客订阅</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#arxiv-papers" class="toc-entry" data-target="arxiv-papers"><span class="toc-entry-num">1</span><span class="toc-entry-text">arXiv 论文精选</span></a>
+      <a href="#github-repos" class="toc-entry" data-target="github-repos"><span class="toc-entry-num">2</span><span class="toc-entry-text">GitHub 项目挖掘</span></a>
+      <a href="#official-tracker" class="toc-entry" data-target="official-tracker"><span class="toc-entry-num">3</span><span class="toc-entry-text">官方动态跟踪</span></a>
+      <a href="#blog-subs" class="toc-entry" data-target="blog-subs"><span class="toc-entry-num">4</span><span class="toc-entry-text">独立博客订阅</span></a>
       </div>
-    </nav>
-
-    <section class="report-section" id="arxiv-papers">
-      <h2>Part 1 — arXiv 论文精选</h2>
+    </nav><section class="report-section" id="arxiv-papers">
+      <h2>1 — arXiv 论文精选</h2>
       <div class="report-list arxiv-list" data-date="2026-06-24">
 <article class="card paper-card">
 <h3>1. Navigating User Behavior toward Personalized Multimodal Generation</h3>
@@ -498,7 +493,7 @@ tr:last-child td { border-bottom: none; }
     </section>
 
     <section class="report-section" id="github-repos">
-      <h2>Part 2 — GitHub 项目挖掘</h2>
+      <h2>2 — GitHub 项目挖掘</h2>
       <div class="report-list github-list" data-date="20260624">
 <p class="section-note">聚焦电商 AI 应用相关项目（数字员工/商品推荐/商品巡检/电商客服/智能体框架/意图理解），共发现 71 个仓库。</p>
 <h3>今日精选（高度相关，共 5 个）</h3>
@@ -817,7 +812,7 @@ tr:last-child td { border-bottom: none; }
 
     
     <section class="report-section" id="official-tracker">
-      <h2>Part 3 — 官方动态跟踪</h2>
+      <h2>3 — 官方动态跟踪</h2>
       <p class="meta-note">共发现 177 条官方动态，来自 anthropic、openai。</p>
 <div class="summary-table-wrapper"><table class="summary-table">
 <thead><tr><th>来源</th><th>标题</th><th>日期</th><th>一句话</th></tr></thead>
@@ -2261,7 +2256,7 @@ tr:last-child td { border-bottom: none; }
 
     
     <section class="report-section" id="blog-subs">
-      <h2>Part 4 — 独立博客订阅</h2>
+      <h2>4 — 独立博客订阅</h2>
       <p class="meta-note">共 1 篇新文章。</p>
 <h3 class="source-heading">OpenAI Blog</h3>
 <ul class="blog-list">
@@ -2272,7 +2267,6 @@ tr:last-child td { border-bottom: none; }
 
     <footer class="footer">Generated by Ascan</footer>
   </main>
-
   <script>
 (function() {
   // ── TOC card collapse/expand ──

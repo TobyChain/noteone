@@ -149,7 +149,7 @@ class Settings(BaseSettings):
         description="输出目录"
     )
     database_url: str = Field(
-        default="sqlite:///./database/arxiv_papers.db",
+        default="postgresql://noteone:noteone@localhost:5432/noteone",
         description="数据库连接字符串"
     )
     log_level: str = Field(
