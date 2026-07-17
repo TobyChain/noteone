@@ -204,7 +204,7 @@ async function runReportPipeline(
     action: "产出行动清单版报告。把每条笔记转化为可执行的TODO项，标注优先级和预期收益。",
   }[depth];
 
-  const systemPrompt = `你是 Notty，NoteOne 的 AI 助手。你的任务是为用户生成每日灵感报告。
+  const systemPrompt = `你是闹闹，壹识的 AI 助手。你的任务是为用户生成每日灵感报告。
 
 今天是 ${date}，用户今天记录了 ${todayNotes.length} 条笔记：
 ${noteIndex}
@@ -443,7 +443,7 @@ function renderEmptyReport(date: string, style: ReportStyle, depth: ReportDepth)
   const data: ReportData = {
     title: `${date} · 安静的一天`,
     date,
-    summary: "今天没有新的笔记记录，但 Notty 依然在这里等你。",
+    summary: "今天没有新的笔记记录，但闹闹依然在这里等你。",
     themes: [],
     sections: [{
       type: "insight",
@@ -505,7 +505,7 @@ function renderReportHtml(data: ReportData, style: ReportStyle, depth: ReportDep
     ${actionsHtml}
   </main>
   <footer>
-    <p>由 Notty · NoteOne 生成</p>
+    <p>由 闹闹 · 壹识 生成</p>
   </footer>
 </body>
 </html>`;

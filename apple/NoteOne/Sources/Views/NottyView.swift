@@ -8,7 +8,16 @@ struct NottyView: View {
     @State private var sessionId: String?
     @State private var sessions: [ChatSession] = []
     @State private var showSessionList = false
+    @State private var supplement: AscanSupplementProgress?
+    @State private var supplementTimer: Timer?
+    @State private var supplementDoneFlash = false
     var onClose: (() -> Void)? = nil
+
+    private let promptSuggestions: [String] = [
+        "帮我补充今日新知",
+        "最近有哪些关于 AI 的笔记？",
+        "今天的新知日报讲了什么？",
+    ]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,7 +26,7 @@ struct NottyView: View {
                     .resizable()
                     .frame(width: 28, height: 28)
                     .clipShape(Circle())
-                Text("Notty")
+                Text("闹闹")
                     .font(.headline)
 
                 Spacer()
@@ -90,13 +99,40 @@ struct NottyView: View {
 
             Divider()
 
+            if let supp = supplement, supp.isRunning || supplementDoneFlash {
+                supplementBanner(supp)
+            }
+
+            if messages.count <= 1 && supplement == nil {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: DG.sp8) {
+                        ForEach(promptSuggestions, id: \.self) { suggestion in
+                            Button {
+                                send(suggestion)
+                            } label: {
+                                Text(suggestion)
+                                    .font(.caption)
+                                    .foregroundStyle(Color.inkSecondary)
+                                    .padding(.horizontal, DG.sp12)
+                                    .padding(.vertical, DG.sp4)
+                                    .background(Color.canvasSecondary)
+                                    .clipShape(Capsule())
+                                    .overlay(Capsule().stroke(Color.hairline, lineWidth: 0.5))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+
             HStack(spacing: 8) {
                 TextField("问 Notty 关于你的笔记...", text: $input)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { send() }
                     .disabled(isLoading)
 
-                Button(action: send) {
+                Button { send() } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.title2)
                 }
@@ -114,9 +150,11 @@ struct NottyView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 isReady = true
             }
+            startSupplementPolling()
         }
         .onDisappear {
             isReady = false
+            stopSupplementPolling()
         }
     }
 
@@ -184,8 +222,8 @@ struct NottyView: View {
         }
     }
 
-    private func send() {
-        let text = input.trimmingCharacters(in: .whitespaces)
+    private func send(_ preset: String? = nil) {
+        let text = (preset ?? input).trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
 
         let userMsg = ChatMessage(role: "user", content: text)
@@ -212,6 +250,102 @@ struct NottyView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Supplement progress
+
+    @ViewBuilder
+    private func supplementBanner(_ supp: AscanSupplementProgress) -> some View {
+        HStack(spacing: DG.sp8) {
+            if supp.isRunning {
+                ProgressView()
+                    .controlSize(.small)
+            } else if supp.phase == "done" {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(Color.success)
+            } else {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(Color.danger)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                if supp.isRunning {
+                    Text("新知补充 · \(supp.currentLabel)")
+                        .font(.caption)
+                        .foregroundStyle(Color.ink)
+                    Text("\(supp.doneCount)/\(supp.modules.count)")
+                        .font(.caption2)
+                        .foregroundStyle(Color.inkTertiary)
+                } else if supp.phase == "done" {
+                    Text("新知补充完成")
+                        .font(.caption)
+                        .foregroundStyle(Color.success)
+                    if !supp.failedModules.isEmpty {
+                        Text("\(supp.failedModules.count) 个模块失败（已跳过）")
+                            .font(.caption2)
+                            .foregroundStyle(Color.inkTertiary)
+                    }
+                } else {
+                    Text("新知补充出错")
+                        .font(.caption)
+                        .foregroundStyle(Color.danger)
+                    if let err = supp.error {
+                        Text(err)
+                            .font(.caption2)
+                            .foregroundStyle(Color.inkTertiary)
+                            .lineLimit(2)
+                    }
+                }
+            }
+
+            Spacer()
+
+            if supp.isRunning {
+                Button {
+                    Task { try? await APIClient.shared.abortAscan() }
+                } label: {
+                    Image(systemName: "stop.circle")
+                        .font(.caption)
+                        .foregroundStyle(Color.inkTertiary)
+                }
+                .buttonStyle(.plain)
+                .help("打断")
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, DG.sp4)
+        .background(supp.phase == "failed" ? Color.danger.opacity(0.05) : Color.canvasSecondary)
+    }
+
+    private func startSupplementPolling() {
+        stopSupplementPolling()
+        supplementTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            Task { @MainActor in
+                do {
+                    let status = try await APIClient.shared.getAscanStatus()
+                    if let supp = status.supplement {
+                        if supp.isRunning && supplement == nil {
+                            supplement = supp
+                        } else if supp.isRunning {
+                            supplement = supp
+                        } else if !supp.isRunning && supplement != nil {
+                            // Just finished
+                            supplement = supp
+                            supplementDoneFlash = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                                supplementDoneFlash = false
+                                supplement = nil
+                            }
+                        }
+                    }
+                } catch {}
+            }
+        }
+    }
+
+    private func stopSupplementPolling() {
+        supplementTimer?.invalidate()
+        supplementTimer = nil
     }
 }
 
@@ -299,7 +433,7 @@ private struct ChatBubble: View {
                             .resizable()
                             .frame(width: 16, height: 16)
                             .clipShape(Circle())
-                        Text("Notty")
+                        Text("闹闹")
                             .font(.caption2)
                     }
                     .foregroundStyle(Color.inkTertiary)

@@ -8,7 +8,6 @@ import UIKit
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthService
     @AppStorage("appTheme") private var selectedTheme: String = AppTheme.system.rawValue
-    @State private var serverPort = "3000"
     @State private var stats: StatsResponse?
 
     @State private var llmApiKey = ""
@@ -17,6 +16,21 @@ struct SettingsView: View {
     @State private var llmHasApiKey = false
     @State private var llmSaving = false
     @State private var llmSaved = false
+
+    // 新知配置
+    @State private var ascanConfig: AscanConfig?
+    @State private var ascanGithubTopics = ""
+    @State private var ascanArxivSubjects = ""
+    @State private var ascanMaxPapers = 200
+    @State private var ascanMaxTotal = 500
+    @State private var ascanGithubMinStars = 500
+    @State private var ascanGithubTopAnalyze = 20
+    @State private var ascanGithubToken = ""
+    @State private var ascanSemanticScholarKey = ""
+    @State private var ascanConferenceLookback = 30
+    @State private var ascanLogLevel = "INFO"
+    @State private var isAscanSaving = false
+    @State private var ascanSaved = false
 
     @State private var isExporting = false
     @State private var exportError: String?
@@ -41,16 +55,19 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("外观") {
+            Section {
                 Picker("主题", selection: $selectedTheme) {
                     ForEach(AppTheme.allCases, id: \.rawValue) { t in
                         Text(t.label).tag(t.rawValue)
                     }
                 }
                 .pickerStyle(.segmented)
+            } header: {
+                Label("外观", systemImage: "paintbrush")
+                    .sectionHeaderStyle()
             }
 
-            Section("账户") {
+            Section {
                 if let name = authService.userName {
                     Text("已登录: \(name)")
                 }
@@ -72,7 +89,7 @@ struct SettingsView: View {
                 }
                 .disabled(isExporting)
                 if let exportError = exportError {
-                    Text(exportError).font(.caption).foregroundStyle(.red)
+                    Text(exportError).font(.caption).foregroundStyle(Color.danger)
                 }
 
                 Button(role: .destructive) {
@@ -89,38 +106,19 @@ struct SettingsView: View {
                 }
                 .disabled(isDeletingAccount)
                 if let deleteError = deleteError {
-                    Text(deleteError).font(.caption).foregroundStyle(.red)
+                    Text(deleteError).font(.caption).foregroundStyle(Color.danger)
                 }
-            }
-
-            Section("服务器") {
-                HStack {
-                    Text("端口")
-                    TextField("3000", text: $serverPort)
-                        .frame(width: 80)
-                    #if os(macOS)
-                        .onChange(of: serverPort) { _, newValue in
-                            let filtered = newValue.filter { $0.isNumber }
-                            if filtered != newValue { serverPort = filtered }
-                            if let p = Int(filtered), p < 1 || p > 65535 {
-                                serverPort = String(filtered.prefix(5))
-                            }
-                            if let port = Int(serverPort) {
-                                Task { await APIClient.shared.setPort(port) }
-                            }
-                        }
-                    #endif
-                    Text("本地服务端口，默认 3000")
-                        .font(.caption)
-                        .foregroundStyle(Color.inkTertiary)
-                }
+            } header: {
+                Label("账户", systemImage: "person.circle")
+                    .sectionHeaderStyle()
             }
 
             #if os(macOS)
             Section {
                 HotkeyRecorderField()
             } header: {
-                Text("顺手记快捷键")
+                Label("顺手记快捷键", systemImage: "keyboard")
+                    .sectionHeaderStyle()
             } footer: {
                 Text("全局按下即可唤起顺手记;若剪贴板里已复制图片,会自动带入并在保存时上传为图片链接。")
             }
@@ -128,12 +126,12 @@ struct SettingsView: View {
 
             Section {
                 SecureField(llmHasApiKey ? "API Key（已设置，输入可替换）" : "API Key", text: $llmApiKey)
-                TextField("Base URL", text: $llmBaseUrl)
+                TextField("Base URL（如 https://api.openai.com/v1）", text: $llmBaseUrl)
                 TextField("模型名", text: $llmModel)
                 HStack {
                     if llmSaved {
                         Label("已保存", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Color.success)
                             .font(.caption)
                     }
                     Spacer()
@@ -143,9 +141,10 @@ struct SettingsView: View {
                     .disabled(llmSaving)
                 }
             } header: {
-                Text("AI 模型（自带 API Key）")
+                Label("AI 模型（自带 API Key）", systemImage: "cpu")
+                    .sectionHeaderStyle()
             } footer: {
-                Text("NoteOne 开源版不内置 LLM 服务，请填写任一 OpenAI 兼容的 API（DashScope / OpenAI / 自部署 vLLM 等）启用 AI 功能。未配置时笔记仍可正常保存，但 Notty 聊天、自动打标、摘要、报告等功能将不可用。")
+                Text("填写任一 OpenAI 兼容的 API（DashScope / OpenAI / 自部署 vLLM 等）启用 AI 功能。Base URL 填到版本号即可，系统会自动拼接 /chat/completions 和 /embeddings 端点（不要在 URL 末尾加 /chat/completions）。此 Key 同时用于闹闹聊天、自动打标、摘要和新知 pipeline，无需单独配置。")
             }
 
             #if !os(macOS)
@@ -156,7 +155,8 @@ struct SettingsView: View {
                         .onChange(of: reportTime) { _, _ in saveReportSchedule() }
                 }
             } header: {
-                Text("每日报告")
+                Label("每日报告", systemImage: "chart.bar.doc.horizontal")
+                    .sectionHeaderStyle()
             } footer: {
                 Text("Notty 会在指定时间提醒你生成今日灵感报告。报告风格和深度可在报告页面调整。")
             }
@@ -170,18 +170,78 @@ struct SettingsView: View {
             }
             #endif
 
+            // 新知配置
+            if ascanConfig != nil {
+                Section {
+                    SecureField(ascanGithubToken == "***" ? "Token（已设置）" : "GitHub Token", text: $ascanGithubToken)
+                    TextField("Topic 列表 (逗号分隔)", text: $ascanGithubTopics)
+                        .lineLimit(2...4)
+                    Stepper("最低 Star: \(ascanGithubMinStars)", value: $ascanGithubMinStars, in: 0...5000, step: 100)
+                    Stepper("分析 Top N: \(ascanGithubTopAnalyze)", value: $ascanGithubTopAnalyze, in: 5...100, step: 5)
+                } header: {
+                    Label("新知 · GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                        .sectionHeaderStyle()
+                }
+
+                Section {
+                    TextField("ArXiv 分类 (逗号分隔)", text: $ascanArxivSubjects)
+                    Stepper("每分类最大: \(ascanMaxPapers)", value: $ascanMaxPapers, in: 10...500, step: 10)
+                    Stepper("总最大: \(ascanMaxTotal)", value: $ascanMaxTotal, in: 50...2000, step: 50)
+                } header: {
+                    Label("新知 · ArXiv", systemImage: "doc.text.magnifyingglass")
+                        .sectionHeaderStyle()
+                }
+
+                Section {
+                    SecureField(ascanSemanticScholarKey == "***" ? "S2 Key（已设置）" : "Semantic Scholar Key", text: $ascanSemanticScholarKey)
+                    Stepper("回溯天数: \(ascanConferenceLookback)", value: $ascanConferenceLookback, in: 7...90)
+                } header: {
+                    Label("新知 · 会议论文", systemImage: "graduationcap")
+                        .sectionHeaderStyle()
+                }
+
+                Section {
+                    Picker("日志级别", selection: $ascanLogLevel) {
+                        ForEach(["DEBUG", "INFO", "WARNING", "ERROR"], id: \.self) { Text($0).tag($0) }
+                    }
+                    HStack {
+                        if ascanSaved {
+                            Label("已保存", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(Color.success)
+                                .font(.caption)
+                        }
+                        Spacer()
+                        Button {
+                            Task { await saveAscanConfig() }
+                        } label: {
+                            if isAscanSaving { ProgressView().controlSize(.small) } else { Text("保存新知配置") }
+                        }
+                        .disabled(isAscanSaving)
+                    }
+                } header: {
+                    Label("新知 · 日志与保存", systemImage: "text.line.last.and.rectangle.triangle")
+                        .sectionHeaderStyle()
+                }
+            }
+
             if let stats = stats {
-                Section("统计") {
+                Section {
                     LabeledContent("总笔记数", value: "\(stats.totalNotes)")
                     ForEach(stats.byContentType, id: \.contentType) { item in
                         LabeledContent(item.contentType, value: "\(item.count)")
                     }
+                } header: {
+                    Label("统计", systemImage: "chart.pie")
+                        .sectionHeaderStyle()
                 }
 
-                Section("热门标签") {
+                Section {
                     ForEach(stats.topTags.prefix(10), id: \.name) { tag in
                         LabeledContent(tag.name, value: "\(tag.count)")
                     }
+                } header: {
+                    Label("热门标签", systemImage: "tag")
+                        .sectionHeaderStyle()
                 }
             }
         }
@@ -208,6 +268,7 @@ struct SettingsView: View {
                 llmModel = settings.llm.model ?? ""
                 llmHasApiKey = settings.llm.hasApiKey
             } catch {}
+            await loadAscanConfig()
             #if !os(macOS)
             // Schedule report notification on first load if enabled
             if reportEnabled {
@@ -237,6 +298,48 @@ struct SettingsView: View {
                 await MainActor.run { llmSaving = false }
             }
         }
+    }
+
+    private func loadAscanConfig() async {
+        do {
+            let c = try await APIClient.shared.getAscanConfig()
+            ascanConfig = c
+            ascanGithubTopics = c.githubTopics.joined(separator: ", ")
+            ascanArxivSubjects = c.arxivSubjects.joined(separator: ", ")
+            ascanMaxPapers = c.maxPapersPerSubject
+            ascanMaxTotal = c.maxTotalPapers
+            ascanGithubMinStars = c.githubMinStars
+            ascanGithubTopAnalyze = c.githubTopAnalyze
+            ascanGithubToken = c.githubToken
+            ascanSemanticScholarKey = c.semanticScholarApiKey
+            ascanConferenceLookback = c.conferenceLookbackDays
+            ascanLogLevel = c.logLevel
+        } catch {}
+    }
+
+    private func saveAscanConfig() async {
+        isAscanSaving = true
+        ascanSaved = false
+        defer { isAscanSaving = false }
+        var updates: [String: Any] = [:]
+        updates["github_topics"] = ascanGithubTopics.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        updates["arxiv_subjects"] = ascanArxivSubjects.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        updates["max_papers_per_subject"] = ascanMaxPapers
+        updates["max_total_papers"] = ascanMaxTotal
+        updates["github_min_stars"] = ascanGithubMinStars
+        updates["github_top_analyze"] = ascanGithubTopAnalyze
+        updates["conference_lookback_days"] = ascanConferenceLookback
+        updates["log_level"] = ascanLogLevel
+        if ascanGithubToken != "***" && !ascanGithubToken.isEmpty { updates["github_token"] = ascanGithubToken }
+        if ascanSemanticScholarKey != "***" && !ascanSemanticScholarKey.isEmpty { updates["semantic_scholar_api_key"] = ascanSemanticScholarKey }
+        do {
+            let updated = try await APIClient.shared.updateAscanConfig(updates: updates)
+            ascanConfig = updated
+            ascanGithubToken = updated.githubToken
+            ascanSemanticScholarKey = updated.semanticScholarApiKey
+            ascanSaved = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { ascanSaved = false }
+        } catch {}
     }
 
     private func exportMyData() {

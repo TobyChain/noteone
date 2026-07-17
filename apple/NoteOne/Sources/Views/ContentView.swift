@@ -40,7 +40,7 @@ struct ContentView: View {
                 NottyView()
             }
             .tabItem {
-                Label("Notty", systemImage: "bubble.left.fill")
+                Label("闹闹", systemImage: "bubble.left.fill")
             }
             .tag(2)
 

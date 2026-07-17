@@ -64,6 +64,9 @@ actor APIClient {
         let config = URLSessionConfiguration.default
         config.urlCache = nil
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        // 闹闹编排新知时，单模块运行（run-module）可能耗时数分钟，需要足够长的请求超时。
+        config.timeoutIntervalForRequest = 600
+        config.timeoutIntervalForResource = 1200
         self.session = URLSession(configuration: config)
     }
 
@@ -379,6 +382,13 @@ actor APIClient {
         return try await get("/api/ascan/reports/\(date)")
     }
 
+    struct AscanReportPath: Decodable { let date: String; let path: String }
+
+    func getAscanReportPath(date: String) async throws -> String {
+        let resp: AscanReportPath = try await get("/api/ascan/reports/\(date)/path")
+        return resp.path
+    }
+
     func getAscanConfig() async throws -> AscanConfig {
         return try await get("/api/ascan/config")
     }
@@ -396,6 +406,34 @@ actor APIClient {
     func getAscanStatus() async throws -> AscanRunStatus {
         return try await get("/api/ascan/status")
     }
+
+    struct AscanAbortResponse: Decodable { let killed: Bool; let message: String }
+
+    func abortAscan() async throws -> AscanAbortResponse {
+        return try await post("/api/ascan/abort", body: EmptyBody())
+    }
+
+    struct AscanDocsPath: Decodable { let path: String }
+
+    func getAscanDocsPath() async throws -> String {
+        let resp: AscanDocsPath = try await get("/api/ascan/docs-path")
+        return resp.path
+    }
+
+    struct AscanSummarizeResponse: Decodable { let date: String; let summary: String }
+
+    func summarizeAscan(date: String) async throws -> AscanSummarizeResponse {
+        struct Body: Encodable { let date: String }
+        return try await post("/api/ascan/summarize", body: Body(date: date))
+    }
+
+    struct AscanDeleteResponse: Decodable { let deleted: Bool; let date: String }
+
+    func deleteAscanReport(date: String) async throws -> AscanDeleteResponse {
+        return try await delete("/api/ascan/reports/\(date)")
+    }
+
+    private struct EmptyBody: Encodable {}
 
     // MARK: - HTTP Methods
 
@@ -500,7 +538,6 @@ private struct NotesWrapper: Decodable { let notes: [Note] }
 private struct TagsWrapper: Decodable { let tags: [Tag] }
 private struct DeleteWrapper: Decodable { let deleted: Bool }
 private struct SearchWrapper: Decodable { let results: [SearchResult] }
-private struct EmptyBody: Encodable {}
 
 struct SearchResult: Codable, Identifiable, Sendable {
     let id: String

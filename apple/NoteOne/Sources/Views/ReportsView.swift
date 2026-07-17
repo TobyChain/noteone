@@ -114,7 +114,7 @@ struct ReportsView: View {
                     } else {
                         Image(systemName: "sparkles")
                     }
-                    Text(isGenerating ? "Notty 正在生成…" : "生成今日报告")
+                    Text(isGenerating ? "闹闹正在生成…" : "生成今日报告")
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
@@ -252,7 +252,7 @@ struct ReportDetailView: View {
                 VStack(spacing: 12) {
                     if report.status == .generating {
                         ProgressView()
-                        Text("Notty 正在生成报告…")
+                        Text("闹闹正在生成报告…")
                             .foregroundStyle(.secondary)
                     } else if report.status == .failed {
                         Image(systemName: "exclamationmark.triangle")

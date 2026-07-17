@@ -15,6 +15,8 @@ struct MainSplitView: View {
     @State private var selection: SidebarSelection = .empty
     @State private var notes: [Note] = []
     @State private var mdFiles: [LocalMarkdownFile] = []
+    @State private var ascanReports: [AscanReportMeta] = []
+    @State private var ascanReportHTML: [String: String] = [:]
 
     // Active markdown editor state. Lives at the top so the sidebar can react to
     // "writer is active" and so Notty's drawer can bind directly to the document.
@@ -31,6 +33,9 @@ struct MainSplitView: View {
     @State private var renameText = ""
     @State private var renameTarget: LocalMarkdownFile?
     @State private var pollTimer: Timer?
+    @State private var ascanRunStatus: AscanRunStatus?
+    @State private var ascanPollTimer: Timer?
+    @State private var ascanJustFinished = false
 
     var body: some View {
         NavigationSplitView {
@@ -38,14 +43,17 @@ struct MainSplitView: View {
                 selection: $selection,
                 notes: $notes,
                 mdFiles: $mdFiles,
+                ascanReports: $ascanReports,
                 writerActive: writerActive,
                 onInsertCitation: insertAtCaret,
                 onCreateMarkdown: { Task { await createMarkdown() } },
                 onDeleteMarkdown: { file in Task { await deleteMarkdown(file) } },
-                onRefresh: { await refreshNotes() },
+                onRefresh: { await refreshNotes(); await loadAscanReports() },
                 onDeleteNote: deleteNote,
                 onSearch: { q in await searchNotes(q) },
-                onShowTrash: { selection = .trash }
+                onShowTrash: { selection = .trash },
+                onShowConfig: { selection = .ascanConfig },
+                onDeleteAscanReport: { date in Task { await deleteAscanReport(date) } }
             )
             .frame(minWidth: 240)
         } detail: {
@@ -107,6 +115,87 @@ struct MainSplitView: View {
 
     @ViewBuilder
     private var centerPane: some View {
+        VStack(spacing: 0) {
+            if showsAscanBanner {
+                ascanProgressBanner
+            }
+            centerContent
+        }
+    }
+
+    private var showsAscanBanner: Bool {
+        switch selection {
+        case .ascanReports, .ascanReport, .ascanConfig: return true
+        default: return false
+        }
+    }
+
+    @State private var ascanHadError = false
+    @State private var ascanLastError: String?
+
+    @ViewBuilder
+    private var ascanProgressBanner: some View {
+        let isRunning = ascanRunStatus?.isRunning == true
+        if isRunning || ascanJustFinished || ascanHadError {
+            VStack(spacing: 0) {
+                HStack(spacing: DG.sp8) {
+                    if isRunning {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text(ascanRunStatus?.recentLog ?? "运行中…")
+                            .font(.caption)
+                            .foregroundStyle(Color.inkSecondary)
+                            .lineLimit(1)
+                        Spacer()
+                        Button("打断") { Task { await abortAscan() } }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .tint(Color.danger)
+                    } else if ascanJustFinished {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color.success)
+                        Text("新知补充完成")
+                            .font(.caption)
+                            .foregroundStyle(Color.inkSecondary)
+                        Spacer()
+                    } else if ascanHadError {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(Color.danger)
+                        Text(ascanLastError ?? "运行出错")
+                            .font(.caption)
+                            .foregroundStyle(Color.inkSecondary)
+                            .lineLimit(2)
+                        Spacer()
+                        Button("续跑") { Task { await triggerAscan() } }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                    }
+                }
+                .padding(.horizontal, DG.sp16)
+                .padding(.vertical, DG.sp8)
+                .background(ascanHadError ? Color.danger.opacity(0.05) : Color.canvasSecondary)
+                if isRunning, let logs = ascanRunStatus?.recentLogs, !logs.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: DG.sp12) {
+                            ForEach(Array(logs.enumerated()), id: \.offset) { _, line in
+                                Text(line)
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundStyle(line.contains("失败") || line.contains("error") ? Color.danger : Color.inkTertiary)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(.horizontal, DG.sp16)
+                        .padding(.bottom, DG.sp4)
+                    }
+                    .frame(height: 20)
+                }
+                Divider()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var centerContent: some View {
         switch selection {
         case .note(let id):
             NoteDetailView(noteId: id, initialNote: notes.first { $0.id == id })
@@ -131,7 +220,28 @@ struct MainSplitView: View {
         case .trash:
             TrashView()
         case .ascanReports:
-            AscanReportListView()
+            VStack(spacing: DG.sp12) {
+                Image(systemName: "globe")
+                    .font(.system(size: 42))
+                    .foregroundStyle(Color.inkTertiary)
+                Text("新知")
+                    .font(.headline)
+                    .foregroundStyle(Color.inkSecondary)
+                Text("从左侧选择一份日报查看")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.inkTertiary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .ascanReport(let date):
+            if let html = ascanReportHTML[date] {
+                AscanReportDetailView(htmlContent: html, date: date) {
+                    selection = .ascanReports
+                }
+            } else {
+                ProgressView("加载日报…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .task { await loadAscanReportHTML(date: date) }
+            }
         case .ascanConfig:
             UnifiedSettingsView()
         case .empty:
@@ -175,7 +285,7 @@ struct MainSplitView: View {
         switch newSelection {
         case .markdown(let file):
             Task { await openMarkdown(file) }
-        case .note, .trash, .ascanReports, .ascanConfig, .empty:
+        case .note, .trash, .ascanReports, .ascanReport, .ascanConfig, .empty:
             // Leaving the writer — flush any in-flight save and clear editor state.
             if currentFile != nil {
                 let pending = currentFile
@@ -193,10 +303,179 @@ struct MainSplitView: View {
     // MARK: - Initial load + refresh
 
     private func initialLoad() async {
+        await seedExampleContent()
         async let n: () = refreshNotes()
         async let m: () = refreshMarkdownFiles()
-        _ = await (n, m)
+        async let a: () = loadAscanReports()
+        _ = await (n, m, a)
         startPollingIfNeeded()
+        do {
+            let status = try await APIClient.shared.getAscanStatus()
+            ascanRunStatus = status
+            if status.isRunning { startAscanPolling() }
+        } catch {}
+    }
+
+    private func seedExampleContent() async {
+        // 记实: seed markdown file
+        let mdDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("NoteOne", isDirectory: true)
+        try? FileManager.default.createDirectory(at: mdDir, withIntermediateDirectories: true)
+        let seedMd = mdDir.appendingPathComponent("欢迎使用.md")
+        if !FileManager.default.fileExists(atPath: seedMd.path) {
+            let content = """
+# 欢迎使用壹识
+
+壹识是你的赛博古风知识系统。这里是**记实**模块，用于本地 Markdown 写作。
+
+## 功能
+
+- 实时渲染：点击预览区域进入编辑，按 `Escape` 返回渲染视图
+- 源码模式：`Cmd+Shift+/` 切换纯源码显示
+- 引用插入：在往事中选择笔记，点击插入引用按钮即可引用到写作中
+
+## 语法示例
+
+### 代码块
+
+```python
+def hello():
+    print("Hello, 壹识!")
+```
+
+### 列表
+
+- 记实 — 本地写作
+- 往事 — 笔记收藏
+- 新知 — 科技日报
+
+### 引用
+
+> 路漫漫其修远兮，吾将上下而求索。
+
+---
+
+点击此文件可进入编辑模式。
+"""
+            try? content.write(to: seedMd, atomically: true, encoding: .utf8)
+        }
+
+        // 往事: seed note (only on first launch, file-based flag persists across reinstalls)
+        let seedNoteFlag = mdDir.appendingPathComponent(".seed-note-created")
+        if !FileManager.default.fileExists(atPath: seedNoteFlag.path) {
+            do {
+                _ = try await APIClient.shared.createNote(
+                    CreateNoteRequest(content: "这是壹识的往事模块，用于收藏和管理你的笔记。\n\n你可以通过全局快捷键（默认 Cmd+Shift+O）或 iOS 分享扩展随手记录所见所闻，闹闹会自动为你打标、摘要和向量化。\n\n\"问渠那得清如许？为有源头活水来。\"")
+                )
+                try? "".write(to: seedNoteFlag, atomically: true, encoding: .utf8)
+            } catch {}
+        }
+
+        // 新知: seed report (server-side)
+        let seedReportPath = seedMd.deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("ai.alibaba/noteone/ascan/docs/Ascan-00000000.html")
+        // The server handles this — trigger a seed via the trigger endpoint is too heavy.
+        // Instead, we'll create a lightweight seed on the server side.
+    }
+
+    private func loadAscanReports() async {
+        do {
+            ascanReports = try await APIClient.shared.listAscanReports()
+        } catch {
+            print("[main] load ascan reports failed: \(error)")
+        }
+    }
+
+    private func loadAscanReportHTML(date: String) async {
+        if ascanReportHTML[date] != nil { return }
+        do {
+            let resp = try await APIClient.shared.getAscanReport(date: date)
+            ascanReportHTML[date] = resp.html
+        } catch {
+            print("[main] load ascan report html failed: \(error)")
+        }
+    }
+
+    private func triggerAscan() async {
+        do {
+            _ = try await APIClient.shared.triggerAscan(date: nil)
+            ascanJustFinished = false
+            ascanHadError = false
+            ascanLastError = nil
+            startAscanPolling()
+        } catch {
+            print("[main] trigger ascan failed: \(error)")
+        }
+    }
+
+    private func abortAscan() async {
+        do {
+            _ = try await APIClient.shared.abortAscan()
+            ascanRunStatus = nil
+            ascanJustFinished = false
+            ascanHadError = false
+            ascanLastError = nil
+            stopAscanPolling()
+        } catch {
+            print("[main] abort ascan failed: \(error)")
+        }
+    }
+
+    private func revealDocsInFinder() async {
+        do {
+            let path = try await APIClient.shared.getAscanDocsPath()
+            let url = URL(fileURLWithPath: path)
+            #if os(macOS)
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+            #endif
+        } catch {
+            print("[main] reveal docs failed: \(error)")
+        }
+    }
+
+    private func startAscanPolling() {
+        stopAscanPolling()
+        ascanPollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+            Task { @MainActor in
+                do {
+                    let status = try await APIClient.shared.getAscanStatus()
+                    ascanRunStatus = status
+                    if !status.isRunning {
+                        stopAscanPolling()
+                        let logs = status.recentLogs
+                        let hasError = logs.last?.contains("失败") == true
+                            || logs.last?.contains("error") == true
+                            || logs.last?.contains("Error") == true
+                            || (status.recentLog?.contains("失败") == true)
+                        if hasError {
+                            ascanHadError = true
+                            ascanLastError = status.recentLog ?? logs.last
+                        } else {
+                            ascanJustFinished = true
+                        }
+                        let dateStr = ascanTodayString()
+                        try? await APIClient.shared.summarizeAscan(date: dateStr)
+                        await loadAscanReports()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                            ascanJustFinished = false
+                        }
+                    }
+                } catch {}
+            }
+        }
+    }
+
+    private func ascanTodayString() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyyMMdd"
+        f.timeZone = TimeZone(identifier: "Asia/Shanghai")
+        return f.string(from: Date())
+    }
+
+    private func stopAscanPolling() {
+        ascanPollTimer?.invalidate()
+        ascanPollTimer = nil
     }
 
     private func refreshNotes() async {
@@ -323,6 +602,19 @@ struct MainSplitView: View {
             }
         } catch {
             print("[main] delete md failed: \(error)")
+        }
+    }
+
+    private func deleteAscanReport(_ date: String) async {
+        do {
+            _ = try await APIClient.shared.deleteAscanReport(date: date)
+            ascanReports.removeAll { $0.date == date }
+            if case .ascanReport(let d) = selection, d == date {
+                selection = .ascanReports
+            }
+            await loadAscanReports()
+        } catch {
+            print("[main] delete ascan report failed: \(error)")
         }
     }
 

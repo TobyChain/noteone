@@ -8,6 +8,7 @@ import { chatCompletion, chatCompletionWithTools, ToolDefinition, generateEmbedd
 import { getUserChatConfig } from "../services/user-config.js";
 import { fetchUrlContent } from "../services/web-fetch.js";
 import { searchWeb } from "../services/web-search.js";
+import { ascanToolDefinitions, makeAscanHandlers } from "../services/ascan/tools.js";
 import { trimToTokenBudget, needsCompaction, getProtectionZone, buildSummarizationPrompt, type ContextMessage } from "../services/context-manager.js";
 
 const router = Router();
@@ -107,7 +108,7 @@ router.post("/:id/messages", async (req: AuthRequest, res) => {
     return `[${i + 1}] ${n.title || "无标题"} | ${n.aiSummary?.slice(0, 80) || "无摘要"} | tags: ${ntags}`;
   }).join("\n");
 
-  const systemPrompt = `你是 Notty，NoteOne 应用的 AI 助手。你可以帮助用户检索、总结和分析他们的笔记。
+  const systemPrompt = `你是闹闹，壹识应用的 AI 助手。你可以帮助用户检索、总结和分析他们的笔记。
 
 用户共有 ${allNotes.length} 条笔记，索引如下（仅含标题与摘要，不含正文）：
 ${noteIndex}
@@ -119,12 +120,18 @@ ${noteIndex}
 - search_notes：当用户的问题无法仅凭标题/摘要定位时，用语义检索找出最相关的笔记，再用 read_note 读取正文。
 - web_fetch：获取外部网页内容（用户分享链接或需要查看网页时）。
 - search_web：在互联网上搜索关键词，获取外部信息。当用户想了解笔记之外的知识时使用。
+- list_ascan_reports：列出最近的新知日报（科技前沿日报），了解最新技术动态时使用。
+- get_ascan_report：获取指定日期的新知日报纯文本内容。
+- delete_ascan_report：删除指定日期的新知日报（用户明确要求删除时使用）。
+- start_ascan_supplement({ date? })：启动新知补充（非阻塞，立即返回）。后台依次运行 arXiv、GitHub、官方动态、博客、会议论文、微信公众号 6 个模块并合并日报。用户说"补充今日新知"时调用。调用后你可以继续与用户对话，进度会自动展示给用户。
+- get_ascan_status()：查看新知补充的运行状态和进度。
 
 规则：
 - 用中文回答
 - 引用笔记时注明标题；引用笔记内容前先用 read_note 读取正文
 - 简洁友好
-- 遇到 URL 时主动使用 web_fetch 查看内容`;
+- 遇到 URL 时主动使用 web_fetch 查看内容
+- 启动新知补充后，告诉用户已启动即可，进度会自动展示`;
 
   // Resolve a note (scoped to the current user) to a full, citable text block.
   async function renderNoteFull(id: string): Promise<string | null> {
@@ -210,9 +217,11 @@ ${note.content}`;
         },
       },
     },
+    ...ascanToolDefinitions,
   ];
 
   const toolHandlers: Record<string, (args: any) => Promise<string>> = {
+    ...makeAscanHandlers(req.userId!),
     read_note: async ({ index, id }: { index?: number; id?: string }) => {
       let noteId = typeof id === "string" && id.length > 0 ? id : undefined;
       if (!noteId && typeof index === "number") {
@@ -414,7 +423,7 @@ router.post("/:id/writer-messages", async (req: AuthRequest, res) => {
 
   const docPreview = documentText.length > 8000 ? documentText.slice(0, 8000) + "\n...(已截断)" : documentText;
 
-  const systemPrompt = `你是 Notty，NoteOne 写作页面的 AI 协作助手。用户正在本地一个 Markdown 文档里写作，希望你帮忙起草、续写、润色或整理内容。
+  const systemPrompt = `你是闹闹，壹识写作页面的 AI 协作助手。用户正在本地一个 Markdown 文档里写作，希望你帮忙起草、续写、润色或整理内容。
 
 文档当前内容（共 ${documentText.length} 字）：
 \`\`\`
@@ -433,6 +442,11 @@ ${selection ? `\n用户当前选中了 [${safeStart}, ${safeEnd}) 区间：\n\`\
 - read_note({ id }): 读取某条笔记完整正文
 - web_fetch({ url }): 抓取网页正文
 - search_web({ query, maxResults? }): 联网检索
+- list_ascan_reports(): 列出最近的新知日报，了解最新技术动态
+- get_ascan_report({ date }): 获取指定日期的新知日报内容
+- delete_ascan_report({ date }): 删除指定日期的新知日报（用户明确要求时）
+- start_ascan_supplement({ date? }): 启动新知补充（非阻塞）。用户说"补充今日新知"时调用，后台自动运行各模块并合并。
+- get_ascan_status(): 查看新知补充的运行状态和进度。
 
 规则：
 - 用中文回答
@@ -545,6 +559,7 @@ ${selection ? `\n用户当前选中了 [${safeStart}, ${safeEnd}) 区间：\n\`\
         },
       },
     },
+    ...ascanToolDefinitions,
   ];
 
   const captureWrite = (type: WriterAction["type"]) =>
@@ -556,6 +571,7 @@ ${selection ? `\n用户当前选中了 [${safeStart}, ${safeEnd}) 区间：\n\`\
     };
 
   const toolHandlers: Record<string, (args: any) => Promise<string>> = {
+    ...makeAscanHandlers(req.userId!),
     insert_text: captureWrite("insert_text"),
     replace_selection: captureWrite("replace_selection"),
     append_text: captureWrite("append_text"),

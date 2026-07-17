@@ -313,9 +313,11 @@ tr:last-child td { border-bottom: none; }
 .toc-entry {
   display: flex;
   align-items: center;
-  padding: var(--sp-sm) var(--sp-md);
+  gap: var(--sp-sm);
+  padding: var(--sp-xs) var(--sp-sm);
   border-radius: var(--r-sm);
   font-size: 14px;
+  line-height: 1.5;
   color: var(--charcoal);
   transition: background 0.15s ease, color 0.15s ease;
   text-decoration: none;
@@ -326,15 +328,16 @@ tr:last-child td { border-bottom: none; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
   border-radius: var(--r-full);
   background: var(--canvas);
   border: 1px solid var(--hairline);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  line-height: 1;
   color: var(--slate);
-  margin-right: var(--sp-sm);
   flex-shrink: 0;
 }
 .toc-entry.active .toc-entry-num { background: var(--primary); border-color: var(--primary); color: #fff; }
@@ -395,39 +398,31 @@ tr:last-child td { border-bottom: none; }
 </head>
 <body>
   <div class="toc-floating">
-  <span class="toc-dot" data-target="arxiv-papers"><span class="toc-floating-label">Part 1 · arXiv 论文精选</span></span>
-  <span class="toc-dot" data-target="github-repos"><span class="toc-floating-label">Part 2 · GitHub 项目挖掘</span></span>
-  <span class="toc-dot" data-target="official-tracker"><span class="toc-floating-label">Part 3 · 官方动态跟踪</span></span>
-  <span class="toc-dot" data-target="blog-subs"><span class="toc-floating-label">Part 4 · 独立博客订阅</span></span>
-  <span class="toc-dot" data-target="conference-papers"><span class="toc-floating-label">Part 5 · 会议论文追踪</span></span>
-  </div>
-  <main class="page">
-    <header class="hero">
-      <h1>Ascan-20260706</h1>
-      <p>科技前沿日报 · 2026-07-06 · arXiv 论文精选 + GitHub 项目挖掘 + 官方动态跟踪 + 会议论文追踪</p>
-    </header>
-
+  <span class="toc-dot" data-target="arxiv-papers"><span class="toc-floating-label">1 · arXiv 论文精选</span></span>
+  <span class="toc-dot" data-target="github-repos"><span class="toc-floating-label">2 · GitHub 项目挖掘</span></span>
+  <span class="toc-dot" data-target="official-tracker"><span class="toc-floating-label">3 · 官方动态跟踪</span></span>
+  <span class="toc-dot" data-target="blog-subs"><span class="toc-floating-label">4 · 独立博客订阅</span></span>
+  <span class="toc-dot" data-target="conference-papers"><span class="toc-floating-label">5 · 会议论文追踪</span></span>
+  </div><main class="page">
     <nav class="toc-card" id="toc-card">
       <div class="toc-card-header">
-        <span class="toc-card-title">📑 大纲</span>
+        <span class="toc-card-title">大纲</span>
         <span class="toc-card-toggle">▼</span>
       </div>
       <div class="toc-list">
-      <a href="#arxiv-papers" class="toc-entry" data-target="arxiv-papers"><span class="toc-entry-num">Part 1</span><span class="toc-entry-text">arXiv 论文精选</span><span class="toc-entry-count">无</span></a>
-      <a href="#github-repos" class="toc-entry" data-target="github-repos"><span class="toc-entry-num">Part 2</span><span class="toc-entry-text">GitHub 项目挖掘</span><span class="toc-entry-count">有内容</span></a>
-      <a href="#official-tracker" class="toc-entry" data-target="official-tracker"><span class="toc-entry-num">Part 3</span><span class="toc-entry-text">官方动态跟踪</span><span class="toc-entry-count">有内容</span></a>
-      <a href="#blog-subs" class="toc-entry" data-target="blog-subs"><span class="toc-entry-num">Part 4</span><span class="toc-entry-text">独立博客订阅</span><span class="toc-entry-count">无</span></a>
-      <a href="#conference-papers" class="toc-entry" data-target="conference-papers"><span class="toc-entry-num">Part 5</span><span class="toc-entry-text">会议论文追踪</span><span class="toc-entry-count">有内容</span></a>
+      <a href="#arxiv-papers" class="toc-entry" data-target="arxiv-papers"><span class="toc-entry-num">1</span><span class="toc-entry-text">arXiv 论文精选</span></a>
+      <a href="#github-repos" class="toc-entry" data-target="github-repos"><span class="toc-entry-num">2</span><span class="toc-entry-text">GitHub 项目挖掘</span></a>
+      <a href="#official-tracker" class="toc-entry" data-target="official-tracker"><span class="toc-entry-num">3</span><span class="toc-entry-text">官方动态跟踪</span></a>
+      <a href="#blog-subs" class="toc-entry" data-target="blog-subs"><span class="toc-entry-num">4</span><span class="toc-entry-text">独立博客订阅</span></a>
+      <a href="#conference-papers" class="toc-entry" data-target="conference-papers"><span class="toc-entry-num">5</span><span class="toc-entry-text">会议论文追踪</span></a>
       </div>
-    </nav>
-
-    <section class="report-section" id="arxiv-papers">
-      <h2>Part 1 — arXiv 论文精选</h2>
+    </nav><section class="report-section" id="arxiv-papers">
+      <h2>1 — arXiv 论文精选</h2>
       <p class="empty-state">今日无 arXiv 数据。</p>
     </section>
 
     <section class="report-section" id="github-repos">
-      <h2>Part 2 — GitHub 项目挖掘</h2>
+      <h2>2 — GitHub 项目挖掘</h2>
       <div class="report-list github-list" data-date="20260706">
 <p class="section-note">聚焦电商 AI 应用相关项目（数字员工/商品推荐/商品巡检/电商客服/智能体框架/意图理解），共发现 21 个仓库。</p>
 <h3>今日精选（高度相关，共 1 个）</h3>
@@ -734,7 +729,7 @@ tr:last-child td { border-bottom: none; }
 
     
     <section class="report-section" id="official-tracker">
-      <h2>Part 3 — 官方动态跟踪</h2>
+      <h2>3 — 官方动态跟踪</h2>
       <p class="meta-note">共发现 149 条官方动态（30 天内），来自 anthropic、openai、deepmind。</p>
 <div class="summary-table-wrapper"><table class="summary-table">
 <thead><tr><th>来源</th><th>标题</th><th>日期</th><th>一句话</th></tr></thead>
@@ -1857,14 +1852,14 @@ tr:last-child td { border-bottom: none; }
 
     
     <section class="report-section" id="blog-subs">
-      <h2>Part 4 — 独立博客订阅</h2>
+      <h2>4 — 独立博客订阅</h2>
       <p class="empty-state">今日无独立博客更新。</p>
     </section>
     
 
     
     <section class="report-section" id="conference-papers">
-      <h2>Part 5 — 会议论文追踪</h2>
+      <h2>5 — 会议论文追踪</h2>
       <div class="conf-stats"><span class="stat-chip">共 20 篇论文</span><span class="stat-chip stat-a">A 类 20 篇</span><span class="stat-chip stat-b">B 类 0 篇</span></div>
 <div class="report-list conf-list" data-date="20260706">
 <article class="card paper-card"><h3>1. R*: Efficient Reward Design via Reward Structure Evolution and Parameter Alignment Optimization with Large Language Models.</h3><p class="meta"><strong>作者：</strong>Pengyi Li 0001, Jianye Hao, Hongyao Tang, Yifu Yuan, Jinbin Qiao 等 (7 人)</p><div class="tags"><span class="tag tag-venue">ICML 2025</span><span class="tag tag-rank-a">CCF-A</span><span class="tag tag-relevance">极度推荐</span></div><div class="tags"><span class="tag">奖励设计</span><span class="tag">大语言模型对齐</span><span class="tag">结构演化</span><span class="tag">参数优化</span><span class="tag">RLHF</span></div><p><strong>一句话总结：</strong>用语言模型演化奖励结构并优化对齐</p><p class="links"><a href="https://proceedings.mlr.press/v267/li25v.html" target="_blank" rel="noopener noreferrer">Abstract</a></p><section class="summary-block"><h4>中文摘要</h4><p>该论文提出R*框架，通过大型语言模型自动演化奖励函数的结构与参数，实现高效奖励设计。核心思想是将奖励设计视为结构搜索与参数对齐的联合优化问题，利用LLM生成候选奖励结构，并借助对比式对齐微调来校准打分。该方法免除繁重的人工调参与规则编写，在复杂任务上提升了奖励模型的质量和泛化性，为大模型对齐与多目标RLHF提供了自动化新范式。</p></section><p class="recommendation"><strong>核心推荐：</strong>打通LLM赋能奖励工程与自动对齐优化的链路，为RLHF和Agent复杂行为塑造带来范式创新，值得对齐与强化学习方向深度关注。</p></article>
@@ -1892,7 +1887,6 @@ tr:last-child td { border-bottom: none; }
     
 
   </main>
-
   <script>
 (function() {
   // ── TOC card collapse/expand ──

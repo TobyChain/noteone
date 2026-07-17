@@ -424,7 +424,6 @@ _REPORT_JS = """
   }
 
   if ('IntersectionObserver' in window && sections.length > 0) {
-    setActive(sections[0].id);
     var observer = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
         if (entry.isIntersecting) {
@@ -440,7 +439,7 @@ _REPORT_JS = """
     link.addEventListener('click', function(e) {
       var href = this.getAttribute('href');
       if (href.length > 1) {
-        var target = document.getElementById(href.slice(1));
+        var target = document.querySelector(href);
         if (target) {
           e.preventDefault();
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -477,7 +476,7 @@ def build_unified_html(
     conference_html: Optional[str] = None,
     wechat_html: Optional[str] = None,
 ) -> str:
-    """Combine arXiv, GitHub, official tracker, blog and conference fragments into one standalone HTML daily report."""
+    """Combine arXiv, GitHub, official tracker, blog, conference and WeChat fragments into one standalone HTML daily report."""
     date_display = f"{date_compact[:4]}-{date_compact[4:6]}-{date_compact[6:8]}"
     arxiv_body = arxiv_html.strip() if arxiv_html and arxiv_html.strip() else '<p class="empty-state">今日无 arXiv 数据。</p>'
     github_body = github_html.strip() if github_html and github_html.strip() else '<p class="empty-state">今日无 GitHub 数据。</p>'
@@ -498,7 +497,7 @@ def build_unified_html(
     official_body = official_html.strip() if official_html and official_html.strip() else '<p class="empty-state">今日无 Anthropic Research 或 OpenAI 新文章。</p>'
     official_section = f"""
     <section class="report-section" id="official-tracker">
-      <h2>Part 3 — 官方动态跟踪</h2>
+      <h2>3 — 官方动态跟踪</h2>
       {official_body}
     </section>
     """
@@ -507,57 +506,50 @@ def build_unified_html(
     blog_body = blog_html.strip() if blog_html and blog_html.strip() else '<p class="empty-state">今日无独立博客更新。</p>'
     blog_section = f"""
     <section class="report-section" id="blog-subs">
-      <h2>Part 4 — 独立博客订阅</h2>
+      <h2>4 — 独立博客订阅</h2>
       {blog_body}
     </section>
     """
 
-    # Part 5: Conference papers
-    conf_body = conference_html.strip() if conference_html and conference_html.strip() else ""
-    conference_section = ""
-    if conf_body:
-        conference_section = f"""
+    # Part 5: Conference papers (always rendered; empty-state if no content)
+    conf_body = conference_html.strip() if conference_html and conference_html.strip() and "empty-state" not in (conference_html or "") else ""
+    conference_section = f"""
     <section class="report-section" id="conference-papers">
-      <h2>Part 5 — 会议论文追踪</h2>
-      {conf_body}
+      <h2>5 — 会议论文追踪</h2>
+      {conf_body or '<p class="empty-state">今日无会议论文数据。</p>'}
     </section>
     """
 
-    # Part 6: WeChat articles
-    wx_body = wechat_html.strip() if wechat_html and wechat_html.strip() else ""
-    wechat_section = ""
-    if wx_body:
-        wechat_section = f"""
-    <section class="report-section" id="wechat-articles">
-      <h2>Part 6 — 微信公众号</h2>
-      {wx_body}
+    # Part 6: WeChat public accounts (always rendered; empty-state if no content)
+    wx_body = wechat_html.strip() if wechat_html and wechat_html.strip() and "empty-state" not in (wechat_html or "") else ""
+    wechat_section = f"""
+    <section class="report-section" id="wechat-mp">
+      <h2>6 — 微信公众号</h2>
+      {wx_body or '<p class="empty-state">今日无微信公众号数据。</p>'}
     </section>
     """
 
     # ── Build TOC entries ──────────────────────────────────────────────
     toc_sections = []
     # arxiv and github are always present
-    toc_sections.append(("arxiv-papers", "Part 1", "arXiv 论文精选", "empty-state" not in arxiv_body))
-    toc_sections.append(("github-repos", "Part 2", "GitHub 项目挖掘", "empty-state" not in github_body))
+    toc_sections.append(("arxiv-papers", "1", "arXiv 论文精选", "empty-state" not in arxiv_body))
+    toc_sections.append(("github-repos", "2", "GitHub 项目挖掘", "empty-state" not in github_body))
     # official
-    has_official = bool(official_html and "empty-state" not in (official_html or ""))
-    toc_sections.append(("official-tracker", "Part 3", "官方动态跟踪", has_official))
+    has_official = official_html and "empty-state" not in (official_html or "")
+    toc_sections.append(("official-tracker", "3", "官方动态跟踪", has_official))
     # blog
-    has_blog = bool(blog_html and "empty-state" not in (blog_html or ""))
-    toc_sections.append(("blog-subs", "Part 4", "独立博客订阅", has_blog))
-    # conference (conditional)
-    if conf_body:
-        toc_sections.append(("conference-papers", "Part 5", "会议论文追踪", True))
-    # wechat (conditional)
-    if wx_body:
-        toc_sections.append(("wechat-articles", "Part 6", "微信公众号", True))
+    has_blog = blog_html and "empty-state" not in (blog_html or "")
+    toc_sections.append(("blog-subs", "4", "独立博客订阅", has_blog))
+    # conference
+    toc_sections.append(("conference-papers", "5", "会议论文追踪", bool(conf_body)))
+    # wechat
+    toc_sections.append(("wechat-mp", "6", "微信公众号", bool(wx_body)))
 
     # Build TOC outline card HTML
     toc_entries_html = "\n".join(
         f'      <a href="#{sid}" class="toc-entry" data-target="{sid}">'
         f'<span class="toc-entry-num">{num}</span>'
         f'<span class="toc-entry-text">{label}</span>'
-        f'<span class="toc-entry-count">{"有内容" if has else "无"}</span>'
         f'</a>'
         for sid, num, label, has in toc_sections
     )
@@ -595,20 +587,16 @@ def build_unified_html(
 <body>
   {toc_floating_html}
   <main class="page">
-    <header class="hero">
-      <h1>Ascan-{_escape_html(date_compact)}</h1>
-      <p>科技前沿日报 · {_escape_html(date_display)} · {_escape_html(subtitle)}</p>
-    </header>
 
     {toc_card_html}
 
     <section class="report-section" id="arxiv-papers">
-      <h2>Part 1 — arXiv 论文精选</h2>
+      <h2>1 — arXiv 论文精选</h2>
       {arxiv_body}
     </section>
 
     <section class="report-section" id="github-repos">
-      <h2>Part 2 — GitHub 项目挖掘</h2>
+      <h2>2 — GitHub 项目挖掘</h2>
       {github_body}
     </section>
 

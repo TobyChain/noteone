@@ -22,12 +22,10 @@ struct AscanConfigView: View {
     @State private var conferenceRankFilterText = ""
     @State private var conferenceCategoriesText = ""
     @State private var blogMaxPerSource = 2
-    @State private var wechatRssBaseUrl = ""
-    @State private var wechatLimitPerMp = 20
     @State private var logLevel = "INFO"
 
     // API keys (masked on load, editable)
-    @State private var idealabApiKey = ""
+    @State private var llmApiKey = ""
     @State private var githubToken = ""
     @State private var semanticScholarApiKey = ""
 
@@ -68,10 +66,10 @@ struct AscanConfigView: View {
     private func configSections(_ config: AscanConfig) -> some View {
         // LLM 配置
         Section {
-            SecureField("IdealAb API Key", text: $idealabApiKey)
+            SecureField("LLM API Key", text: $llmApiKey)
                 .textFieldStyle(.roundedBorder)
             TextField("Base URL", text: Binding(
-                get: { config.idealabBaseUrl },
+                get: { config.llmBaseUrl },
                 set: { _ in }
             ))
             .textFieldStyle(.roundedBorder)
@@ -125,14 +123,11 @@ struct AscanConfigView: View {
                 .sectionHeaderStyle()
         }
 
-        // 博客 & 微信
+        // 博客
         Section {
             Stepper("每源最大文章: \(blogMaxPerSource)", value: $blogMaxPerSource, in: 1...10)
-            TextField("微信 RSS 地址", text: $wechatRssBaseUrl)
-                .textFieldStyle(.roundedBorder)
-            Stepper("每公众号最大文章: \(wechatLimitPerMp)", value: $wechatLimitPerMp, in: 1...50)
         } header: {
-            Label("博客 & 微信", systemImage: "rss")
+            Label("博客", systemImage: "rss")
                 .sectionHeaderStyle()
         }
 
@@ -200,10 +195,8 @@ struct AscanConfigView: View {
             conferenceRankFilterText = c.conferenceRankFilter.joined(separator: ", ")
             conferenceCategoriesText = c.conferenceCategories.joined(separator: ", ")
             blogMaxPerSource = c.blogMaxPerSource
-            wechatRssBaseUrl = c.wechatRssBaseUrl
-            wechatLimitPerMp = c.wechatLimitPerMp
             logLevel = c.logLevel
-            idealabApiKey = c.idealabApiKey
+            llmApiKey = c.llmApiKey
             githubToken = c.githubToken
             semanticScholarApiKey = c.semanticScholarApiKey
         } catch {
@@ -232,13 +225,11 @@ struct AscanConfigView: View {
         updates["conference_rank_filter"] = conferenceRankFilterText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
         updates["conference_categories"] = conferenceCategoriesText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
         updates["blog_max_per_source"] = blogMaxPerSource
-        updates["wechat_rss_base_url"] = wechatRssBaseUrl
-        updates["wechat_limit_per_mp"] = wechatLimitPerMp
         updates["log_level"] = logLevel
 
         // Only send API keys if user actually changed them (not "***")
-        if idealabApiKey != "***" && !idealabApiKey.isEmpty {
-            updates["idealab_api_key"] = idealabApiKey
+        if llmApiKey != "***" && !llmApiKey.isEmpty {
+            updates["llm_api_key"] = llmApiKey
         }
         if githubToken != "***" && !githubToken.isEmpty {
             updates["github_token"] = githubToken
@@ -250,7 +241,7 @@ struct AscanConfigView: View {
         do {
             let updated = try await APIClient.shared.updateAscanConfig(updates: updates)
             config = updated
-            idealabApiKey = updated.idealabApiKey
+            llmApiKey = updated.llmApiKey
             githubToken = updated.githubToken
             semanticScholarApiKey = updated.semanticScholarApiKey
             saveMessage = "配置已保存"

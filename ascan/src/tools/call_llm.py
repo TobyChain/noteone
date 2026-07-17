@@ -7,7 +7,7 @@ import asyncio
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, List
 
 import requests
 
@@ -348,7 +348,7 @@ class LLMClient:
         tasks = [_run_one(p) for p in papers]
         return await asyncio.gather(*tasks)
 
-    def chat(self, prompt_or_messages, temperature: float = 0.7) -> str:
+    def chat(self, prompt_or_messages) -> str:
         """通用聊天接口，支持 string prompt 或 messages list。"""
         if isinstance(prompt_or_messages, str):
             messages = [{"role": "user", "content": prompt_or_messages}]
@@ -359,19 +359,5 @@ class LLMClient:
         except Exception as exc:
             logger.error(f"chat 接口失败: {exc}")
             return ""
-
-    def get_stats(self) -> Dict[str, Any]:
-        return {
-            "request_count": self.request_count,
-            "success_count": self.success_count,
-            "error_count": self.error_count,
-            "success_rate": (
-                self.success_count / self.request_count * 100
-                if self.request_count > 0
-                else 0
-            ),
-            "model": self.model,
-            "base_url": self.base_url,
-        }
 
 

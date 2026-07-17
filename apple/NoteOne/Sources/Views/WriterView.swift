@@ -34,8 +34,8 @@ struct WriterView: View {
     }
 
     enum DrawerTab: String, CaseIterable, Identifiable {
-        case notty = "Notty"
-        case notes = "笔记"
+        case notty = "闹闹"
+        case notes = "往事"
         var id: String { rawValue }
     }
 

@@ -32,8 +32,6 @@ struct NoteDetailView: View {
                 }
             } else if let note = note {
                 ScrollView {
-                    // LazyVStack so long notes only lay out the paragraphs near the viewport,
-                    // instead of rendering the whole body up front (the source of switch lag).
                     LazyVStack(alignment: .leading, spacing: 6) {
                         if note.status == .trashed {
                             TrashedBanner(onRestore: restoreNote, onPermanentDelete: permanentDeleteNote)
@@ -44,15 +42,25 @@ struct NoteDetailView: View {
                         }
 
                         if isEditing {
-                            editingSection(note)
+                            TextField("标题", text: $editTitle)
+                                .font(.title)
+                                .textFieldStyle(.plain)
+                                .foregroundStyle(Color.ink)
+                                .padding(.bottom, 8)
+
+                            Divider()
+
+                            TextEditor(text: $editContent)
+                                .font(.body)
+                                .frame(minHeight: 400)
+                                .scrollContentBackground(.hidden)
+                                .padding(.top, 4)
                         } else {
                             noteHeader(note)
                                 .padding(.bottom, 8)
 
                             Divider()
 
-                            // Chunked content as direct children of the LazyVStack → only the
-                            // visible chunks of a long note are laid out.
                             ForEach(contentChunks(note.content)) { chunk in
                                 Text(chunk.text)
                                     .font(.body)
@@ -193,20 +201,6 @@ struct NoteDetailView: View {
             }
         }
         return chunks
-    }
-
-    @ViewBuilder
-    private func editingSection(_ note: Note) -> some View {
-        TextField("标题", text: $editTitle)
-            .font(.title)
-            .textFieldStyle(.plain)
-
-        Divider()
-
-        TextEditor(text: $editContent)
-            .font(.body)
-            .frame(minHeight: 200)
-            .scrollContentBackground(.hidden)
     }
 
     private func startEditing() {

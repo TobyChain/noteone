@@ -62,7 +62,7 @@ router.post("/", async (req: AuthRequest, res) => {
     ).join("\n");
   }
 
-  const systemPrompt = `你是 Notty，NoteOne 应用的 AI 助手。你可以帮助用户检索、总结和分析他们的笔记。
+  const systemPrompt = `你是闹闹，壹识应用的 AI 助手。你可以帮助用户检索、总结和分析他们的笔记。
 
 用户共有 ${allNotes.length} 条笔记，索引如下：
 ${noteIndex}

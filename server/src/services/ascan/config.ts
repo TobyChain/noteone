@@ -1,39 +1,27 @@
 /**
- * Ascan Bridge — bridges the Express server to the embedded Python ascan pipeline.
- *
- * Responsibilities:
- *  - List / read HTML daily reports from ascan/docs/
- *  - Parse and update ascan/.env configuration
- *  - Spawn `python main_daily.py` to trigger pipeline runs
- *  - Check run status via lock files
+ * Ascan configuration — .env parsing/serialization for the Python pipeline.
+ * Extracted from the former ascan-bridge.ts.
  */
-
-import { readdir, readFile, writeFile, stat } from "fs/promises";
-import { join } from "path";
-import { spawn } from "child_process";
+import { readFile, writeFile } from "fs/promises";
 import { fileURLToPath } from "url";
-import { dirname, resolve } from "path";
+import { dirname, resolve, join } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// ascan/ is at the noteone project root, 3 levels up from server/src/services/
-const ASCAN_ROOT = resolve(__dirname, "../../../ascan");
+// ascan/ is at the noteone project root. This file lives at server/src/services/ascan/,
+// so the project root is 4 levels up.
+const ASCAN_ROOT = resolve(__dirname, "../../../../ascan");
 const ASCAN_DOCS = join(ASCAN_ROOT, "docs");
 const ASCAN_ENV = join(ASCAN_ROOT, ".env");
 const ASCAN_LOGS = join(ASCAN_ROOT, "logs");
 
-export interface AscanReportMeta {
-  date: string;
-  filename: string;
-  size: number;
-  hasMarkdown: boolean;
-}
+export { ASCAN_ROOT, ASCAN_DOCS, ASCAN_ENV, ASCAN_LOGS };
 
 export interface AscanConfig {
   // LLM
-  idealab_api_key: string;
-  idealab_base_url: string;
+  llm_api_key: string;
+  llm_base_url: string;
   llm_model: string;
   llm_max_concurrency: number;
   // GitHub
@@ -54,19 +42,9 @@ export interface AscanConfig {
   conference_categories: string[];
   // Blog
   blog_max_per_source: number;
-  // WeChat
-  wechat_rss_base_url: string;
-  wechat_limit_per_mp: number;
   // Output
   output_dir: string;
   log_level: string;
-}
-
-export interface AscanRunStatus {
-  isRunning: boolean;
-  lastLockTime: string | null;
-  lockAge: string | null;
-  recentLog: string | null;
 }
 
 // ── .env parsing ──────────────────────────────────────────────
@@ -78,7 +56,6 @@ function parseEnvLine(line: string): { key: string; value: string } | null {
   if (eqIdx === -1) return null;
   const key = trimmed.slice(0, eqIdx).trim();
   let value = trimmed.slice(eqIdx + 1).trim();
-  // strip surrounding quotes
   if (
     (value.startsWith('"') && value.endsWith('"')) ||
     (value.startsWith("'") && value.endsWith("'"))
@@ -119,9 +96,9 @@ function parseInt2(value: string, fallback: number): number {
 
 function configFromEnv(env: Record<string, string>): AscanConfig {
   return {
-    idealab_api_key: env.IDEALAB_API_KEY || "",
-    idealab_base_url: env.IDEALAB_BASE_URL || "https://idealab.alibaba-inc.com/api/openai/v1",
-    llm_model: env.LLM_MODEL || "Qwen3.6-Plus-DogFooding",
+    llm_api_key: env.LLM_API_KEY || "",
+    llm_base_url: env.LLM_BASE_URL || "https://yunwu.ai/v1",
+    llm_model: env.LLM_MODEL || "deepseek-v4-pro",
     llm_max_concurrency: parseInt2(env.LLM_MAX_CONCURRENCY, 5),
 
     github_token: env.GITHUB_TOKEN || "",
@@ -142,9 +119,6 @@ function configFromEnv(env: Record<string, string>): AscanConfig {
 
     blog_max_per_source: parseInt2(env.BLOG_MAX_PER_SOURCE, 2),
 
-    wechat_rss_base_url: env.WECHAT_RSS_BASE_URL || "http://localhost:8001",
-    wechat_limit_per_mp: parseInt2(env.WECHAT_LIMIT_PER_MP, 20),
-
     output_dir: env.OUTPUT_DIR || "./docs",
     log_level: env.LOG_LEVEL || "INFO",
   };
@@ -153,8 +127,8 @@ function configFromEnv(env: Record<string, string>): AscanConfig {
 // ── .env writing ──────────────────────────────────────────────
 
 const CONFIG_TO_ENV: Record<keyof AscanConfig, string> = {
-  idealab_api_key: "IDEALAB_API_KEY",
-  idealab_base_url: "IDEALAB_BASE_URL",
+  llm_api_key: "LLM_API_KEY",
+  llm_base_url: "LLM_BASE_URL",
   llm_model: "LLM_MODEL",
   llm_max_concurrency: "LLM_MAX_CONCURRENCY",
   github_token: "GITHUB_TOKEN",
@@ -171,8 +145,6 @@ const CONFIG_TO_ENV: Record<keyof AscanConfig, string> = {
   conference_rank_filter: "CONFERENCE_RANK_FILTER",
   conference_categories: "CONFERENCE_CATEGORIES",
   blog_max_per_source: "BLOG_MAX_PER_SOURCE",
-  wechat_rss_base_url: "WECHAT_RSS_BASE_URL",
-  wechat_limit_per_mp: "WECHAT_LIMIT_PER_MP",
   output_dir: "OUTPUT_DIR",
   log_level: "LOG_LEVEL",
 };
@@ -220,36 +192,6 @@ function updateEnvFile(existingContent: string, updates: Partial<AscanConfig>): 
   return newLines.join("\n");
 }
 
-// ── Public API ────────────────────────────────────────────────
-
-export async function listReports(): Promise<AscanReportMeta[]> {
-  try {
-    const files = await readdir(ASCAN_DOCS);
-    const htmlFiles = files.filter((f) => f.match(/^Ascan-\d{8}\.html$/));
-    const reports: AscanReportMeta[] = [];
-    for (const f of htmlFiles) {
-      const date = f.match(/Ascan-(\d{8})\.html/)![1];
-      const filePath = join(ASCAN_DOCS, f);
-      const st = await stat(filePath);
-      const hasMd = files.includes(`Ascan-${date}.md`);
-      reports.push({ date, filename: f, size: st.size, hasMarkdown: hasMd });
-    }
-    reports.sort((a, b) => b.date.localeCompare(a.date));
-    return reports;
-  } catch {
-    return [];
-  }
-}
-
-export async function getReport(date: string): Promise<string | null> {
-  const filePath = join(ASCAN_DOCS, `Ascan-${date}.html`);
-  try {
-    return await readFile(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-}
-
 export async function getConfig(): Promise<AscanConfig> {
   try {
     const content = await readFile(ASCAN_ENV, "utf-8");
@@ -272,59 +214,4 @@ export async function updateConfig(updates: Partial<AscanConfig>): Promise<Ascan
   return getConfig();
 }
 
-const RUNNING_LOCK_MS = 5 * 60_000;
-
-export async function triggerRun(date?: string): Promise<{ pid: number; message: string }> {
-  if (!date) {
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
-    const lockPath = join(ASCAN_LOGS, `ascan_${dateStr}.lock`);
-    try {
-      const st = await stat(lockPath);
-      const ageMs = Date.now() - st.mtimeMs;
-      if (ageMs < RUNNING_LOCK_MS) {
-        throw new Error("A pipeline run is already in progress");
-      }
-    } catch (err: any) {
-      if (err?.code !== "ENOENT") throw err;
-    }
-  }
-  const args = ["main_daily.py"];
-  if (date) {
-    args.push("--date", date);
-  }
-  const child = spawn("python3", args, {
-    cwd: ASCAN_ROOT,
-    detached: true,
-    stdio: "ignore",
-  });
-  child.unref();
-  return new Promise((resolve2, reject) => {
-    child.on("spawn", () => {
-      resolve2({ pid: child.pid!, message: `Ascan pipeline started (pid: ${child.pid})` });
-    });
-    child.on("error", (err) => {
-      reject(new Error(`Failed to start ascan: ${err.message}`));
-    });
-  });
-}
-
-export async function getRunStatus(): Promise<AscanRunStatus> {
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
-  const lockPath = join(ASCAN_LOGS, `ascan_${dateStr}.lock`);
-
-  try {
-    const st = await stat(lockPath);
-    const ageMs = Date.now() - st.mtimeMs;
-    const ageHours = (ageMs / 3600000).toFixed(1);
-    return {
-      isRunning: ageMs < RUNNING_LOCK_MS,
-      lastLockTime: st.mtime.toISOString(),
-      lockAge: `${ageHours}h`,
-      recentLog: null,
-    };
-  } catch {
-    return { isRunning: false, lastLockTime: null, lockAge: null, recentLog: null };
-  }
-}
+export const ASCAN_CONFIG_TO_ENV = CONFIG_TO_ENV;

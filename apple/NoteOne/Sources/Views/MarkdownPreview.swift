@@ -1,12 +1,5 @@
 import SwiftUI
 
-/// Lightweight Markdown preview built on Apple's native `AttributedString(markdown:)`
-/// for inline formatting (bold/italic/code/links) and a hand-rolled block parser for
-/// headings, lists, blockquotes, code blocks, horizontal rules, and image refs.
-///
-/// We don't want to pull in a heavy markdown library — Obsidian-grade rendering is out
-/// of scope for the local writer; we just want a comfortable read-mode that mirrors what
-/// the user types.
 struct MarkdownPreview: View {
     let markdown: String
 
@@ -15,7 +8,7 @@ struct MarkdownPreview: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DG.sp16) {
             ForEach(blocks) { block in
                 blockView(block)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -30,59 +23,87 @@ struct MarkdownPreview: View {
             Text(inline(block.text))
                 .font(headingFont(level))
                 .foregroundStyle(Color.ink)
-                .padding(.top, level == 1 ? 8 : 4)
+                .padding(.top, level <= 2 ? DG.sp20 : DG.sp12)
+                .padding(.bottom, level <= 2 ? DG.sp4 : 0)
+
         case .paragraph:
             Text(inline(block.text))
-                .font(.body)
+                .font(.system(size: 16))
+                .lineSpacing(4)
                 .foregroundStyle(Color.ink)
                 .textSelection(.enabled)
+
         case .blockquote:
-            HStack(alignment: .top, spacing: 8) {
+            HStack(alignment: .top, spacing: DG.sp12) {
                 Rectangle()
-                    .fill(Color.accent.opacity(0.5))
+                    .fill(Color.accent.opacity(0.4))
                     .frame(width: 3)
                 Text(inline(block.text))
-                    .font(.body)
+                    .font(.system(size: 15))
                     .foregroundStyle(Color.inkSecondary)
                     .italic()
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .padding(DG.sp12)
+            .background(Color.accent.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: DG.r8))
+
         case .codeBlock(let lang):
             VStack(alignment: .leading, spacing: 0) {
                 if let lang, !lang.isEmpty {
-                    Text(lang)
-                        .font(.caption2.monospaced())
-                        .foregroundStyle(Color.inkTertiary)
-                        .padding(.horizontal, 12)
-                        .padding(.top, 8)
+                    HStack {
+                        Text(lang)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(Color.inkTertiary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, DG.sp16)
+                    .padding(.top, DG.sp8)
+                    .padding(.bottom, DG.sp4)
+                    Divider()
                 }
                 Text(block.text)
-                    .font(.body.monospaced())
+                    .font(.system(size: 14, design: .monospaced))
                     .foregroundStyle(Color.ink)
-                    .padding(12)
+                    .padding(DG.sp16)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
             }
             .background(Color.canvasSecondary)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: DG.r8))
+            .overlay(
+                RoundedRectangle(cornerRadius: DG.r8)
+                    .stroke(Color.hairline, lineWidth: 0.5)
+            )
+
         case .listItem(let ordered, let index):
-            HStack(alignment: .top, spacing: 8) {
-                Text(ordered ? "\(index)." : "•")
-                    .font(.body)
+            HStack(alignment: .firstTextBaseline, spacing: DG.sp8) {
+                Text(ordered ? "\(index)." : "\u{2022}")
+                    .font(.system(size: 16))
                     .foregroundStyle(Color.inkSecondary)
-                    .frame(width: 20, alignment: .trailing)
+                    .frame(width: 22, alignment: .trailing)
                 Text(inline(block.text))
-                    .font(.body)
+                    .font(.system(size: 16))
+                    .lineSpacing(4)
                     .foregroundStyle(Color.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
+
         case .horizontalRule:
-            Divider().padding(.vertical, 4)
+            HStack {
+                Rectangle()
+                    .fill(Color.hairline)
+                    .frame(height: 1)
+            }
+            .padding(.vertical, DG.sp8)
+
         case .image(let url):
-            // Local file:// images relative to the document directory render via AsyncImage.
             if let url {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
                         image.resizable().scaledToFit()
+                            .clipShape(RoundedRectangle(cornerRadius: DG.r8))
                     case .failure:
                         Label("图片加载失败", systemImage: "photo")
                             .foregroundStyle(Color.inkTertiary)
@@ -94,16 +115,50 @@ struct MarkdownPreview: View {
                 }
                 .frame(maxWidth: .infinity)
             }
+        case .table(let headers, let rows, let alignments):
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 0) {
+                    ForEach(Array(headers.enumerated()), id: \.offset) { i, h in
+                        Text(inline(h))
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.ink)
+                            .frame(maxWidth: .infinity, alignment: frameAlignment(safeAlign(alignments, i)))
+                            .padding(.horizontal, DG.sp8)
+                            .padding(.vertical, DG.sp4)
+                    }
+                }
+                .background(Color.canvasSecondary)
+                ForEach(Array(rows.enumerated()), id: \.offset) { ri, row in
+                    HStack(spacing: 0) {
+                        ForEach(Array(row.enumerated()), id: \.offset) { ci, cell in
+                            Text(inline(cell))
+                                .font(.system(size: 14))
+                                .foregroundStyle(Color.ink)
+                                .frame(maxWidth: .infinity, alignment: frameAlignment(safeAlign(alignments, ci)))
+                                .padding(.horizontal, DG.sp8)
+                                .padding(.vertical, DG.sp4)
+                        }
+                    }
+                    .background(ri % 2 == 0 ? Color.clear : Color.canvasSecondary.opacity(0.5))
+                    .overlay(Rectangle().fill(Color.hairline).frame(height: 0.5), alignment: .top)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: DG.r6))
+            .overlay(RoundedRectangle(cornerRadius: DG.r6).stroke(Color.hairline, lineWidth: 0.5))
         }
     }
 
-    /// Inline formatting via the system markdown parser (bold/italic/code/links).
-    /// Falls back to plain text on parse failure.
+    private func frameAlignment(_ a: HAlignment) -> Alignment {
+        switch a { case .left: return .leading; case .center: return .center; case .right: return .trailing }
+    }
+
+    private func safeAlign(_ alignments: [HAlignment], _ i: Int) -> HAlignment {
+        i < alignments.count ? alignments[i] : .left
+    }
+
     private func inline(_ text: String) -> AttributedString {
-        if let attr = try? AttributedString(
-            markdown: text,
-            options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        ) {
+        let opts = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        if let attr = try? AttributedString(markdown: text, options: opts) {
             return attr
         }
         return AttributedString(text)
@@ -111,15 +166,14 @@ struct MarkdownPreview: View {
 
     private func headingFont(_ level: Int) -> Font {
         switch level {
-        case 1: return .system(size: 28, weight: .bold)
-        case 2: return .system(size: 22, weight: .semibold)
-        case 3: return .system(size: 18, weight: .semibold)
+        case 1: return .system(size: 30, weight: .bold)
+        case 2: return .system(size: 24, weight: .semibold)
+        case 3: return .system(size: 20, weight: .semibold)
+        case 4: return .system(size: 17, weight: .semibold)
         default: return .system(size: 16, weight: .medium)
         }
     }
 }
-
-// MARK: - Block model
 
 struct Block: Identifiable {
     enum Kind {
@@ -130,18 +184,16 @@ struct Block: Identifiable {
         case listItem(ordered: Bool, index: Int)
         case horizontalRule
         case image(URL?)
+        case table(headers: [String], rows: [[String]], alignments: [HAlignment])
     }
     let id: Int
     let kind: Kind
     let text: String
 }
 
-// MARK: - Block parser
+enum HAlignment { case left, center, right }
 
 enum MarkdownParser {
-    /// Parse a markdown string into a flat list of blocks. We keep this dead simple:
-    /// we only recognize block-level constructs that visibly differ in layout. Inline
-    /// markdown inside paragraphs is left to the system parser at render time.
     static func parse(_ source: String) -> [Block] {
         var blocks: [Block] = []
         let lines = source.components(separatedBy: "\n")
@@ -165,7 +217,6 @@ enum MarkdownParser {
         while idx < lines.count {
             let line = lines[idx]
 
-            // Code block fence
             if line.hasPrefix("```") {
                 if inCodeBlock {
                     blocks.append(Block(id: blockId, kind: .codeBlock(codeLang), text: codeBuffer.joined(separator: "\n")))
@@ -196,7 +247,24 @@ enum MarkdownParser {
                 continue
             }
 
-            // Horizontal rule
+            // Table: consecutive lines starting with |
+            if trimmed.hasPrefix("|") && idx + 1 < lines.count && lines[idx + 1].trimmingCharacters(in: .whitespaces).hasPrefix("|") && lines[idx + 1].contains("-") {
+                flushParagraph()
+                var tableLines: [String] = []
+                while idx < lines.count && lines[idx].trimmingCharacters(in: .whitespaces).hasPrefix("|") {
+                    tableLines.append(lines[idx])
+                    idx += 1
+                }
+                if tableLines.count >= 2 {
+                    let headers = parseTableRow(tableLines[0])
+                    let aligns = parseTableAligns(tableLines[1])
+                    let rows = Array(tableLines.dropFirst(2)).map { parseTableRow($0) }
+                    blocks.append(Block(id: blockId, kind: .table(headers: headers, rows: rows, alignments: aligns), text: ""))
+                    blockId += 1
+                }
+                continue
+            }
+
             if trimmed == "---" || trimmed == "***" || trimmed == "___" {
                 flushParagraph()
                 blocks.append(Block(id: blockId, kind: .horizontalRule, text: ""))
@@ -205,7 +273,6 @@ enum MarkdownParser {
                 continue
             }
 
-            // Heading
             if let match = trimmed.range(of: "^#{1,6}\\s+", options: .regularExpression) {
                 flushParagraph()
                 let hashCount = trimmed.distance(from: trimmed.startIndex, to: match.upperBound) - 1
@@ -216,7 +283,6 @@ enum MarkdownParser {
                 continue
             }
 
-            // Image-only line: ![alt](path)
             if let imgMatch = trimmed.range(of: "^!\\[[^\\]]*\\]\\(([^)]+)\\)\\s*$", options: .regularExpression) {
                 flushParagraph()
                 let raw = String(trimmed[imgMatch])
@@ -231,7 +297,6 @@ enum MarkdownParser {
                 continue
             }
 
-            // Blockquote
             if trimmed.hasPrefix("> ") {
                 flushParagraph()
                 let text = String(trimmed.dropFirst(2))
@@ -241,7 +306,6 @@ enum MarkdownParser {
                 continue
             }
 
-            // Ordered list item
             if let m = trimmed.range(of: "^\\d+[.)]\\s+", options: .regularExpression) {
                 flushParagraph()
                 orderedCounter += 1
@@ -252,7 +316,6 @@ enum MarkdownParser {
                 continue
             }
 
-            // Unordered list item
             if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") || trimmed.hasPrefix("+ ") {
                 flushParagraph()
                 let text = String(trimmed.dropFirst(2))
@@ -262,12 +325,10 @@ enum MarkdownParser {
                 continue
             }
 
-            // Default: paragraph line (group consecutive lines)
             paragraphBuffer.append(line)
             idx += 1
         }
 
-        // Flush any trailing buffers
         if inCodeBlock {
             blocks.append(Block(id: blockId, kind: .codeBlock(codeLang), text: codeBuffer.joined(separator: "\n")))
             blockId += 1
@@ -277,8 +338,24 @@ enum MarkdownParser {
         return blocks
     }
 
-    /// Resolve a markdown image path against the document directory so relative paths
-    /// (`./foo.png`, `images/foo.png`) work the same as in Obsidian / VS Code.
+    private static func parseTableRow(_ line: String) -> [String] {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        let withoutEdges = trimmed.hasPrefix("|") ? String(trimmed.dropFirst()) : trimmed
+        let final = withoutEdges.hasSuffix("|") ? String(withoutEdges.dropLast()) : withoutEdges
+        return final.split(separator: "|", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
+    }
+
+    private static func parseTableAligns(_ line: String) -> [HAlignment] {
+        parseTableRow(line).map { cell in
+            let s = cell.trimmingCharacters(in: .whitespaces)
+            let left = s.hasPrefix(":")
+            let right = s.hasSuffix(":")
+            if left && right { return .center }
+            if right { return .right }
+            return .left
+        }
+    }
+
     private static func imageURL(from path: String) -> URL? {
         if let url = URL(string: path), url.scheme != nil {
             return url
