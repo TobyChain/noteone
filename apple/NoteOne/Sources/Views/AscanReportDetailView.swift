@@ -75,6 +75,7 @@ struct AscanWebView: UIViewRepresentable {
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground
         webView.scrollView.backgroundColor = .systemBackground
+        webView.navigationDelegate = context.coordinator
         return webView
     }
 
@@ -84,8 +85,18 @@ struct AscanWebView: UIViewRepresentable {
         webView.loadHTMLString(htmlContent, baseURL: nil)
     }
 
-    class Coordinator {
+    class Coordinator: NSObject, WKNavigationDelegate {
         var currentHTML: String?
+
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url,
+               url.scheme == "http" || url.scheme == "https" {
+                UIApplication.shared.open(url)
+                decisionHandler(.cancel)
+                return
+            }
+            decisionHandler(.allow)
+        }
     }
 }
 #elseif os(macOS)
@@ -101,6 +112,7 @@ struct AscanWebView: NSViewRepresentable {
         config.defaultWebpagePreferences.allowsContentJavaScript = true
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.setValue(false, forKey: "drawsBackground")
+        webView.navigationDelegate = context.coordinator
         return webView
     }
 
@@ -110,8 +122,18 @@ struct AscanWebView: NSViewRepresentable {
         webView.loadHTMLString(htmlContent, baseURL: nil)
     }
 
-    class Coordinator {
+    class Coordinator: NSObject, WKNavigationDelegate {
         var currentHTML: String?
+
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url,
+               url.scheme == "http" || url.scheme == "https" {
+                NSWorkspace.shared.open(url)
+                decisionHandler(.cancel)
+                return
+            }
+            decisionHandler(.allow)
+        }
     }
 }
 #endif

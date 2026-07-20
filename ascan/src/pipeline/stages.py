@@ -71,6 +71,20 @@ class FetchStage(PipelineStage):
         rss_entries: list[_RssEntry] = []
         target_date_obj = datetime.strptime(context.date, "%Y-%m-%d").date()
 
+        # Cross-day dedup: load all known arxiv_ids from DB so papers already
+        # reported in previous days' runs are skipped today. arXiv's RSS feed
+        # can include papers from previous days (re-indexing, late submissions),
+        # which would otherwise show up in multiple daily reports.
+        from src.database.connection import get_db_session
+        from src.database.repositories import PaperRepository
+        try:
+            db = get_db_session()
+            known_arxiv_ids = PaperRepository(db).get_all_arxiv_ids()
+            seen_ids |= known_arxiv_ids
+            logger.info(f"Cross-day dedup: {len(known_arxiv_ids)} arxiv_ids already in DB")
+        except Exception as e:
+            logger.warning(f"Failed to load known arxiv_ids for dedup: {e}")
+
         for subject in context.subjects:
             logger.info(f"抓取主题: {subject} (RSS 优先)")
             rss_retry_delays = [5, 10, 15]

@@ -36,6 +36,14 @@ struct NoteOneApp: App {
                 }
             }
             .applyTheme(theme)
+            .environment(\.openURL, OpenURLAction { url in
+                #if os(macOS)
+                NSWorkspace.shared.open(url)
+                return .handled
+                #else
+                return .systemAction
+                #endif
+            })
             .task {
                 await SyncQueue.shared.warmUp()
                 await syncPending()

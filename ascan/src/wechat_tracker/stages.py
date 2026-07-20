@@ -13,7 +13,7 @@ from src.database.repositories import WeChatArticleRepository
 
 
 class FetchWeChatStage(PipelineStage):
-    """Fetch articles from we-mp-rss RSS, dedup against DB."""
+    """Fetch articles via wechat-article-exporter (WAE) REST API, dedup against DB."""
 
     def __init__(self):
         super().__init__("fetching_wechat")
@@ -22,18 +22,20 @@ class FetchWeChatStage(PipelineStage):
         from src.config.settings import get_settings
         settings = get_settings()
 
-        base_url = getattr(settings, "wechat_rss_base_url", "")
+        wae_url = getattr(settings, "wechat_wae_url", "")
+        auth_key = getattr(settings, "wechat_wae_auth_key", "")
         mp_list = getattr(settings, "wechat_mp_ids", [])
         limit = getattr(settings, "wechat_limit_per_mp", 20)
+        days_recent = getattr(settings, "wechat_days_recent", 30)
 
-        if not base_url or not mp_list:
-            logger.warning("WeChat tracker 未配置 base_url 或 mp_ids，跳过")
+        if not wae_url or not auth_key or not mp_list:
+            logger.warning("WeChat tracker 未配置 wae_url / auth_key / mp_ids，跳过")
             context.wechat_articles = []
             return True
 
-        logger.info(f"Fetching WeChat RSS from {base_url}, {len(mp_list)} MPs")
+        logger.info(f"Fetching WeChat via WAE from {wae_url}, {len(mp_list)} MPs, days_recent={days_recent}")
 
-        all_articles = fetch_all_mps(base_url, mp_list, limit=limit)
+        all_articles = fetch_all_mps(wae_url, auth_key, mp_list, limit=limit, days_recent=days_recent)
 
         db = get_db_session()
         repo = WeChatArticleRepository(db)
@@ -41,9 +43,13 @@ class FetchWeChatStage(PipelineStage):
         analyzed_ids = repo.get_all_analyzed_ids()
         today = context.date.replace("-", "")
 
-        new_articles = list(all_articles)
+        # Dedup against DB: only carry forward articles never seen before.
+        # This matches Blog/Official behavior — daily report shows NEW items only,
+        # not a re-listing of everything in the recency window.
+        new_articles = [a for a in all_articles if a.article_id not in known_ids]
+        skipped_dup = len(all_articles) - len(new_articles)
 
-        for article in all_articles:
+        for article in new_articles:
             try:
                 repo.upsert_discovered(
                     article_id=article.article_id,
@@ -59,10 +65,12 @@ class FetchWeChatStage(PipelineStage):
             except Exception as e:
                 logger.warning(f"DB upsert failed for {article.article_id}: {e}")
 
+        if skipped_dup:
+            logger.info(f"WeChat: 跳过 {skipped_dup} 篇已知文章")
         if new_articles:
-            logger.success(f"WeChat: 发现 {len(new_articles)} 篇新文章")
+            logger.success(f"WeChat: 发现 {len(new_articles)} 篇新文章（最近 {days_recent} 天共 {len(all_articles)} 篇）")
         else:
-            logger.info("WeChat: 无新文章")
+            logger.info(f"WeChat: 无新文章（最近 {days_recent} 天共 {len(all_articles)} 篇全部已读）")
 
         context.wechat_articles = new_articles
         context.wechat_analyzed_ids = analyzed_ids

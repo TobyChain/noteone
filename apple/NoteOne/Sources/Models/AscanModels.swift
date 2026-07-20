@@ -44,11 +44,32 @@ struct AscanConfig: Codable, Hashable {
     var conferenceLookbackDays: Int = 30
     var conferenceRankFilter: [String] = []
     var conferenceCategories: [String] = []
+    var conferenceDaysRecent: Int = 90
 
     var blogMaxPerSource: Int = 2
 
+    var wechatWaeUrl: String = ""
+    var wechatWaeAuthKey: String = ""
+    var wechatMpIds: [WechatMpId] = []
+    var wechatLimitPerMp: Int = 20
+    var wechatDaysRecent: Int = 30
+
     var outputDir: String = "./docs"
     var logLevel: String = "INFO"
+}
+
+struct WechatMpId: Codable, Hashable {
+    var id: String
+    var name: String
+}
+
+struct WechatHealthResponse: Decodable {
+    let status: String  // unconfigured | ready | auth_expired | unreachable
+    let waeUrl: String?
+    let mpCount: Int?
+    let nickname: String?
+    let reason: String?
+    let error: String?
 }
 
 struct AscanModuleProgress: Decodable, Hashable {

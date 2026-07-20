@@ -15,8 +15,9 @@ struct NottyView: View {
 
     private let promptSuggestions: [String] = [
         "帮我补充今日新知",
-        "最近有哪些关于 AI 的笔记？",
-        "今天的新知日报讲了什么？",
+        "每天 8 点自动补充新知",
+        "搜索本地文件里的 TODO",
+        "列出桌面上的文件",
     ]
 
     var body: some View {

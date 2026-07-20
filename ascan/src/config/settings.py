@@ -257,17 +257,29 @@ class Settings(BaseSettings):
     )
 
     # ==================== 微信公众号追踪配置 ====================
-    wechat_rss_base_url: str = Field(
-        default="http://localhost:8001",
-        description="we-mp-rss 服务地址"
+    wechat_wae_url: str = Field(
+        default="http://localhost:3001",
+        description="wechat-article-exporter 服务地址（原生 Node 部署，避免与 NoteOne server 默认 3000 冲突）"
+    )
+    wechat_wae_auth_key: str = Field(
+        default="",
+        description="WAE 扫码登录后的 auth-key cookie 值（4 天过期需重扫）"
     )
     wechat_mp_ids: List[dict] = Field(
         default=[],
-        description="订阅的公众号列表 [{\"id\": \"MP_WXS_xxx\", \"name\": \"xxx\"}]"
+        description="订阅的公众号列表 [{\"id\": \"<WAE fakeid>\", \"name\": \"xxx\"}]，fakeid 在 WAE UI 搜索公众号得到"
     )
     wechat_limit_per_mp: int = Field(
         default=20,
         description="每个公众号最多抓取文章数"
+    )
+    wechat_days_recent: int = Field(
+        default=30,
+        description="只保留最近 N 天内发布的文章（与 blog _DAYS_RECENT 同语义）"
+    )
+    conference_days_recent: int = Field(
+        default=90,
+        description="会议论文只保留最近 N 天内发布的（避免每天重列当年所有论文）"
     )
 
     @field_validator('github_topics', mode='before')

@@ -5,33 +5,21 @@ import AppKit
 
 #if os(macOS)
 /// macOS main shell: NavigationSplitView with three panes.
-///   - sidebar: MainSidebar (markdown files + notes list with search/filter)
-///   - center : NoteDetailView, WriterEditorPane, TrashView, or empty placeholder
-///   - inspector: collapsible Notty drawer (writer-mode when editing markdown,
-///                regular Notty otherwise)
+///   - sidebar: MainSidebar (notes list with search/filter)
+///   - center : NoteDetailView, TrashView, Ascan views, or empty placeholder
+///   - inspector: collapsible Notty drawer
 struct MainSplitView: View {
     @EnvironmentObject var authService: AuthService
 
     @State private var selection: SidebarSelection = .empty
     @State private var notes: [Note] = []
-    @State private var mdFiles: [LocalMarkdownFile] = []
     @State private var ascanReports: [AscanReportMeta] = []
     @State private var ascanReportHTML: [String: String] = [:]
-
-    // Active markdown editor state. Lives at the top so the sidebar can react to
-    // "writer is active" and so Notty's drawer can bind directly to the document.
-    @State private var currentFile: LocalMarkdownFile?
-    @State private var mdContent: String = ""
-    @State private var mdSelection: NSRange = NSRange(location: 0, length: 0)
-    @State private var mdLastSavedAt: Date?
-    @State private var mdSaveTask: Task<Void, Never>?
 
     // Right drawer
     @State private var drawerVisible: Bool = true
     @State private var showMCPInstall = false
-    @State private var renameAlert = false
-    @State private var renameText = ""
-    @State private var renameTarget: LocalMarkdownFile?
+    @State private var showCreateNote = false
     @State private var pollTimer: Timer?
     @State private var ascanRunStatus: AscanRunStatus?
     @State private var ascanPollTimer: Timer?
@@ -42,12 +30,8 @@ struct MainSplitView: View {
             MainSidebar(
                 selection: $selection,
                 notes: $notes,
-                mdFiles: $mdFiles,
                 ascanReports: $ascanReports,
-                writerActive: writerActive,
-                onInsertCitation: insertAtCaret,
-                onCreateMarkdown: { Task { await createMarkdown() } },
-                onDeleteMarkdown: { file in Task { await deleteMarkdown(file) } },
+                onCreateNote: { showCreateNote = true },
                 onRefresh: { await refreshNotes(); await loadAscanReports() },
                 onDeleteNote: deleteNote,
                 onSearch: { q in await searchNotes(q) },
@@ -77,16 +61,12 @@ struct MainSplitView: View {
                 startPollingIfNeeded()
             }
         }
-        .alert("重命名", isPresented: $renameAlert) {
-            TextField("标题", text: $renameText)
-            Button("取消", role: .cancel) {}
-            Button("保存") {
-                if let target = renameTarget { Task { await rename(target, to: renameText) } }
-            }
-        }
         .sheet(isPresented: $showMCPInstall) {
             MCPInstallView()
                 .environmentObject(authService)
+        }
+        .sheet(isPresented: $showCreateNote) {
+            CaptureView(onDismiss: { showCreateNote = false })
         }
     }
 
@@ -199,24 +179,6 @@ struct MainSplitView: View {
         switch selection {
         case .note(let id):
             NoteDetailView(noteId: id, initialNote: notes.first { $0.id == id })
-        case .markdown:
-            if let file = currentFile {
-                WriterEditorPane(
-                    fileTitle: file.title,
-                    content: $mdContent,
-                    selection: $mdSelection,
-                    lastSavedAt: mdLastSavedAt,
-                    onRename: {
-                        renameTarget = file
-                        renameText = file.title
-                        renameAlert = true
-                    },
-                    onDelete: { Task { await deleteMarkdown(file) } },
-                    onContentChange: scheduleSave
-                )
-            } else {
-                emptyPlaceholder("正在加载文件…")
-            }
         case .trash:
             TrashView()
         case .ascanReports:
@@ -245,7 +207,7 @@ struct MainSplitView: View {
         case .ascanConfig:
             UnifiedSettingsView()
         case .empty:
-            emptyPlaceholder("从左侧选择笔记或写作文件")
+            emptyPlaceholder("从左侧选择笔记")
         }
     }
 
@@ -263,41 +225,13 @@ struct MainSplitView: View {
 
     @ViewBuilder
     private var drawer: some View {
-        if writerActive {
-            // Writer-mode Notty: can read + edit the active markdown document
-            VStack(spacing: 0) {
-                WriterAssistantView(documentText: $mdContent, selection: $mdSelection)
-            }
-        } else {
-            // Regular Notty (read-only chat with notes)
-            NottyView(onClose: { drawerVisible = false })
-        }
+        NottyView(onClose: { drawerVisible = false })
     }
 
     // MARK: - Selection handling
 
-    private var writerActive: Bool {
-        if case .markdown = selection { return currentFile != nil }
-        return false
-    }
-
     private func handleSelectionChange(_ newSelection: SidebarSelection) {
-        switch newSelection {
-        case .markdown(let file):
-            Task { await openMarkdown(file) }
-        case .note, .trash, .ascanReports, .ascanReport, .ascanConfig, .empty:
-            // Leaving the writer — flush any in-flight save and clear editor state.
-            if currentFile != nil {
-                let pending = currentFile
-                currentFile = nil
-                Task {
-                    await flushPendingSave(for: pending)
-                    mdContent = ""
-                    mdSelection = NSRange(location: 0, length: 0)
-                    mdLastSavedAt = nil
-                }
-            }
-        }
+        // No writer state to flush anymore — selection switches are immediate.
     }
 
     // MARK: - Initial load + refresh
@@ -305,9 +239,8 @@ struct MainSplitView: View {
     private func initialLoad() async {
         await seedExampleContent()
         async let n: () = refreshNotes()
-        async let m: () = refreshMarkdownFiles()
         async let a: () = loadAscanReports()
-        _ = await (n, m, a)
+        _ = await (n, a)
         startPollingIfNeeded()
         do {
             let status = try await APIClient.shared.getAscanStatus()
@@ -317,51 +250,11 @@ struct MainSplitView: View {
     }
 
     private func seedExampleContent() async {
-        // 记实: seed markdown file
-        let mdDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("NoteOne", isDirectory: true)
-        try? FileManager.default.createDirectory(at: mdDir, withIntermediateDirectories: true)
-        let seedMd = mdDir.appendingPathComponent("欢迎使用.md")
-        if !FileManager.default.fileExists(atPath: seedMd.path) {
-            let content = """
-# 欢迎使用壹识
-
-壹识是你的赛博古风知识系统。这里是**记实**模块，用于本地 Markdown 写作。
-
-## 功能
-
-- 实时渲染：点击预览区域进入编辑，按 `Escape` 返回渲染视图
-- 源码模式：`Cmd+Shift+/` 切换纯源码显示
-- 引用插入：在往事中选择笔记，点击插入引用按钮即可引用到写作中
-
-## 语法示例
-
-### 代码块
-
-```python
-def hello():
-    print("Hello, 壹识!")
-```
-
-### 列表
-
-- 记实 — 本地写作
-- 往事 — 笔记收藏
-- 新知 — 科技日报
-
-### 引用
-
-> 路漫漫其修远兮，吾将上下而求索。
-
----
-
-点击此文件可进入编辑模式。
-"""
-            try? content.write(to: seedMd, atomically: true, encoding: .utf8)
-        }
-
         // 往事: seed note (only on first launch, file-based flag persists across reinstalls)
-        let seedNoteFlag = mdDir.appendingPathComponent(".seed-note-created")
+        let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("NoteOne", isDirectory: true)
+        try? FileManager.default.createDirectory(at: docsDir, withIntermediateDirectories: true)
+        let seedNoteFlag = docsDir.appendingPathComponent(".seed-note-created")
         if !FileManager.default.fileExists(atPath: seedNoteFlag.path) {
             do {
                 _ = try await APIClient.shared.createNote(
@@ -370,13 +263,6 @@ def hello():
                 try? "".write(to: seedNoteFlag, atomically: true, encoding: .utf8)
             } catch {}
         }
-
-        // 新知: seed report (server-side)
-        let seedReportPath = seedMd.deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("ai.alibaba/noteone/ascan/docs/Ascan-00000000.html")
-        // The server handles this — trigger a seed via the trigger endpoint is too heavy.
-        // Instead, we'll create a lightweight seed on the server side.
     }
 
     private func loadAscanReports() async {
@@ -419,18 +305,6 @@ def hello():
             stopAscanPolling()
         } catch {
             print("[main] abort ascan failed: \(error)")
-        }
-    }
-
-    private func revealDocsInFinder() async {
-        do {
-            let path = try await APIClient.shared.getAscanDocsPath()
-            let url = URL(fileURLWithPath: path)
-            #if os(macOS)
-            NSWorkspace.shared.activateFileViewerSelecting([url])
-            #endif
-        } catch {
-            print("[main] reveal docs failed: \(error)")
         }
     }
 
@@ -483,14 +357,6 @@ def hello():
             notes = try await APIClient.shared.listNotes()
         } catch {
             print("[main] load notes failed: \(error)")
-        }
-    }
-
-    private func refreshMarkdownFiles() async {
-        do {
-            mdFiles = try await LocalFileStore.shared.list()
-        } catch {
-            print("[main] load md files failed: \(error)")
         }
     }
 
@@ -558,53 +424,6 @@ def hello():
         }
     }
 
-    // MARK: - Markdown actions
-
-    private func openMarkdown(_ file: LocalMarkdownFile) async {
-        // If we were already editing another file, save before switching.
-        if let prev = currentFile, prev.id != file.id {
-            await flushPendingSave(for: prev)
-        }
-        do {
-            let text = try await LocalFileStore.shared.read(file)
-            currentFile = file
-            mdContent = text
-            mdSelection = NSRange(location: 0, length: 0)
-            mdLastSavedAt = file.modifiedAt
-        } catch {
-            print("[main] open md failed: \(error)")
-        }
-    }
-
-    private func createMarkdown() async {
-        if let prev = currentFile { await flushPendingSave(for: prev) }
-        do {
-            let file = try await LocalFileStore.shared.create()
-            mdFiles.insert(file, at: 0)
-            currentFile = file
-            mdContent = ""
-            mdSelection = NSRange(location: 0, length: 0)
-            mdLastSavedAt = file.modifiedAt
-            selection = .markdown(file)
-        } catch {
-            print("[main] create md failed: \(error)")
-        }
-    }
-
-    private func deleteMarkdown(_ file: LocalMarkdownFile) async {
-        do {
-            try await LocalFileStore.shared.delete(file)
-            mdFiles.removeAll { $0.id == file.id }
-            if currentFile?.id == file.id {
-                currentFile = nil
-                mdContent = ""
-                selection = .empty
-            }
-        } catch {
-            print("[main] delete md failed: \(error)")
-        }
-    }
-
     private func deleteAscanReport(_ date: String) async {
         do {
             _ = try await APIClient.shared.deleteAscanReport(date: date)
@@ -616,70 +435,6 @@ def hello():
         } catch {
             print("[main] delete ascan report failed: \(error)")
         }
-    }
-
-    private func rename(_ file: LocalMarkdownFile, to newTitle: String) async {
-        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, trimmed != file.title else { return }
-        do {
-            // Save current edits before renaming so we don't lose work.
-            try await LocalFileStore.shared.write(file, content: mdContent)
-            let renamed = try await LocalFileStore.shared.rename(file, to: trimmed)
-            await refreshMarkdownFiles()
-            currentFile = renamed
-            selection = .markdown(renamed)
-        } catch {
-            print("[main] rename failed: \(error)")
-        }
-    }
-
-    // MARK: - Save / debounce
-
-    private func scheduleSave() {
-        mdSaveTask?.cancel()
-        mdSaveTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1.5))
-            if Task.isCancelled { return }
-            await persistCurrent()
-        }
-    }
-
-    private func flushPendingSave(for file: LocalMarkdownFile?) async {
-        mdSaveTask?.cancel()
-        guard let file else { return }
-        do {
-            try await LocalFileStore.shared.write(file, content: mdContent)
-        } catch {
-            print("[main] flush save failed: \(error)")
-        }
-    }
-
-    private func persistCurrent() async {
-        guard let file = currentFile else { return }
-        do {
-            try await LocalFileStore.shared.write(file, content: mdContent)
-            mdLastSavedAt = Date()
-            if let i = mdFiles.firstIndex(where: { $0.id == file.id }) {
-                mdFiles[i] = LocalMarkdownFile(
-                    id: file.id, url: file.url,
-                    modifiedAt: Date(), sizeBytes: mdContent.utf8.count
-                )
-                mdFiles.sort { $0.modifiedAt > $1.modifiedAt }
-            }
-        } catch {
-            print("[main] persist failed: \(error)")
-        }
-    }
-
-    // MARK: - Insert citation (called by sidebar's note rows)
-
-    private func insertAtCaret(_ text: String) {
-        let ns = mdContent as NSString
-        let insertAt = min(mdSelection.location, ns.length)
-        let newDoc = ns.replacingCharacters(in: NSRange(location: insertAt, length: 0), with: text)
-        mdContent = newDoc
-        mdSelection = NSRange(location: insertAt + (text as NSString).length, length: 0)
-        scheduleSave()
     }
 }
 #endif
