@@ -303,6 +303,17 @@ All `/api/*` need `Authorization: Bearer <JWT>`.
 > 落红不是无情物，化作春泥更护花。
 > —— 龚自珍《己亥杂诗》
 
-[MIT License](LICENSE) © 2026 TobyChain
+[Apache License 2.0](LICENSE) © 2026 TobyChain
 
-壹识 NoteOne 全部代码（客户端、后端、Ascan pipeline、MCP servers、Schema、迁移、部署配置、浏览器扩展）均在 MIT 协议下开源，可自由使用、修改、分发、商用。
+壹识 NoteOne 全部代码（客户端、后端、Ascan pipeline、MCP servers、Schema、迁移、部署配置、浏览器扩展）均在 Apache 2.0 协议下开源。
+
+为什么选 Apache 2.0 而不是 MIT：
+- **专利保护**：明确授予专利权 + 报复条款，防止他人用代码后反诉专利侵权
+- **No endorsement**（Section 6）：未经书面同意，不得用 "NoteOne" / "壹识" / "TobyChain" 名号为衍生品背书
+- **贡献者协议**：PR 提交即自动授予专利权，避免后续扯皮
+- **保留 attribution**：fork / 修改 / 分发必须保留版权声明
+
+允许：商用 · 修改 · 分发 · 私用 · SaaS 部署
+要求：保留版权声明 · 列出修改 · 不用作者名号背书
+
+"NoteOne" / "壹识" 名称保留商标权，未经授权不得用于衍生品推广。
