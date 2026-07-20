@@ -303,4 +303,6 @@ All `/api/*` need `Authorization: Bearer <JWT>`.
 > 落红不是无情物，化作春泥更护花。
 > —— 龚自珍《己亥杂诗》
 
-Half-open source. The client, MCP servers, schema, migrations, deploy configs, and Ascan pipeline are open under the project license. Advanced AI tagging prompts, advanced retrieval, and ops modules are not in scope.
+[MIT License](LICENSE) © 2026 TobyChain
+
+壹识 NoteOne 全部代码（客户端、后端、Ascan pipeline、MCP servers、Schema、迁移、部署配置、浏览器扩展）均在 MIT 协议下开源，可自由使用、修改、分发、商用。
