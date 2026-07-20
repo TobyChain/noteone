@@ -4,6 +4,15 @@
 > 本文档以**代码为准**，描述系统当前真实形态；产品愿景与决策背景见 [design/2026-06-08-noteone-design.md](design/2026-06-08-noteone-design.md)。
 > 文件路径均相对仓库根 `noteone/`。
 
+> **注**：2026-07 系列变更尚未全面回写本文档。主要差异：
+> - 删除"记实"模块（Writer）—— 本文中涉及 记实/WriterView/WriterAssistantView/markdown 编辑器/writer-messages 路由的部分均已移除
+> - 微信抓取改用 [wechat-article-exporter](https://github.com/wechat-article/wechat-article-exporter)（原生 Node 部署，无需 Docker），详见 [wechat-wae-setup.md](wechat-wae-setup.md)
+> - 新增 `scheduled_tasks` 表 + `services/scheduler.ts` + `services/schedule-tools.ts`（闹闹可创建 cron 定时任务）
+> - 新增 `services/local-tools.ts`（闹闹可调白名单本地终端命令）
+> - ascan 拆分为 `services/ascan/{config,reports,runner,tools}.ts` 子模块
+> - 多模块去重机制全面修复（WeChat known_ids、arXiv 跨日、Conference days_recent + DOI 跨模块）
+> - 完整变更见 `git log --since=2026-06-15`
+
 ---
 
 ## 1. 系统总览

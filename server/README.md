@@ -15,7 +15,14 @@ npm run dev
 
 Required `.env` keys (validated at startup):
 
-* [ ] KeyNotes`DATABASE_URL`Postgres connection string with pgvector available`JWT_SECRET`>= 16 chars; service refuses to start with the default placeholder in production`APPLE_CLIENT_IDS`Comma list of bundle ids accepted as the audience of Apple identityTokens`ENABLE_DEV_LOGINtrue` enables `POST /auth/dev-token` (never in production)`ALLOWED_ORIGINS`Comma list of origins for the CORS allow-list`QWEN_API_KEY` / `QWEN_BASE_URL` / `QWEN_MODEL`Default LLM credentials; users can override per account via `/api/settings`
+| Key | Notes |
+|-----|-------|
+| `DATABASE_URL` | Postgres connection string with pgvector available |
+| `JWT_SECRET` | >= 16 chars; service refuses to start with the default placeholder in production |
+| `APPLE_CLIENT_IDS` | Comma list of bundle ids accepted as the audience of Apple identityTokens |
+| `ENABLE_DEV_LOGIN` | `true` enables `POST /auth/dev-token` (never in production) |
+| `ALLOWED_ORIGINS` | Comma list of origins for the CORS allow-list |
+| `QWEN_API_KEY` / `QWEN_BASE_URL` / `QWEN_MODEL` | Default LLM credentials; users can override per account via `/api/settings` |
 
 ## Tests
 
@@ -55,7 +62,34 @@ Coverage focus:
 ## API
 
 In addition to notes / tags / search / chat-sessions / settings / uploads, the server
-exposes two compliance-related endpoints (both require auth):
+exposes:
+
+### Ascan pipeline (`/api/ascan/*`)
+
+The Ascan Python pipeline runs as a child process spawned via `child_process.spawn`.
+The server reads/writes its config in `ascan/.env` and tracks run status in-memory.
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/ascan/reports` · `/:date` · `/:date/path` | List / read / get file path for daily reports |
+| `DELETE /api/ascan/reports/:date` | Delete a daily report (+ sidecar files) |
+| `GET` / `PATCH /api/ascan/config` | Read / update ascan config (writes to `ascan/.env`) |
+| `POST /api/ascan/trigger` | Fire-and-forget full pipeline run |
+| `POST /api/ascan/run-module` | Run a single module (blocking, for 闹闹 orchestration) |
+| `POST /api/ascan/merge` | Merge already-run module fragments into a report |
+| `POST /api/ascan/abort` | Abort a running pipeline (kills pid) |
+| `GET /api/ascan/status` | Check run status + recent log lines |
+| `GET /api/ascan/wechat-health` | Probe the configured WAE (wechat-article-exporter) service |
+| `POST /api/ascan/summarize` | Generate LLM one-sentence summary for a report |
+
+### 闹闹 tools (chat-sessions)
+
+闹闹 (Notty) chat sessions expose tools beyond basic chat:
+- **Ascan**: `start_ascan_supplement` (non-blocking), `get_ascan_status`, `list/get/delete_ascan_report`
+- **Local terminal**: `run_command` (whitelist: grep/find/ls/cat/wc/head/tail/stat/file/diff/which/echo + more), `search_files`, `list_files`, `read_file` — restricted to `~/Documents` `~/Desktop` `~/Downloads`, blocks shell metacharacters
+- **Scheduled tasks**: `schedule_task` (cron), `list_scheduled_tasks`, `cancel_scheduled_task` — DB-persisted, auto-restored on server boot via `node-cron`
+
+### Compliance endpoints (both require auth)
 
 ### `DELETE /api/account`
 
