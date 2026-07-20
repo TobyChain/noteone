@@ -29,6 +29,12 @@ env/
 # Generated output
 output/
 
+# Generated daily reports — regenerable via main_daily.py, do NOT track in git
+# Server's seedReportIfNeeded() will create Ascan-00000000.html at runtime if the dir is empty
+docs/Ascan-*.html
+docs/Ascan-*.md
+docs/Ascan-*.summary
+
 # Environment Variables
 .env
 .env.local
