@@ -10,11 +10,9 @@
 - **新知（Ascan）**：每日扫遍 arXiv / GitHub / 官方博客 / 独立笔耕 / 会议论文 / 微信公众号，生成科技前沿日报
 - **MCP**：让 Claude / Cursor 等外部 AI 直连你的笔记库
 
-[中文](#中文) · [English](#english) · [License](#license)
+[中文](README.md) · [English](README.en.md) · [License](#license)
 
 ---
-
-## 中文
 
 ### 核心功能
 
@@ -217,84 +215,9 @@ noteone/
 │   ├── plans/                  #   早期实施计划
 │   └── history/                #   历史迭代日志
 ├── docker-compose.yml
-└── README.md
+├── README.md                   # 中文
+└── README.en.md                # English
 ```
-
----
-
-## English
-
-### Highlights
-
-> I saw the mountains so enchanting, I suppose the mountains see me the same.
-> —— Xin Qiji
-
-NoteOne is an AI-powered personal knowledge system.
-
-- **Capture → Organize**: Capture anything, AI silently tags / summarizes / embeds
-- **Notty (闹闹)**: Core agent — runs local terminal commands, schedules tasks, orchestrates the Ascan pipeline
-- **Ascan (新知)**: Daily scan of arXiv / GitHub / official blogs / conference papers / WeChat, curated HTML report
-- **MCP**: Claude / Cursor / Codex talk directly to your note database
-
-| Module | Capability |
-|---|---|
-| Capture | macOS global hotkey, iOS Share Extension, drag-and-drop. Auto-grabs URL, title, selected text, clipboard image |
-| AI Pipeline | Async: fetch link → title/summary → 4-dim tagging → 1536-d embedding |
-| Notes (往事) | Time-grouped list, semantic search, tag filter, one-tap new note, AI summary cards |
-| Notty (闹闹) | 3-layer context mgmt, doom-loop detection, tool persistence, Markdown. Tools: terminal / cron / Ascan / web / notes |
-| Ascan (新知) | 6-module daily pipeline (arXiv · GitHub · official · blog · conference · WeChat), TOC-navigated HTML report |
-| Scheduled Tasks | Natural-language cron via Notty, DB-persisted, auto-restored on boot |
-| MCP | 8 tools for Claude / Cursor / Codex to read/write notes |
-| Reports | Notty reads today's notes → web search → 4 styles × 3 depths HTML report |
-| Sovereignty | ZIP export · cascade deletion · 30-day trash auto-purge |
-
-### Quick Start
-
-```bash
-git clone https://github.com/TobyChain/noteone.git
-cd noteone
-
-cp server/.env.example server/.env
-POSTGRES_PASSWORD=your-strong-pwd \
-JWT_SECRET=$(openssl rand -hex 24) \
-docker compose up -d
-
-cd apple && xcodegen generate && open NoteOne.xcodeproj
-```
-
-Then in Settings, paste your API key, base URL, and model. Done.
-
-For WeChat public account crawling (optional), see [docs/wechat-wae-setup.md](docs/wechat-wae-setup.md).
-
-### Tech Stack
-
-| Layer | Choice |
-|-------|--------|
-| Client | SwiftUI (iOS 17 / macOS 14, Swift 6 strict concurrency), Sign in with Apple |
-| Backend | Node.js + TypeScript, Express 5, Drizzle ORM |
-| DB | PostgreSQL 16 + pgvector |
-| AI | Any OpenAI-compatible API (chat temp 0.3, text-embedding-3-small 1536-d) |
-| Ascan | Python 3.11+, Pydantic, SQLAlchemy, loguru |
-| MCP | @modelcontextprotocol/sdk (stdio) |
-| Auth | Apple Sign In (JWKS-verified) + JWT (30 d) |
-
-### API Surface
-
-All `/api/*` need `Authorization: Bearer <JWT>`.
-
-| Group | Endpoints |
-|-------|-----------|
-| Auth | `POST /auth/apple` · `POST /auth/dev-token` (dev) |
-| Notes | `POST/GET /api/notes` · `GET/PATCH/DELETE /api/notes/:id` · `/restore` · `/permanent` · `/retry` · `/tags` · `GET /api/notes/trash` |
-| Tags | `POST/GET /api/tags` · `DELETE /api/tags/:id` |
-| Search | `POST /api/search` (pgvector) |
-| Notty | `GET/POST /api/chat-sessions` · `GET/DELETE /api/chat-sessions/:id` · `POST /:id/messages` |
-| Ascan · Reports | `GET /api/ascan/reports` · `/:date` · `/:date/path` · `DELETE /:date` |
-| Ascan · Config | `GET` / `PATCH /api/ascan/config` |
-| Ascan · Run | `POST /api/ascan/trigger` · `/run-module` · `/merge` · `/abort` · `GET /status` |
-| Ascan · Misc | `GET /api/ascan/wechat-health` · `POST /api/ascan/summarize` |
-| Reports | `GET /api/reports` · `POST /api/reports/daily` · `GET/DELETE /api/reports/:id` |
-| Misc | `POST /api/uploads/image` · `GET /api/stats` · `GET/PATCH /api/settings` · `GET /api/export` · `DELETE /api/account` |
 
 ---
 
