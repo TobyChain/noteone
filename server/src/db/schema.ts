@@ -133,3 +133,21 @@ export const dailyReports = pgTable("daily_reports", {
   index("daily_reports_date_idx").on(table.date),
   uniqueIndex("daily_reports_user_date_uniq").on(table.userId, table.date),
 ]);
+
+// --- Scheduled Tasks ---
+
+export const scheduledTasks = pgTable("scheduled_tasks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  cronExpression: text("cron_expression").notNull(),
+  action: text("action").notNull(),
+  actionParams: jsonb("action_params").default({}),
+  enabled: boolean("enabled").notNull().default(true),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("scheduled_tasks_user_id_idx").on(table.userId),
+  index("scheduled_tasks_enabled_idx").on(table.enabled),
+]);

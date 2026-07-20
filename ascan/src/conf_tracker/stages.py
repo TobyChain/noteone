@@ -1,6 +1,8 @@
 """Conference Paper Pipeline Stages — Fetch + Analyze + BuildFragment."""
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from loguru import logger
 
 from src.pipeline.core import PipelineStage, PipelineContext
@@ -11,11 +13,20 @@ from src.conf_tracker.analyzer import analyze_papers_batch
 from src.conf_tracker.report import conf_papers_to_html, conf_papers_to_md
 from src.conf_tracker.models import ConferenceAnalysis
 from src.database.connection import get_db_session
-from src.database.repositories import ConferencePaperRepository
+from src.database.repositories import ConferencePaperRepository, PaperRepository
 
 
 class FetchConfStage(PipelineStage):
-    """Fetch conference papers from Semantic Scholar + DBLP, dedup against DB."""
+    """Fetch conference papers from Semantic Scholar + DBLP, dedup against DB.
+
+    Filters:
+    - Cross-module DOI dedup: skip conference papers whose DOI already exists
+      in arxiv papers table (same paper, arxiv preprint + conf publication)
+    - Recency filter: skip papers older than conference_days_recent (default 90d)
+    - DB-level known_keys: not used — by design, we re-list recent papers each
+      day so the user sees the current "hot" set. LLM analysis cache prevents
+      re-analyzing already-seen papers.
+    """
 
     def __init__(self):
         super().__init__("fetching_conference")
@@ -44,11 +55,44 @@ class FetchConfStage(PipelineStage):
         analyzed_keys = repo.get_all_analyzed_keys()
         today = context.date.replace("-", "")
 
-        # Don't filter by known_keys — show all current-year papers each day.
-        # LLM analysis stage uses analyzed_keys cache to skip re-analyzing.
-        new_papers = list(all_papers)
+        # Cross-module DOI dedup: skip conference papers whose DOI is already
+        # in the arxiv papers table (same paper, different venue).
+        try:
+            arxiv_dois = PaperRepository(db).get_all_dois()
+        except Exception as e:
+            logger.warning(f"Failed to load arxiv DOIs for cross-module dedup: {e}")
+            arxiv_dois = set()
 
+        # Recency filter: only keep papers published within last N days.
+        days_recent = getattr(settings, "conference_days_recent", 90)
+        cutoff = datetime.now() - timedelta(days=days_recent)
+
+        # Don't filter by known_keys — show recent papers each day.
+        # LLM analysis stage uses analyzed_keys cache to skip re-analyzing.
+        new_papers = []
+        skipped_doi_dup = 0
+        skipped_old = 0
         for paper in all_papers:
+            if paper.doi and paper.doi in arxiv_dois:
+                skipped_doi_dup += 1
+                continue
+            pub_date_str = (paper.publication_date or "")[:10]
+            if pub_date_str:
+                try:
+                    pub_dt = datetime.strptime(pub_date_str, "%Y-%m-%d")
+                    if pub_dt < cutoff:
+                        skipped_old += 1
+                        continue
+                except ValueError:
+                    pass  # keep papers with unparseable dates
+            new_papers.append(paper)
+
+        if skipped_doi_dup:
+            logger.info(f"跳过 {skipped_doi_dup} 篇与 arXiv DOI 重复的会议论文")
+        if skipped_old:
+            logger.info(f"跳过 {skipped_old} 篇超过 {days_recent} 天的旧会议论文")
+
+        for paper in new_papers:
             try:
                 repo.upsert_discovered(
                     paper_key=paper.paper_key, title=paper.title,
@@ -68,9 +112,9 @@ class FetchConfStage(PipelineStage):
         a_count = sum(1 for p in new_papers if p.rank == "A")
         b_count = sum(1 for p in new_papers if p.rank == "B")
         if new_papers:
-            logger.success(f"会议论文: 发现 {len(new_papers)} 篇新论文（A 类 {a_count} 篇，B 类 {b_count} 篇）")
+            logger.success(f"会议论文: 发现 {len(new_papers)} 篇（A 类 {a_count} 篇，B 类 {b_count} 篇，最近 {days_recent} 天）")
         else:
-            logger.info(f"无新会议论文（{len(all_papers)} 篇全部已读）")
+            logger.info(f"无符合条件的会议论文（共 {len(all_papers)} 篇，全部被 DOI 去重或时效过滤跳过）")
 
         context.conference_papers = new_papers
         context.conference_analyzed_keys = analyzed_keys

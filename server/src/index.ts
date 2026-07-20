@@ -19,6 +19,7 @@ import { reportsRouter } from "./routes/reports.js";
 import { ascanRouter } from "./routes/ascan.js";
 import { startTrashCleanup } from "./services/trash-cleanup.js";
 import { seedReportIfNeeded } from "./services/ascan/reports.js";
+import { restoreTasks } from "./services/scheduler.js";
 import { requestLogger } from "./middleware/logger.js";
 
 const app = express();
@@ -82,6 +83,7 @@ app.listen(config.port, () => {
   console.log(`NoteOne server running on port ${config.port}`);
   startTrashCleanup();
   seedReportIfNeeded();
+  restoreTasks();
 });
 
 export { app };

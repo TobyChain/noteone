@@ -28,9 +28,26 @@ struct SettingsView: View {
     @State private var ascanGithubToken = ""
     @State private var ascanSemanticScholarKey = ""
     @State private var ascanConferenceLookback = 30
+    @State private var ascanConferenceDaysRecent = 90
     @State private var ascanLogLevel = "INFO"
     @State private var isAscanSaving = false
     @State private var ascanSaved = false
+
+    @State private var wechatWaeUrl = ""
+    @State private var wechatWaeAuthKey = ""
+    @State private var wechatMpIds: [WechatMpId] = []
+    @State private var wechatLimitPerMp = 20
+    @State private var wechatDaysRecent = 30
+    @State private var wechatHealth: WechatHealthResponse?
+    @State private var isWechatProbing = false
+    @State private var isWechatSaving = false
+    @State private var wechatSaved = false
+    @State private var showWechatDeployHelp = false
+    // CRUD sheet state
+    @State private var showEditMp = false
+    @State private var editingMpIndex: Int? = nil
+    @State private var editMpFakeid = ""
+    @State private var editMpName = ""
 
     @State private var isExporting = false
     @State private var exportError: String?
@@ -195,8 +212,150 @@ struct SettingsView: View {
                 Section {
                     SecureField(ascanSemanticScholarKey == "***" ? "S2 Key（已设置）" : "Semantic Scholar Key", text: $ascanSemanticScholarKey)
                     Stepper("回溯天数: \(ascanConferenceLookback)", value: $ascanConferenceLookback, in: 7...90)
+                    Stepper("仅抓最近 \(ascanConferenceDaysRecent) 天内论文", value: $ascanConferenceDaysRecent, in: 30...365, step: 15)
                 } header: {
                     Label("新知 · 会议论文", systemImage: "graduationcap")
+                        .sectionHeaderStyle()
+                }
+
+                Section {
+                    if let h = wechatHealth {
+                        wechatStatusBadge(h)
+                    } else {
+                        HStack {
+                            ProgressView().controlSize(.small)
+                            Text("检测中…").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+
+                    HStack {
+                        TextField("WAE 服务地址（如 http://localhost:3001）", text: $wechatWaeUrl)
+                            .textFieldStyle(.roundedBorder)
+                            #if os(macOS)
+                            .font(.system(size: 12))
+                            #endif
+                        Button {
+                            openWaeInBrowser()
+                        } label: {
+                            Image(systemName: "safari")
+                        }
+                        .help("在浏览器中打开 WAE（扫码登录后从中复制 auth-key）")
+                        .disabled(wechatWaeUrl.isEmpty)
+                    }
+
+                    SecureField(wechatWaeAuthKey == "***" ? "WAE Auth Key（已设置）" : "WAE Auth Key（扫码后从浏览器 cookies 复制）", text: $wechatWaeAuthKey)
+                        .textFieldStyle(.roundedBorder)
+                        #if os(macOS)
+                        .font(.system(size: 12))
+                        #endif
+
+                    // MP CRUD list
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("公众号列表").font(.caption.bold()).foregroundStyle(.secondary)
+                            Spacer()
+                            Button {
+                                editingMpIndex = nil
+                                editMpFakeid = ""
+                                editMpName = ""
+                                showEditMp = true
+                            } label: {
+                                Label("添加", systemImage: "plus")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                        if wechatMpIds.isEmpty {
+                            Text("尚未添加公众号，点右上「添加」输入 fakeid 和名称")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                                .padding(.vertical, 4)
+                        } else {
+                            ForEach(Array(wechatMpIds.enumerated()), id: \.offset) { idx, mp in
+                                HStack(spacing: 8) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(mp.name.isEmpty ? "(未命名)" : mp.name)
+                                            .font(.caption.bold())
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(1)
+                                        Text(mp.id)
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                            .truncationMode(.middle)
+                                    }
+                                    Spacer()
+                                    Button {
+                                        editingMpIndex = idx
+                                        editMpFakeid = mp.id
+                                        editMpName = mp.name
+                                        showEditMp = true
+                                    } label: {
+                                        Image(systemName: "pencil")
+                                            .font(.caption)
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .help("编辑")
+                                }
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 8)
+                                .background(Color.canvasSecondary.opacity(0.5))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                .contentShape(Rectangle())
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        wechatMpIds.remove(at: idx)
+                                        Task { await saveWechatConfig() }
+                                    } label: { Label("删除", systemImage: "trash") }
+                                }
+                                .onTapGesture {
+                                    editingMpIndex = idx
+                                    editMpFakeid = mp.id
+                                    editMpName = mp.name
+                                    showEditMp = true
+                                }
+                            }
+                        }
+                    }
+
+                    Stepper("每号文章上限: \(wechatLimitPerMp)", value: $wechatLimitPerMp, in: 1...100, step: 5)
+                    Stepper("仅抓最近 \(wechatDaysRecent) 天内文章", value: $wechatDaysRecent, in: 1...365, step: 5)
+
+                    HStack {
+                        Button {
+                            Task { await probeWechatHealth() }
+                        } label: {
+                            if isWechatProbing { ProgressView().controlSize(.small) } else { Text("测试连接") }
+                        }
+                        .disabled(isWechatProbing || wechatWaeUrl.isEmpty)
+
+                        Spacer()
+
+                        if wechatSaved {
+                            Label("已保存", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(Color.success)
+                                .font(.caption)
+                        }
+
+                        Button {
+                            Task { await saveWechatConfig() }
+                        } label: {
+                            if isWechatSaving { ProgressView().controlSize(.small) } else { Text("保存") }
+                        }
+                        .disabled(isWechatSaving)
+                    }
+
+                    DisclosureGroup("部署说明（可选功能）", isExpanded: $showWechatDeployHelp) {
+                        Text(wechatDeployHelpText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                            .padding(.top, 4)
+                    }
+                    .font(.caption)
+                } header: {
+                    Label("新知 · 微信公众号抓取（可选）", systemImage: "dot.radiowaves.left.and.right")
                         .sectionHeaderStyle()
                 }
 
@@ -252,6 +411,51 @@ struct SettingsView: View {
             Button("取消", role: .cancel) {}
         } message: {
             Text("此操作不可撤销。所有笔记、标签、对话及上传的图片都会被永久删除。如需保留请先“导出我的数据”。")
+        }
+        .sheet(isPresented: $showEditMp) {
+            #if os(macOS)
+            VStack(spacing: 12) {
+                Text(editingMpIndex == nil ? "添加公众号" : "编辑公众号").font(.headline)
+                TextField("Fakeid（如 MzI5MDQyMjg3MA==）", text: $editMpFakeid)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12, design: .monospaced))
+                TextField("名称（如 老刘说NLP）", text: $editMpName)
+                    .textFieldStyle(.roundedBorder)
+                HStack {
+                    Spacer()
+                    Button("取消") {
+                        showEditMp = false
+                        editingMpIndex = nil
+                    }
+                    Button(editingMpIndex == nil ? "添加" : "保存") { commitMpEdit() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(editMpFakeid.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .padding(16)
+            .frame(width: 420)
+            #else
+            NavigationStack {
+                Form {
+                    Section {
+                        TextField("Fakeid（如 MzI5MDQyMjg3MA==）", text: $editMpFakeid)
+                            .font(.system(size: 12, design: .monospaced))
+                        TextField("名称（如 老刘说NLP）", text: $editMpName)
+                    }
+                }
+                .navigationTitle(editingMpIndex == nil ? "添加公众号" : "编辑公众号")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("取消") { showEditMp = false; editingMpIndex = nil }
+                    }
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(editingMpIndex == nil ? "添加" : "保存") { commitMpEdit() }
+                            .disabled(editMpFakeid.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+            }
+            #endif
         }
         #if !os(macOS)
         .sheet(isPresented: $showShareSheet) {
@@ -313,7 +517,14 @@ struct SettingsView: View {
             ascanGithubToken = c.githubToken
             ascanSemanticScholarKey = c.semanticScholarApiKey
             ascanConferenceLookback = c.conferenceLookbackDays
+            ascanConferenceDaysRecent = c.conferenceDaysRecent
             ascanLogLevel = c.logLevel
+            wechatWaeUrl = c.wechatWaeUrl
+            wechatWaeAuthKey = c.wechatWaeAuthKey
+            wechatMpIds = c.wechatMpIds
+            wechatLimitPerMp = c.wechatLimitPerMp
+            wechatDaysRecent = c.wechatDaysRecent
+            await probeWechatHealth()
         } catch {}
     }
 
@@ -329,6 +540,7 @@ struct SettingsView: View {
         updates["github_min_stars"] = ascanGithubMinStars
         updates["github_top_analyze"] = ascanGithubTopAnalyze
         updates["conference_lookback_days"] = ascanConferenceLookback
+        updates["conference_days_recent"] = ascanConferenceDaysRecent
         updates["log_level"] = ascanLogLevel
         if ascanGithubToken != "***" && !ascanGithubToken.isEmpty { updates["github_token"] = ascanGithubToken }
         if ascanSemanticScholarKey != "***" && !ascanSemanticScholarKey.isEmpty { updates["semantic_scholar_api_key"] = ascanSemanticScholarKey }
@@ -340,6 +552,128 @@ struct SettingsView: View {
             ascanSaved = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { ascanSaved = false }
         } catch {}
+    }
+
+    private func wechatStatusBadge(_ h: WechatHealthResponse) -> some View {
+        let color: Color
+        let icon: String
+        let label: String
+        switch h.status {
+        case "ready":
+            color = .success
+            icon = "checkmark.circle.fill"
+            if let nick = h.nickname, !nick.isEmpty {
+                label = "已就绪 · 登录账号：\(nick) · \(h.mpCount ?? 0) 个公众号"
+            } else {
+                label = "已就绪 · \(h.mpCount ?? 0) 个公众号"
+            }
+        case "auth_expired":
+            color = .orange
+            icon = "exclamationmark.triangle.fill"
+            label = "Auth Key 失效 · \(h.error ?? "请重新扫码登录")"
+        case "unreachable":
+            color = .danger
+            icon = "exclamationmark.triangle.fill"
+            label = "连接失败 · \(h.error ?? "未知错误")"
+        default:
+            color = .secondary
+            icon = "circle.dashed"
+            label = h.reason == "no_auth_key" ? "未配置 Auth Key" : (h.reason == "no_wae_url" ? "未配置 WAE 地址" : "未配置")
+        }
+        return HStack(spacing: 6) {
+            Image(systemName: icon).foregroundStyle(color)
+            Text(label).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+            Spacer()
+        }
+    }
+
+    private func openWaeInBrowser() {
+        let urlStr = wechatWaeUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !urlStr.isEmpty, let url = URL(string: urlStr) else { return }
+        #if os(macOS)
+        NSWorkspace.shared.open(url)
+        #else
+        UIApplication.shared.open(url)
+        #endif
+    }
+
+    private func probeWechatHealth() async {
+        isWechatProbing = true
+        defer { isWechatProbing = false }
+        do {
+            wechatHealth = try await APIClient.shared.getWechatHealth()
+        } catch {
+            wechatHealth = WechatHealthResponse(
+                status: "unreachable", waeUrl: wechatWaeUrl, mpCount: nil,
+                nickname: nil, reason: nil, error: error.localizedDescription
+            )
+        }
+    }
+
+    private func saveWechatConfig() async {
+        isWechatSaving = true
+        wechatSaved = false
+        defer { isWechatSaving = false }
+        var updates: [String: Any] = [:]
+        updates["wechat_wae_url"] = wechatWaeUrl
+        updates["wechat_limit_per_mp"] = wechatLimitPerMp
+        updates["wechat_days_recent"] = wechatDaysRecent
+        // Don't overwrite stored auth-key with the masked placeholder
+        if wechatWaeAuthKey != "***" && !wechatWaeAuthKey.isEmpty {
+            updates["wechat_wae_auth_key"] = wechatWaeAuthKey
+        }
+        updates["wechat_mp_ids"] = wechatMpIds.map { ["id": $0.id, "name": $0.name] }
+        let didSetAuthKey = updates["wechat_wae_auth_key"] != nil
+        do {
+            _ = try await APIClient.shared.updateAscanConfig(updates: updates)
+            wechatSaved = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { wechatSaved = false }
+            // Clear the auth key field after save so the masked placeholder shows on reload
+            if didSetAuthKey { wechatWaeAuthKey = "" }
+            await probeWechatHealth()
+        } catch {}
+    }
+
+    private func commitMpEdit() {
+        let trimmedId = editMpFakeid.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedName = editMpName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedId.isEmpty else { return }
+        let mp = WechatMpId(id: trimmedId, name: trimmedName.isEmpty ? trimmedId : trimmedName)
+        if let idx = editingMpIndex {
+            wechatMpIds[idx] = mp
+        } else {
+            wechatMpIds.append(mp)
+        }
+        showEditMp = false
+        editMpFakeid = ""
+        editMpName = ""
+        editingMpIndex = nil
+        Task { await saveWechatConfig() }
+    }
+
+    private var wechatDeployHelpText: String {
+        """
+        本功能为可选插件，未配置时新知仍可正常运行其余 5 个模块（arxiv/github/official/blog/conference）。
+
+        部署 WAE（wechat-article-exporter，原生 Node.js，无需 Docker）：
+          1. git clone https://github.com/wechat-article/wechat-article-exporter
+          2. cd wechat-article-exporter
+          3. corepack enable && corepack prepare yarn@1.22.22 --activate
+          4. yarn
+          5. PORT=3001 yarn dev   （避让 NoteOne server 的 3000 端口）
+          6. 浏览器开 http://localhost:3001 → 扫码登录你的微信公众号
+             （个人订阅号免费注册即可，登录后 WAE 服务端存 token 4 天）
+          7. 浏览器 DevTools → Application → Cookies → http://localhost:3001
+             → 复制 auth-key 的值，粘到上方 "WAE Auth Key" 输入框
+          8. 在 WAE 网页里搜 "老刘说NLP" / "Datawhale" 等公众号
+             → 复制 fakeid（形如 MzI5MDQyMjg3MA==），填到上方公众号列表
+
+        注意：
+          - Auth Key 4 天过期，需重新扫码 + 更新 auth-key
+          - 用户必须有自己的微信公众号（个人订阅号免费注册）
+          - 抓取频率勿高，否则触发微信风控
+          - WAE 项目还在迭代，若 API 变更需跟进
+        """
     }
 
     private func exportMyData() {

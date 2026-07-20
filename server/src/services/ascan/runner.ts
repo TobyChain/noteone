@@ -13,6 +13,7 @@ import { join } from "path";
 import { spawn } from "child_process";
 import { config as serverConfig } from "../../config.js";
 import { ASCAN_ROOT, ASCAN_LOGS, type AscanConfig } from "./config.js";
+import { generateReportSummary } from "./reports.js";
 
 export interface AscanRunStatus {
   isRunning: boolean;
@@ -235,6 +236,14 @@ export async function startAscanSupplement(
       const r = await mergeReport(dateStr);
       supplementProgress!.phase = r.ok ? "done" : "failed";
       supplementProgress!.error = r.ok ? null : r.md_path;
+      if (r.ok) {
+        try {
+          const summary = await generateReportSummary(dateStr, llmConfig);
+          console.log(`[ascan] supplement summary: ${summary.slice(0, 60)}`);
+        } catch (err: any) {
+          console.error(`[ascan] supplement summary failed:`, err);
+        }
+      }
     } catch (err: any) {
       supplementProgress!.phase = "failed";
       supplementProgress!.error = err?.message || String(err);

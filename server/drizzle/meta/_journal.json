@@ -43,6 +43,13 @@
       "when": 1781740800000,
       "tag": "0005_daily_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784517924802,
+      "tag": "0006_safe_vulcan",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,6 @@ import AppKit
 
 enum SidebarSelection: Hashable {
     case note(String)
-    case markdown(LocalMarkdownFile)
     case trash
     case ascanReports
     case ascanReport(String)
@@ -16,13 +15,9 @@ enum SidebarSelection: Hashable {
 struct MainSidebar: View {
     @Binding var selection: SidebarSelection
     @Binding var notes: [Note]
-    @Binding var mdFiles: [LocalMarkdownFile]
     @Binding var ascanReports: [AscanReportMeta]
 
-    var writerActive: Bool
-    var onInsertCitation: (String) -> Void
-    var onCreateMarkdown: () -> Void
-    var onDeleteMarkdown: (LocalMarkdownFile) -> Void
+    var onCreateNote: () -> Void
     var onRefresh: () async -> Void
     var onDeleteNote: (Note) -> Void
     var onSearch: (String) async -> Void
@@ -32,7 +27,6 @@ struct MainSidebar: View {
 
     @State private var searchText = ""
     @State private var filterType: ContentType?
-    @State private var isWriterExpanded = true
     @State private var isNotesExpanded = true
     @State private var isAscanExpanded = true
     @State private var collapsedDateGroups: Set<String> = ["本月", "更早"]
@@ -108,52 +102,6 @@ struct MainSidebar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 记实
-            moduleHeader(
-                title: "记实",
-                icon: "pencil.and.outline",
-                isExpanded: $isWriterExpanded,
-                action: { if !mdFiles.isEmpty { selection = .markdown(mdFiles[0]) } }
-            ) {
-                Button(action: onCreateMarkdown) {
-                    Image(systemName: "plus.circle")
-                }
-                .buttonStyle(.plain)
-                .help("新建 Markdown 文件")
-            }
-
-            if isWriterExpanded && !mdFiles.isEmpty {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 2) {
-                        ForEach(mdFiles) { file in
-                            markdownRow(file)
-                                .background(selection == .markdown(file) ? Color.accent.opacity(0.1) : Color.clear)
-                                .cornerRadius(DG.r6)
-                                .contentShape(Rectangle())
-                                .onTapGesture { selection = .markdown(file) }
-                                .contextMenu {
-                                    #if os(macOS)
-                                    Button {
-                                        NSWorkspace.shared.activateFileViewerSelecting([file.url])
-                                    } label: {
-                                        Label("在 Finder 中显示", systemImage: "folder")
-                                    }
-                                    #endif
-                                    Button(role: .destructive) {
-                                        onDeleteMarkdown(file)
-                                    } label: {
-                                        Label("删除", systemImage: "trash")
-                                    }
-                                }
-                        }
-                    }
-                    .padding(.horizontal, DG.sp8)
-                    .padding(.bottom, DG.sp4)
-                }
-            }
-
-            Divider()
-
             // 往事
             moduleHeader(
                 title: "往事",
@@ -161,6 +109,12 @@ struct MainSidebar: View {
                 isExpanded: $isNotesExpanded,
                 action: { if let firstNote = groupedNotes.first?.1.first { selection = .note(firstNote.id) } }
             ) {
+                Button(action: onCreateNote) {
+                    Image(systemName: "plus.circle")
+                }
+                .buttonStyle(.plain)
+                .help("新建笔记")
+
                 Menu {
                     Button {
                         filterType = nil
@@ -207,16 +161,6 @@ struct MainSidebar: View {
                                 ForEach(sectionNotes) { note in
                                     HStack(spacing: 6) {
                                         NoteRowView(note: note)
-                                        if writerActive {
-                                            Button {
-                                                onInsertCitation(citation(for: note))
-                                            } label: {
-                                                Image(systemName: "text.append")
-                                                    .font(.caption)
-                                            }
-                                            .buttonStyle(.borderless)
-                                            .help("插入引用到写作")
-                                        }
                                     }
                                     .padding(.horizontal, DG.sp8)
                                     .padding(.vertical, 2)
@@ -461,41 +405,6 @@ struct MainSidebar: View {
     }
 
     // MARK: - Helpers
-
-    private func markdownRow(_ file: LocalMarkdownFile) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "doc.text")
-                .font(.caption)
-                .foregroundStyle(Color.inkTertiary)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(file.title)
-                    .font(.body)
-                    .foregroundStyle(Color.ink)
-                    .lineLimit(1)
-                Text(file.modifiedAt, format: .relative(presentation: .numeric))
-                    .font(.caption2)
-                    .foregroundStyle(Color.inkTertiary)
-            }
-            Spacer()
-        }
-        .padding(.vertical, 2)
-        .padding(.horizontal, DG.sp8)
-    }
-
-    private func citation(for note: Note) -> String {
-        var lines: [String] = []
-        lines.append("> **\(note.title ?? "无标题")**")
-        if let summary = note.aiSummary, !summary.isEmpty {
-            lines.append("> \(summary)")
-        }
-        var meta: [String] = []
-        if let author = note.author, !author.isEmpty { meta.append(author) }
-        if let url = note.sourceUrl, !url.isEmpty { meta.append(url) }
-        if !meta.isEmpty {
-            lines.append("> — " + meta.joined(separator: " · "))
-        }
-        return "\n" + lines.joined(separator: "\n") + "\n"
-    }
 
     private func startAscanPolling() {
         stopAscanPolling()

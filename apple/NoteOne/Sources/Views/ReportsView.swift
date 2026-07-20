@@ -279,6 +279,8 @@ struct ReportDetailView: View {
 struct WebView: UIViewRepresentable {
     let htmlContent: String
 
+    func makeCoordinator() -> ExternalLinkCoordinator { ExternalLinkCoordinator() }
+
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.defaultWebpagePreferences.allowsContentJavaScript = false
@@ -286,6 +288,7 @@ struct WebView: UIViewRepresentable {
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground
         webView.scrollView.backgroundColor = .systemBackground
+        webView.navigationDelegate = context.coordinator
         return webView
     }
 
@@ -300,10 +303,13 @@ struct WebView: UIViewRepresentable {
 struct WebViewMac: NSViewRepresentable {
     let htmlContent: String
 
+    func makeCoordinator() -> ExternalLinkCoordinator { ExternalLinkCoordinator() }
+
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.defaultWebpagePreferences.allowsContentJavaScript = false
         let webView = WKWebView(frame: .zero, configuration: config)
+        webView.navigationDelegate = context.coordinator
         return webView
     }
 
@@ -312,3 +318,19 @@ struct WebViewMac: NSViewRepresentable {
     }
 }
 #endif
+
+class ExternalLinkCoordinator: NSObject, WKNavigationDelegate {
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url,
+           url.scheme == "http" || url.scheme == "https" {
+            #if os(macOS)
+            NSWorkspace.shared.open(url)
+            #else
+            UIApplication.shared.open(url)
+            #endif
+            decisionHandler(.cancel)
+            return
+        }
+        decisionHandler(.allow)
+    }
+}

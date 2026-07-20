@@ -1,11 +1,19 @@
-"""WeChat public account article fetcher — uses we-mp-rss RSS endpoints."""
+"""WeChat public account article fetcher — calls wechat-article-exporter (WAE) REST API.
+
+WAE exposes:
+  GET /api/web/mp/appmsgpublish?id=<fakeid>&begin=<n>&size=<n>
+    Requires Cookie: auth-key=<...>
+    Returns AppMsgPublishResponse with triple-nested JSON strings:
+      resp.publish_page  (stringified JSON)
+        .publish_list[i].publish_info  (stringified JSON)
+          .appmsgex[j]  (article metadata: title/author/link/publish_time/...)
+"""
 from __future__ import annotations
 
+import json
 import time
-from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
-import feedparser
 import requests
 import urllib3
 from loguru import logger
@@ -13,61 +21,179 @@ from loguru import logger
 from src.wechat_tracker.models import WeChatArticle
 
 urllib3.disable_warnings()
-UA = "ascan-wechat-tracker/1.0"
+UA = "ascan-wechat-tracker/2.0"
 TIMEOUT = 30
 
 
-def fetch_mp_articles(base_url: str, mp_id: str, mp_name: str = "",
-                      limit: int = 20) -> list[WeChatArticle]:
-    """Fetch articles from a single WeChat MP via we-mp-rss RSS endpoint."""
-    url = f"{base_url.rstrip('/')}/feed/{mp_id}.xml?limit={limit}"
-    try:
-        resp = requests.get(url, headers={"User-Agent": UA}, timeout=TIMEOUT,
-                            verify=False)
-        if resp.status_code != 200:
-            logger.warning(f"RSS {mp_id} HTTP {resp.status_code}")
-            return []
-        feed = feedparser.parse(resp.content)
-        articles = []
-        for entry in feed.entries:
-            link = entry.get("link", "")
-            title = entry.get("title", "").strip()
-            if not title or not link:
-                continue
+def _parse_appmsgpublish(resp_json: dict) -> list[dict]:
+    """Extract the appmsgex[] list from the triple-nested WAE response.
 
-            article_id = f"wx:{mp_id}:{link}"
-            published = entry.get("published", "") or entry.get("updated", "")
-            author = entry.get("author", "")
-            summary = entry.get("summary", "")
-            content = entry.get("content", [{}])[0].get("value", "") if entry.get("content") else ""
-
-            articles.append(WeChatArticle(
-                article_id=article_id,
-                title=title,
-                url=link,
-                mp_id=mp_id,
-                mp_name=mp_name or feed.feed.get("title", ""),
-                publish_time=published,
-                author=author,
-                summary=summary,
-                content=content,
-            ))
-        logger.info(f"RSS {mp_name or mp_id}: {len(articles)} articles")
-        return articles
-    except Exception as e:
-        logger.warning(f"RSS {mp_id} error: {e}")
+    Top-level: { base_resp: {ret, ...}, publish_page: "<json string>" }
+    publish_page parsed: { total_count, publish_list: [{publish_info: "<json string>"}] }
+    publish_info parsed: { appmsgex: [{title, author, link, ...}] }
+    """
+    base_resp = resp_json.get("base_resp") or {}
+    ret = base_resp.get("ret")
+    if ret != 0:
+        err_msg = base_resp.get("err_msg") or f"ret={ret}"
+        logger.warning(f"WAE appmsgpublish non-zero ret: {err_msg}")
         return []
 
+    publish_page_raw = resp_json.get("publish_page")
+    if not publish_page_raw:
+        logger.warning("WAE appmsgpublish: empty publish_page")
+        return []
+    try:
+        publish_page = json.loads(publish_page_raw) if isinstance(publish_page_raw, str) else publish_page_raw
+    except json.JSONDecodeError as e:
+        logger.warning(f"WAE publish_page JSON parse failed: {e}")
+        return []
 
-def fetch_all_mps(base_url: str, mp_list: list[dict],
-                  limit: int = 20) -> list[WeChatArticle]:
-    """Fetch articles from multiple MPs. mp_list: [{"id": "...", "name": "..."}]"""
-    all_articles = []
+    publish_list = publish_page.get("publish_list") or []
+    articles: list[dict] = []
+    for item in publish_list:
+        info_raw = item.get("publish_info")
+        if not info_raw:
+            continue
+        try:
+            info = json.loads(info_raw) if isinstance(info_raw, str) else info_raw
+        except json.JSONDecodeError:
+            continue
+        appmsgex = info.get("appmsgex") or []
+        for a in appmsgex:
+            if isinstance(a, dict):
+                articles.append(a)
+    return articles
+
+
+def _appmsg_to_article(
+    a: dict,
+    fakeid: str,
+    mp_name: str,
+    min_publish_ts: float = 0.0,
+) -> Optional[WeChatArticle]:
+    """Map WAE AppMsgEx fields to WeChatArticle. Return None if article is older
+    than min_publish_ts (unix seconds) or missing title/link."""
+    link = a.get("link") or ""
+    title = (a.get("title") or "").strip()
+    if not title or not link:
+        return None
+    article_id = f"wx:{fakeid}:{link}"
+    publish_time = ""
+    publish_ts = 0.0
+    pt = a.get("publish_time") or a.get("create_time")
+    if pt:
+        try:
+            publish_ts = float(pt)
+            publish_time = time.strftime("%Y-%m-%dT%H:%M:%S+08:00", time.localtime(int(pt)))
+        except (TypeError, ValueError):
+            publish_time = str(pt)
+    # Date filter: skip articles older than the cutoff (0 = no filter)
+    if min_publish_ts > 0 and publish_ts > 0 and publish_ts < min_publish_ts:
+        return None
+    summary = a.get("digest") or a.get("summary") or ""
+    cover = a.get("cover_img") or a.get("cover") or ""
+    author = a.get("author") or ""
+    return WeChatArticle(
+        article_id=article_id,
+        title=title,
+        url=link,
+        mp_id=fakeid,
+        mp_name=mp_name,
+        publish_time=publish_time,
+        author=author,
+        summary=summary,
+        content="",  # full body not provided by appmsgpublish; left empty for now
+        cover_url=cover,
+    )
+
+
+def fetch_mp_articles_via_wae(
+    wae_url: str,
+    auth_key: str,
+    fakeid: str,
+    mp_name: str = "",
+    limit: int = 20,
+    days_recent: int = 30,
+) -> list[WeChatArticle]:
+    """Fetch articles for a single MP via WAE /api/web/mp/appmsgpublish.
+    Skip articles older than days_recent days (0 = no filter)."""
+    if not wae_url or not auth_key or not fakeid:
+        logger.warning(f"WAE fetch skipped: wae_url={bool(wae_url)} auth_key={bool(auth_key)} fakeid={bool(fakeid)}")
+        return []
+
+    base = wae_url.rstrip("/")
+    min_publish_ts = (time.time() - days_recent * 86400) if days_recent > 0 else 0.0
+    collected: list[WeChatArticle] = []
+    begin = 0
+    page_size = min(limit, 20)
+    seen_ids: set[str] = set()
+    skipped_old = 0
+
+    while begin < limit:
+        size = min(page_size, limit - begin)
+        url = f"{base}/api/web/mp/appmsgpublish?id={fakeid}&begin={begin}&size={size}&keyword="
+        try:
+            resp = requests.get(
+                url,
+                headers={"User-Agent": UA, "Cookie": f"auth-key={auth_key}"},
+                timeout=TIMEOUT,
+                verify=False,
+            )
+            if resp.status_code != 200:
+                logger.warning(f"WAE {mp_name or fakeid} HTTP {resp.status_code} at begin={begin}")
+                break
+            data = resp.json()
+            base_resp = data.get("base_resp") or {}
+            if base_resp.get("ret") == 200003:
+                logger.warning(f"WAE auth-key expired (ret=200003) — please re-scan")
+                break
+            articles_raw = _parse_appmsgpublish(data)
+            if not articles_raw:
+                break
+            new_count = 0
+            for a in articles_raw:
+                art = _appmsg_to_article(a, fakeid, mp_name, min_publish_ts=min_publish_ts)
+                if art is None:
+                    # Could be missing title/link OR too old — count for logging
+                    if a.get("title") and a.get("link"):
+                        skipped_old += 1
+                    continue
+                if art.article_id not in seen_ids:
+                    collected.append(art)
+                    seen_ids.add(art.article_id)
+                    new_count += 1
+            if new_count == 0:
+                break  # all duplicates or all filtered, stop
+            begin += len(articles_raw)
+            time.sleep(0.4)
+        except Exception as e:
+            logger.warning(f"WAE {mp_name or fakeid} begin={begin} error: {e}")
+            break
+
+    logger.info(f"WAE {mp_name or fakeid}: {len(collected)} articles (limit={limit}, days_recent={days_recent}, skipped_old≈{skipped_old})")
+    return collected
+
+
+def fetch_all_mps(
+    wae_url: str,
+    auth_key: str,
+    mp_list: list[dict],
+    limit: int = 20,
+    days_recent: int = 30,
+) -> list[WeChatArticle]:
+    """Fetch articles from multiple MPs. mp_list: [{"id": "<fakeid>", "name": "..."}]"""
+    all_articles: list[WeChatArticle] = []
     for mp in mp_list:
-        mp_id = mp["id"]
-        mp_name = mp.get("name", "")
-        articles = fetch_mp_articles(base_url, mp_id, mp_name, limit=limit)
+        fakeid = mp.get("id") or ""
+        mp_name = mp.get("name") or ""
+        if not fakeid:
+            continue
+        articles = fetch_mp_articles_via_wae(
+            wae_url, auth_key, fakeid, mp_name,
+            limit=limit, days_recent=days_recent,
+        )
         all_articles.extend(articles)
         time.sleep(0.5)
-    logger.info(f"Total WeChat articles fetched: {len(all_articles)} from {len(mp_list)} MPs")
+    logger.info(f"Total WeChat articles fetched via WAE: {len(all_articles)} from {len(mp_list)} MPs")
     return all_articles

@@ -22,7 +22,17 @@ class PaperRepository:
     def get_by_arxiv_id(self, arxiv_id: str) -> Optional[PaperDB]:
         """根据 ArXiv ID 获取论文"""
         return self.db.query(PaperDB).filter(PaperDB.arxiv_id == arxiv_id).first()
-    
+
+    def get_all_arxiv_ids(self) -> set[str]:
+        """返回所有已入库的 arxiv_id 集合，用于跨日去重。"""
+        rows = self.db.query(PaperDB.arxiv_id).all()
+        return {row[0] for row in rows if row[0]}
+
+    def get_all_dois(self) -> set[str]:
+        """返回所有已入库论文的 DOI 集合，用于跨模块（Conference↔arXiv）去重。"""
+        rows = self.db.query(PaperDB.doi).filter(PaperDB.doi != None, PaperDB.doi != "").all()  # noqa: E712
+        return {row[0] for row in rows if row[0]}
+
     def get_by_id(self, paper_id: int) -> Optional[PaperDB]:
         """根据 ID 获取论文"""
         return self.db.query(PaperDB).filter(PaperDB.id == paper_id).first()

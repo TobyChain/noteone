@@ -40,8 +40,15 @@ export interface AscanConfig {
   conference_lookback_days: number;
   conference_rank_filter: string[];
   conference_categories: string[];
+  conference_days_recent: number;
   // Blog
   blog_max_per_source: number;
+  // WeChat MP (WAE — wechat-article-exporter)
+  wechat_wae_url: string;
+  wechat_wae_auth_key: string;
+  wechat_mp_ids: Array<{ id: string; name: string }>;
+  wechat_limit_per_mp: number;
+  wechat_days_recent: number;
   // Output
   output_dir: string;
   log_level: string;
@@ -89,6 +96,25 @@ function parseList(value: string): string[] {
   return value.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
+function parseMpList(value: string): Array<{ id: string; name: string }> {
+  if (!value) return [];
+  if (value.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed) && parsed.every((v: unknown) => v && typeof v === "object" && "id" in v)) {
+        return parsed as Array<{ id: string; name: string }>;
+      }
+    } catch {
+      // fall through to manual parse
+    }
+  }
+  // Fallback: "id1|name1,id2|name2"
+  return value.split(",").map((s) => s.trim()).filter(Boolean).map((s) => {
+    const [id, name] = s.split("|").map((p) => p.trim());
+    return { id, name: name || id };
+  });
+}
+
 function parseInt2(value: string, fallback: number): number {
   const n = parseInt(value, 10);
   return isNaN(n) ? fallback : n;
@@ -116,8 +142,15 @@ function configFromEnv(env: Record<string, string>): AscanConfig {
     conference_lookback_days: parseInt2(env.CONFERENCE_LOOKBACK_DAYS, 30),
     conference_rank_filter: parseList(env.CONFERENCE_RANK_FILTER || "A,B"),
     conference_categories: parseList(env.CONFERENCE_CATEGORIES || "ai,nlp,cv,dm,ir"),
+    conference_days_recent: parseInt2(env.CONFERENCE_DAYS_RECENT, 90),
 
     blog_max_per_source: parseInt2(env.BLOG_MAX_PER_SOURCE, 2),
+
+    wechat_wae_url: env.WECHAT_WAE_URL || "http://localhost:3001",
+    wechat_wae_auth_key: env.WECHAT_WAE_AUTH_KEY || "",
+    wechat_mp_ids: parseMpList(env.WECHAT_MP_IDS || ""),
+    wechat_limit_per_mp: parseInt2(env.WECHAT_LIMIT_PER_MP, 20),
+    wechat_days_recent: parseInt2(env.WECHAT_DAYS_RECENT, 30),
 
     output_dir: env.OUTPUT_DIR || "./docs",
     log_level: env.LOG_LEVEL || "INFO",
@@ -144,7 +177,13 @@ const CONFIG_TO_ENV: Record<keyof AscanConfig, string> = {
   conference_lookback_days: "CONFERENCE_LOOKBACK_DAYS",
   conference_rank_filter: "CONFERENCE_RANK_FILTER",
   conference_categories: "CONFERENCE_CATEGORIES",
+  conference_days_recent: "CONFERENCE_DAYS_RECENT",
   blog_max_per_source: "BLOG_MAX_PER_SOURCE",
+  wechat_wae_url: "WECHAT_WAE_URL",
+  wechat_wae_auth_key: "WECHAT_WAE_AUTH_KEY",
+  wechat_mp_ids: "WECHAT_MP_IDS",
+  wechat_limit_per_mp: "WECHAT_LIMIT_PER_MP",
+  wechat_days_recent: "WECHAT_DAYS_RECENT",
   output_dir: "OUTPUT_DIR",
   log_level: "LOG_LEVEL",
 };

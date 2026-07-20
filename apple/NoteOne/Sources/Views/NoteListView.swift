@@ -5,6 +5,7 @@ struct NoteListView: View {
     @State private var isLoading = false
     @State private var pollTimer: Timer?
     @State private var filterType: ContentType?
+    @State private var showCreateNote = false
 
     #if os(macOS)
     @Binding var selectedNoteId: String?
@@ -107,6 +108,12 @@ struct NoteListView: View {
         }
         #endif
         .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button { showCreateNote = true } label: {
+                    Image(systemName: "square.and.pencil")
+                }
+                .help("新建笔记")
+            }
             #if os(macOS)
             ToolbarItem(placement: .primaryAction) {
                 Button(action: { Task { await loadNotes() } }) {
@@ -146,6 +153,16 @@ struct NoteListView: View {
         }
         .task { await loadNotes() }
         .refreshable { await loadNotes() }
+        .sheet(isPresented: $showCreateNote) {
+            #if os(macOS)
+            CaptureView(onDismiss: { showCreateNote = false })
+                .frame(width: 480, height: 420)
+            #else
+            NavigationStack {
+                CaptureView(onDismiss: { showCreateNote = false })
+            }
+            #endif
+        }
         .onReceive(NotificationCenter.default.publisher(for: .noteCreated)) { _ in
             Task {
                 try? await Task.sleep(for: .milliseconds(500))

@@ -325,23 +325,6 @@ actor APIClient {
         return response.message
     }
 
-    /// Writer-mode message: ships the full document text and optional selection range to
-    /// the server. The response carries Notty's reply *plus* an optional structured action
-    /// (insert/append/replace/rewrite) the client applies to the local editor.
-    func sendWriterMessage(
-        sessionId: String,
-        message: String,
-        documentText: String,
-        selection: WriterSelectionRange? = nil
-    ) async throws -> WriterChatResponse {
-        let payload = WriterChatRequest(
-            message: message,
-            documentText: documentText,
-            selection: selection
-        )
-        return try await post("/api/chat-sessions/\(sessionId)/writer-messages", body: payload)
-    }
-
     // MARK: - Reports
 
     /// Generate a daily report for the specified date (idempotent: returns existing if completed).
@@ -418,6 +401,10 @@ actor APIClient {
     func getAscanDocsPath() async throws -> String {
         let resp: AscanDocsPath = try await get("/api/ascan/docs-path")
         return resp.path
+    }
+
+    func getWechatHealth() async throws -> WechatHealthResponse {
+        return try await get("/api/ascan/wechat-health")
     }
 
     struct AscanSummarizeResponse: Decodable { let date: String; let summary: String }

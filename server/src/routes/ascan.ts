@@ -12,6 +12,7 @@
  * - POST /api/ascan/abort          — abort a running pipeline
  * - GET  /api/ascan/status         — check run status
  * - GET  /api/ascan/docs-path      — get docs directory path for Finder reveal
+ * - GET  /api/ascan/wechat-health  — probe the configured WeChat RSS bridge
  */
 
 import { Router } from "express";
@@ -36,7 +37,7 @@ import { getUserChatConfig } from "../services/user-config.js";
 
 export const ascanRouter = Router();
 
-const SENSITIVE_KEYS: (keyof AscanConfig)[] = ["llm_api_key", "github_token", "semantic_scholar_api_key"];
+const SENSITIVE_KEYS: (keyof AscanConfig)[] = ["llm_api_key", "github_token", "semantic_scholar_api_key", "wechat_wae_auth_key"];
 
 function maskConfig(config: AscanConfig): AscanConfig {
   const masked = { ...config };
@@ -169,7 +170,13 @@ ascanRouter.patch("/config", async (req: AuthRequest, res) => {
     "conference_lookback_days",
     "conference_rank_filter",
     "conference_categories",
+    "conference_days_recent",
     "blog_max_per_source",
+    "wechat_wae_url",
+    "wechat_wae_auth_key",
+    "wechat_mp_ids",
+    "wechat_limit_per_mp",
+    "wechat_days_recent",
     "output_dir",
     "log_level",
   ];
@@ -300,6 +307,74 @@ ascanRouter.get("/docs-path", async (_req: AuthRequest, res) => {
     res.json({ path: getDocsPath() });
   } catch {
     res.status(500).json({ error: "Failed to get docs path" });
+  }
+});
+
+/**
+ * GET /api/ascan/wechat-health
+ * Probe the configured WAE (wechat-article-exporter) service. Returns:
+ *   { status: "unconfigured" }                              — wae_url or auth_key empty
+ *   { status: "ready", waeUrl, mpCount, nickname? }         — WAE reachable + auth valid
+ *   { status: "auth_expired", waeUrl, error }               — WAE reachable but auth_key invalid/expired
+ *   { status: "unreachable", waeUrl, error }                — fetch failed
+ */
+ascanRouter.get("/wechat-health", async (_req: AuthRequest, res) => {
+  try {
+    const cfg = await getConfig();
+    const waeUrl = (cfg.wechat_wae_url || "").trim();
+    const authKey = (cfg.wechat_wae_auth_key || "").trim();
+    const mps = cfg.wechat_mp_ids || [];
+    if (!waeUrl) {
+      res.json({ status: "unconfigured", reason: "no_wae_url" });
+      return;
+    }
+    if (!authKey) {
+      res.json({ status: "unconfigured", waeUrl, reason: "no_auth_key" });
+      return;
+    }
+    const probeUrl = `${waeUrl.replace(/\/$/, "")}/api/web/mp/info`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    try {
+      const r = await fetch(probeUrl, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "noteone-health/1.0",
+          "Cookie": `auth-key=${authKey}`,
+        },
+      });
+      clearTimeout(timer);
+      if (!r.ok) {
+        res.json({ status: "unreachable", waeUrl, error: `HTTP ${r.status}` });
+        return;
+      }
+      const data = await r.json() as any;
+      // WAE's /api/web/mp/info returns { nick_name, head_img } on success,
+      // or { err: "..." } / { base_resp: { ret: 200003 } } when auth expired.
+      if (data?.base_resp?.ret === 200003 || data?.err) {
+        res.json({
+          status: "auth_expired",
+          waeUrl,
+          error: data?.err || data?.base_resp?.err_msg || "auth-key 失效或已过期，请重新扫码",
+        });
+        return;
+      }
+      res.json({
+        status: "ready",
+        waeUrl,
+        mpCount: mps.length,
+        nickname: data?.nick_name || null,
+      });
+    } catch (err: any) {
+      clearTimeout(timer);
+      res.json({
+        status: "unreachable",
+        waeUrl,
+        error: err?.name === "AbortError" ? "timeout (5s)" : (err?.message || String(err)),
+      });
+    }
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to probe wechat health", detail: String(err?.message || err) });
   }
 });
 

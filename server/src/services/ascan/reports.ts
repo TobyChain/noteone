@@ -98,13 +98,16 @@ export function stripHtml(html: string): string {
     .trim();
 }
 
-export async function generateReportSummary(date: string): Promise<string> {
+export async function generateReportSummary(
+  date: string,
+  llmConfig?: { apiKey: string; baseUrl: string; model: string },
+): Promise<string> {
   const htmlPath = join(ASCAN_DOCS, `Ascan-${date}.html`);
   const summaryPath = join(ASCAN_DOCS, `Ascan-${date}.summary`);
   try {
     const html = await readFile(htmlPath, "utf-8");
     const text = stripHtml(html).slice(0, 3000);
-    const cfg = getDefaultLLMConfig();
+    const cfg = llmConfig ?? getDefaultLLMConfig();
     if (!isLLMConfigured(cfg)) {
       const fallback = extractSummary(html);
       await writeFile(summaryPath, fallback, "utf-8");
