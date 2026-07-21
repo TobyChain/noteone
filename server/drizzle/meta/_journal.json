@@ -50,6 +50,20 @@
       "when": 1784517924802,
       "tag": "0006_safe_vulcan",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784608400021,
+      "tag": "0007_glossy_victor_mancha",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784616050165,
+      "tag": "0008_silky_thena",
+      "breakpoints": true
     }
   ]
 }

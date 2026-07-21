@@ -27,8 +27,10 @@ vi.mock("../db/schema.js", () => ({
   sql: vi.fn(),
 }));
 vi.mock("./llm.js", () => ({
-  chatCompletionWithTools: vi.fn(),
   generateEmbedding: vi.fn(),
+}));
+vi.mock("./notty/agent-loop.js", () => ({
+  runAgentLoop: vi.fn(),
 }));
 vi.mock("./web-search.js", () => ({
   searchWeb: vi.fn(async () => []),

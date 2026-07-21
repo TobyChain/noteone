@@ -132,7 +132,7 @@ Without config, notes still save normally — AI steps are skipped.
 
 **Settings → Ascan** configures daily report parameters: arXiv categories, GitHub topics, paper limits, conference rank filter, blog sources, WeChat public accounts. Click "Run" or tell Notty "supplement today's new knowledge" to trigger the pipeline.
 
-WeChat crawling uses [wechat-article-exporter](https://github.com/wechat-article/wechat-article-exporter) (native Node.js, no Docker required). See [docs/wechat-wae-setup.md](docs/wechat-wae-setup.md).
+WeChat crawling is built into the NoteOne server (`/api/wechat`). Open "Settings → WeChat" to scan the login QR code and manage subscribed accounts — no external service required.
 
 #### MCP integration
 

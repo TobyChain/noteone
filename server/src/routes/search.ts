@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, sql as pgClient } from "../db/client.js";
+import { db, rowsOf } from "../db/client.js";
 import { notes } from "../db/schema.js";
 import { eq, sql } from "drizzle-orm";
 import { generateEmbedding } from "../services/llm.js";
@@ -32,7 +32,7 @@ router.post("/", async (req: AuthRequest, res) => {
     const typeFilter = contentType ? sql`AND content_type = ${contentType}` : sql``;
 
     const searchStart = Date.now();
-    const results = await db.execute(sql`
+    const results = rowsOf(await db.execute(sql`
       SELECT
         id, title, content, content_type, source_url,
         source_app, author, author_org, ai_summary,
@@ -45,9 +45,9 @@ router.post("/", async (req: AuthRequest, res) => {
         ${typeFilter}
       ORDER BY embedding <=> ${vectorStr}::vector
       LIMIT ${limit}
-    `);
+    `));
     const searchDuration = Date.now() - searchStart;
-    const resultCount = Array.isArray(results) ? results.length : (results as any).rows?.length ?? 0;
+    const resultCount = results.length;
     console.log(`[search] queryLen=${query.length} embedDuration=${embedDuration}ms searchDuration=${searchDuration}ms results=${resultCount}`);
 
     res.json({ results });

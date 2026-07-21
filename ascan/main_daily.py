@@ -1,7 +1,12 @@
 """
-Ascan 统一日报入口（薄 CLI）
+Ascan 统一日报入口（薄 CLI）—— ⚠️ 已弃用
 ================================
-委托 orchestrator.py 运行单个模块或合并日报。无 lock —— 编排由闹闹 / run_all 协调。
+新知 pipeline 已完整移植为 TypeScript 并入 NoteOne server
+（server/src/services/ascan/pipeline/），server 不再调用本目录的 Python 代码。
+本入口仅作历史参考/对比验证用，日常请通过 App 或 API 触发：
+    POST /api/ascan/run-module   POST /api/ascan/merge   POST /api/ascan/trigger
+
+委托 orchestrator.py 运行单个模块或合并日报。无 lock —— 编排由调用方协调。
 
 Usage
 -----
@@ -58,6 +63,7 @@ async def main() -> None:
     args = parser.parse_args()
 
     setup_logging("ascan", get_settings().log_level)
+    logger.warning("⚠️ Python pipeline 已弃用：新知已移植为 TS 并入 server（server/src/services/ascan/pipeline/），此运行仅供对比验证")
 
     if args.init_db:
         logger.info("初始化数据库...")

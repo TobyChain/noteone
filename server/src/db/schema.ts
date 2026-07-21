@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, text, timestamp, uuid, real, boolean, jsonb, index, uniqueIndex, vector } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, text, timestamp, uuid, real, boolean, jsonb, index, uniqueIndex, vector, serial, integer } from "drizzle-orm/pg-core";
 
 export const contentTypeEnum = pgEnum("content_type", [
   "text", "image", "video", "link", "mixed",
@@ -150,4 +150,191 @@ export const scheduledTasks = pgTable("scheduled_tasks", {
 }, (table) => [
   index("scheduled_tasks_user_id_idx").on(table.userId),
   index("scheduled_tasks_enabled_idx").on(table.enabled),
+]);
+
+// --- WeChat MP login sessions (auth-key -> token + cookies) ---
+
+export const wechatSessions = pgTable("wechat_sessions", {
+  authKey: text("auth_key").primaryKey(),
+  token: text("token").notNull(),
+  cookies: jsonb("cookies").notNull().default([]),
+  nickname: text("nickname"),
+  avatar: text("avatar"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, (table) => [
+  index("wechat_sessions_expires_at_idx").on(table.expiresAt),
+]);
+
+// --- Ascan pipeline tables (ported from the Python SQLAlchemy models; ---
+// --- table/column names kept identical so dev DBs reuse dedup history) ---
+
+export const ascanPapers = pgTable("papers", {
+  id: serial("id").primaryKey(),
+  arxivId: text("arxiv_id").notNull().unique(),
+  title: text("title").notNull(),
+  authors: jsonb("authors").default([]),
+  abstract: text("abstract").default(""),
+  absUrl: text("abs_url").notNull(),
+  pdfUrl: text("pdf_url"),
+  doi: text("doi"),
+  doiUrl: text("doi_url"),
+  published: text("published"), // YYYY-MM-DD
+  bibtex: text("bibtex"),
+  affiliations: jsonb("affiliations").default([]),
+  primaryImageUrl: text("primary_image_url"),
+  transAbs: text("trans_abs").default(""),
+  compressed: text("compressed").default(""),
+  keywords: jsonb("keywords").default([]),
+  subTopic: text("sub_topic").default("未知"),
+  recommendation: text("recommendation").default("一般推荐"),
+  oneLiner: text("one_liner"),
+  coreRecommendation: text("core_recommendation"),
+  status: text("status").default("pending"),
+  errorMessage: text("error_message"),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+}, (table) => [
+  index("papers_published_idx").on(table.published),
+]);
+
+export const ascanGithubRepos = pgTable("github_repos", {
+  id: serial("id").primaryKey(),
+  fullName: text("full_name").notNull().unique(),
+  owner: text("owner").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  stars: integer("stars").default(0),
+  forks: integer("forks").default(0),
+  language: text("language"),
+  topics: jsonb("topics").default([]),
+  url: text("url").notNull(),
+  pushedAt: text("pushed_at"),
+  repoCreatedAt: text("repo_created_at"),
+  oneLiner: text("one_liner"),
+  positioning: text("positioning"),
+  coreTech: text("core_tech"),
+  useCases: text("use_cases"),
+  comparison: text("comparison"),
+  watchReason: text("watch_reason"),
+  relevance: text("relevance"),
+  firstSeenDate: text("first_seen_date"),
+  lastSeenDate: text("last_seen_date"),
+  seenCount: integer("seen_count").default(1),
+  starsHistory: jsonb("stars_history").default({}),
+  analyzed: boolean("analyzed").default(false),
+  createdAtTs: timestamp("created_at_ts").defaultNow(),
+  updatedAtTs: timestamp("updated_at_ts").defaultNow(),
+}, (table) => [
+  index("github_repos_first_seen_idx").on(table.firstSeenDate),
+]);
+
+export const ascanOfficialItems = pgTable("official_items", {
+  id: serial("id").primaryKey(),
+  source: text("source").notNull(),
+  slug: text("slug").notNull().unique(),
+  url: text("url").notNull(),
+  title: text("title"),
+  date: text("date"),
+  category: text("category"),
+  itemType: text("item_type").default("article"),
+  summary: text("summary"),
+  content: text("content"),
+  oneLiner: text("one_liner"),
+  summaryCn: text("summary_cn"),
+  coreInsight: text("core_insight"),
+  ecommerceConnection: text("ecommerce_connection"),
+  relevance: text("relevance"),
+  sitemapLastmod: text("sitemap_lastmod"),
+  firstSeenDate: text("first_seen_date"),
+  lastSeenDate: text("last_seen_date"),
+  analyzed: boolean("analyzed").default(false),
+  createdAtTs: timestamp("created_at_ts").defaultNow(),
+  updatedAtTs: timestamp("updated_at_ts").defaultNow(),
+}, (table) => [
+  index("official_items_source_idx").on(table.source),
+]);
+
+export const ascanBlogPosts = pgTable("blog_posts", {
+  id: serial("id").primaryKey(),
+  source: text("source").notNull(),
+  slug: text("slug").notNull().unique(),
+  url: text("url").notNull(),
+  title: text("title"),
+  date: text("date"),
+  sourceLabel: text("source_label"),
+  summary: text("summary"),
+  content: text("content"),
+  oneLiner: text("one_liner"),
+  summaryCn: text("summary_cn"),
+  ecommerceConnection: text("ecommerce_connection"),
+  relevance: text("relevance"),
+  firstSeenDate: text("first_seen_date"),
+  lastSeenDate: text("last_seen_date"),
+  analyzed: boolean("analyzed").default(false),
+  createdAtTs: timestamp("created_at_ts").defaultNow(),
+  updatedAtTs: timestamp("updated_at_ts").defaultNow(),
+}, (table) => [
+  index("blog_posts_source_idx").on(table.source),
+]);
+
+export const ascanConferencePapers = pgTable("conference_papers", {
+  id: serial("id").primaryKey(),
+  paperKey: text("paper_key").notNull().unique(),
+  title: text("title").notNull(),
+  authors: jsonb("authors").default([]),
+  abstract: text("abstract"),
+  venue: text("venue").notNull(),
+  venueFullName: text("venue_full_name"),
+  rank: text("rank").notNull(),
+  category: text("category"),
+  year: integer("year"),
+  publicationDate: text("publication_date"),
+  doi: text("doi"),
+  url: text("url"),
+  pdfUrl: text("pdf_url"),
+  citationCount: integer("citation_count").default(0),
+  tldr: text("tldr"),
+  keywords: jsonb("keywords").default([]),
+  paperType: text("paper_type"),
+  oneLiner: text("one_liner"),
+  summaryCn: text("summary_cn"),
+  coreContribution: text("core_contribution"),
+  ecommerceConnection: text("ecommerce_connection"),
+  relevance: text("relevance"),
+  source: text("source").default("papers_cool"),
+  firstSeenDate: text("first_seen_date"),
+  lastSeenDate: text("last_seen_date"),
+  analyzed: boolean("analyzed").default(false),
+  createdAtTs: timestamp("created_at_ts").defaultNow(),
+  updatedAtTs: timestamp("updated_at_ts").defaultNow(),
+}, (table) => [
+  index("conference_papers_venue_idx").on(table.venue),
+]);
+
+export const ascanWechatArticles = pgTable("wechat_articles", {
+  id: serial("id").primaryKey(),
+  articleId: text("article_id").notNull().unique(),
+  title: text("title").notNull(),
+  url: text("url").notNull(),
+  mpId: text("mp_id").notNull(),
+  mpName: text("mp_name"),
+  publishTime: text("publish_time"),
+  author: text("author"),
+  summary: text("summary"),
+  content: text("content"),
+  coverUrl: text("cover_url"),
+  oneLiner: text("one_liner"),
+  summaryCn: text("summary_cn"),
+  keywords: jsonb("keywords").default([]),
+  coreRecommendation: text("core_recommendation"),
+  relevance: text("relevance"),
+  firstSeenDate: text("first_seen_date"),
+  lastSeenDate: text("last_seen_date"),
+  analyzed: boolean("analyzed").default(false),
+  createdAtTs: timestamp("created_at_ts").defaultNow(),
+  updatedAtTs: timestamp("updated_at_ts").defaultNow(),
+}, (table) => [
+  index("wechat_articles_mp_id_idx").on(table.mpId),
 ]);

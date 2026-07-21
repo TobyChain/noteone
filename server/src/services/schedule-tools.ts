@@ -2,7 +2,7 @@
  * Schedule tools for 闹闹 — create / list / cancel scheduled tasks.
  * Currently supports one action: "start_ascan_supplement" (定时补充新知).
  */
-import type { ToolDefinition } from "./llm.js";
+import type { ToolDefinition } from "./notty/agent-loop.js";
 import { createTask, listTasks, cancelTask } from "./scheduler.js";
 
 export const scheduleToolDefinitions: ToolDefinition[] = [

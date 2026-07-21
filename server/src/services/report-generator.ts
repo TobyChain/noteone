@@ -4,10 +4,11 @@
  * then renders an HTML report in the user's chosen style × depth.
  */
 
-import { db } from "../db/client.js";
+import { db, rowsOf } from "../db/client.js";
 import { notes, noteTags, tags, dailyReports } from "../db/schema.js";
 import { eq, and, gte, lte, ne, inArray, sql, desc } from "drizzle-orm";
-import { chatCompletionWithTools, generateEmbedding, ToolDefinition, ToolHandler } from "./llm.js";
+import { generateEmbedding } from "./llm.js";
+import { runAgentLoop, ToolDefinition, ToolHandler } from "./notty/agent-loop.js";
 import { searchWeb, fetchSearchResult, SearchResult } from "./web-search.js";
 import { fetchUrlContent } from "./web-fetch.js";
 import { getUserChatConfig } from "./user-config.js";
@@ -358,7 +359,7 @@ ${historyIndex ? `用户的历史笔记索引（供关联参考）：\n${history
         ORDER BY embedding <=> ${vectorStr}::vector
         LIMIT ${safeLimit}
       `);
-      const rows = Array.isArray(result) ? result : (result as any).rows || [];
+      const rows = rowsOf(result);
       if (rows.length === 0) return "未找到相关笔记";
       return rows.map((r: any, i: number) =>
         `${i + 1}. id=${r.id} | ${r.title || "无标题"} (${(r.similarity * 100).toFixed(1)}%)\n   ${r.ai_summary || (r.content || "").slice(0, 100)}`
@@ -389,7 +390,7 @@ ${historyIndex ? `用户的历史笔记索引（供关联参考）：\n${history
     { role: "user", content: `请为今天的笔记生成报告。今天是 ${date}，我记了 ${todayNotes.length} 条笔记。请按照计划执行。` },
   ];
 
-  const reply = await chatCompletionWithTools(messages, tools, toolHandlers, chatConfig, 8);
+  const reply = await runAgentLoop(messages, tools, toolHandlers, chatConfig, 8);
 
   // Parse the JSON output
   let reportData: ReportData;

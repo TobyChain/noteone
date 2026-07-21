@@ -7,7 +7,6 @@ struct NoteOneApp: App {
     @Environment(\.scenePhase) private var scenePhase
     #if os(macOS)
     @StateObject private var hotkeyManager = HotkeyManager.shared
-    @State private var showCaptureWindow = false
     #endif
 
     private var theme: AppTheme {
@@ -45,6 +44,9 @@ struct NoteOneApp: App {
                 #endif
             })
             .task {
+                #if os(macOS)
+                await ServerLauncher.shared.ensureRunning()
+                #endif
                 await SyncQueue.shared.warmUp()
                 await syncPending()
                 #if os(macOS)
@@ -56,6 +58,11 @@ struct NoteOneApp: App {
                     Task { await syncPending() }
                 }
             }
+            #if os(macOS)
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+                ServerLauncher.shared.terminate()
+            }
+            #endif
         }
         #if os(macOS)
         .defaultSize(width: 900, height: 600)

@@ -29,119 +29,190 @@ struct CaptureView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
-            #if os(macOS)
-            Text("顺手记").font(.headline)
-            #endif
-
-            if let data = imageData {
-                imagePreview(data)
-            }
-
-            TextEditor(text: $content)
-                .frame(minHeight: 120)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(isDropTargeted ? Color.accentColor : Color.secondary.opacity(0.3),
-                                lineWidth: isDropTargeted ? 2 : 1)
+        ZStack {
+            contentView
+                #if os(macOS)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(nsColor: .windowBackgroundColor))
+                        .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 8)
                 )
-                .overlay(alignment: .topLeading) {
-                    if content.isEmpty {
-                        Text("记录你看到的内容…（也可拖入文本/链接/图片）")
-                            .foregroundStyle(.tertiary)
-                            #if os(macOS)
-                            .padding(.top, 8)
-                            .padding(.leading, 5)
-                            #else
-                            .padding(8)
-                            #endif
-                            .allowsHitTesting(false)
-                    }
-                }
-
-            TextField("来源链接（可选）", text: $sourceUrl)
-                .textFieldStyle(.roundedBorder)
-
-            HStack {
-                #if os(macOS)
-                Button("取消") { onDismiss?() }
-                    .keyboardShortcut(.escape)
                 #endif
 
-                Spacer()
-
-                if showSuccess {
-                    Label("已保存", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                }
-
-                Button(action: save) {
-                    if isSaving {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Label("保存", systemImage: "square.and.arrow.down")
-                    }
-                }
-                #if os(macOS)
-                .keyboardShortcut(.return)
-                #endif
-                .disabled(!canSave)
-                .buttonStyle(.borderedProminent)
+            if showSuccess {
+                successOverlay
+                    .transition(.scale(scale: 0.8).combined(with: .opacity))
             }
         }
         #if os(macOS)
-        .padding(.top, 28)
-        .padding(.horizontal)
-        .padding(.bottom)
         .frame(width: 460)
+        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: showSuccess)
         #else
-        .padding()
+        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: showSuccess)
+        #endif
+    }
+
+    private var contentView: some View {
+        VStack(spacing: 0) {
+            header
+
+            if let data = imageData {
+                imagePreview(data)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+            }
+
+            textEditorArea
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+
+            sourceUrlField
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+
+            bottomBar
+                .padding(16)
+        }
+        .padding(.top, 28)
+        .padding(.bottom, 8)
+        #if os(iOS)
+        .padding(.horizontal, 4)
         #endif
         .navigationTitle("记一条")
         .onDrop(of: [.image, .url, .plainText], isTargeted: $isDropTargeted) { providers in
             handleDrop(providers)
         }
-        .onAppear {
-            if let data = initialImageData {
-                imageData = data
-            }
-            if let text = initialContent, !text.isEmpty {
-                content = text
-            } else if imageData == nil {
-                pasteFromClipboard()
-            }
-            if let url = initialSourceUrl, !url.isEmpty {
-                sourceUrl = url
-            }
-            if let title = initialSourceTitle, !title.isEmpty, !content.isEmpty {
-                content = "[\(title)]\n\n\(content)"
-            }
-            // Drain any drop payload first — a top-level Drop on App takes priority over
-            // explicit init args (used only by the macOS hotkey panel) and clipboard.
-            Task {
-                if let pending = await DropPayloadStore.shared.consume() {
-                    await MainActor.run {
-                        if let data = pending.imageData { imageData = data }
-                        if let text = pending.text, !text.isEmpty { content = text }
-                        if let src = pending.sourceUrl, !src.isEmpty { sourceUrl = src }
-                    }
-                }
-            }
-        }
+        .onAppear { handleInitialPayload() }
         .onReceive(NotificationCenter.default.publisher(for: .droppedPayloadReady)) { _ in
-            // Triggered when a drop arrives while CaptureView is already on screen.
-            Task {
-                if let pending = await DropPayloadStore.shared.consume() {
-                    await MainActor.run {
-                        if let data = pending.imageData { imageData = data }
-                        if let text = pending.text, !text.isEmpty { content = text }
-                        if let src = pending.sourceUrl, !src.isEmpty { sourceUrl = src }
-                    }
-                }
-            }
+            Task { await consumeDropPayload() }
         }
     }
+
+    // MARK: - Header
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "note.text.badge.plus")
+                .font(.system(size: 14))
+                .foregroundStyle(Color.accent)
+            Text("添加到往事")
+                .font(.subheadline.bold())
+                .foregroundStyle(Color.ink)
+            Spacer()
+            if !sourceUrl.isEmpty {
+                Text(sourceUrl)
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(Color.inkTertiary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .frame(maxWidth: 120)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+    }
+
+    // MARK: - Text Editor
+
+    private var textEditorArea: some View {
+        ZStack(alignment: .topLeading) {
+            if content.isEmpty {
+                Text("记录你看到的内容…（也可拖入文本/链接/图片）")
+                    .foregroundStyle(Color.inkTertiary)
+                    .font(.body)
+                    .padding(.top, 8)
+                    .padding(.leading, 12)
+                    .allowsHitTesting(false)
+            }
+            TextEditor(text: $content)
+                .scrollContentBackground(.hidden)
+                .font(.body)
+                .frame(minHeight: 100)
+        }
+        .padding(4)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.canvasSecondary.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(isDropTargeted ? Color.accent : Color.hairline,
+                        lineWidth: isDropTargeted ? 2 : 1)
+        )
+    }
+
+    // MARK: - Source URL field
+
+    private var sourceUrlField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "link")
+                .font(.caption)
+                .foregroundStyle(Color.inkTertiary)
+            TextField("来源链接（可选）", text: $sourceUrl)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.canvasSecondary.opacity(0.4))
+        )
+    }
+
+    // MARK: - Bottom bar
+
+    private var bottomBar: some View {
+        HStack {
+            #if os(macOS)
+            Button("取消") { onDismiss?() }
+                .keyboardShortcut(.escape)
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.inkSecondary)
+            #endif
+
+            Spacer()
+
+            Button(action: save) {
+                if isSaving {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Label("保存", systemImage: "square.and.arrow.down")
+                        .font(.subheadline.bold())
+                }
+            }
+            #if os(macOS)
+            .keyboardShortcut(.return)
+            #endif
+            .disabled(!canSave)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.regular)
+        }
+    }
+
+    // MARK: - Success overlay
+
+    private var successOverlay: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(Color.success)
+            Text("已保存到往事")
+                .font(.headline)
+                .foregroundStyle(Color.ink)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        #if os(macOS)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+        )
+        #else
+        .background(.ultraThinMaterial)
+        #endif
+    }
+
+    // MARK: - Image preview
 
     @ViewBuilder
     private func imagePreview(_ data: Data) -> some View {
@@ -156,7 +227,7 @@ struct CaptureView: View {
             }
             #endif
         }
-        .frame(maxHeight: 160)
+        .frame(maxHeight: 140)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(alignment: .topTrailing) {
             Button {
@@ -167,6 +238,31 @@ struct CaptureView: View {
             }
             .buttonStyle(.plain)
             .padding(6)
+        }
+    }
+
+    // MARK: - Actions
+
+    private func handleInitialPayload() {
+        if let data = initialImageData { imageData = data }
+        if let text = initialContent, !text.isEmpty {
+            content = text
+        } else if imageData == nil {
+            pasteFromClipboard()
+        }
+        if let url = initialSourceUrl, !url.isEmpty { sourceUrl = url }
+        if let title = initialSourceTitle, !title.isEmpty, !content.isEmpty {
+            content = "[\(title)]\n\n\(content)"
+        }
+        Task { await consumeDropPayload() }
+    }
+
+    private func consumeDropPayload() async {
+        guard let pending = await DropPayloadStore.shared.consume() else { return }
+        await MainActor.run {
+            if let data = pending.imageData { imageData = data }
+            if let text = pending.text, !text.isEmpty { content = text }
+            if let src = pending.sourceUrl, !src.isEmpty { sourceUrl = src }
         }
     }
 
@@ -187,7 +283,6 @@ struct CaptureView: View {
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
-        // Prefer an image if one was dropped.
         for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
             provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, _ in
                 guard let data else { return }
@@ -230,8 +325,6 @@ struct CaptureView: View {
                     let imageUrl = try await APIClient.shared.uploadImage(
                         data: droppedImage, mimeType: "image/png", fileName: "capture.png"
                     )
-                    // Text + image together → a "mixed" note (text as body, image as sourceUrl);
-                    // image alone → an "image" note.
                     let hasText = !caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     request = CreateNoteRequest(
                         content: hasText ? caption : "[图片]",
@@ -249,7 +342,6 @@ struct CaptureView: View {
                     NotificationCenter.default.post(name: .noteCreated, object: nil)
                 }
             } catch {
-                // Only text notes can be safely queued offline; image upload needs connectivity.
                 if droppedImage == nil {
                     let request = CreateNoteRequest(
                         content: caption,
@@ -260,12 +352,11 @@ struct CaptureView: View {
             }
             await MainActor.run {
                 isSaving = false
-                showSuccess = true
+                withAnimation { showSuccess = true }
                 content = ""
                 sourceUrl = ""
                 imageData = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    showSuccess = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                     onDismiss?()
                 }
             }

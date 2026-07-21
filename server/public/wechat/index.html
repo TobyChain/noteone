@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>微信公众号配置</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>微信公众号</h1>
+
+    <!-- 登录状态卡片 -->
+    <section class="card" id="login-card">
+      <div class="card-header">
+        <h2>公众平台登录</h2>
+        <span class="badge" id="login-badge">检测中…</span>
+      </div>
+      <div id="login-status" class="muted">正在检测登录状态…</div>
+      <div id="qr-area" class="hidden">
+        <img id="qr-img" alt="登录二维码">
+        <p class="muted" id="qr-msg">使用微信扫码并确认登录</p>
+      </div>
+      <div class="row">
+        <button id="btn-login" class="hidden">扫码登录</button>
+        <button id="btn-relogin" class="secondary hidden">重新扫码</button>
+        <button id="btn-logout" class="danger hidden">退出登录</button>
+      </div>
+    </section>
+
+    <!-- 公众号订阅卡片 -->
+    <section class="card">
+      <div class="card-header">
+        <h2>订阅的公众号</h2>
+        <span class="badge" id="mp-count"></span>
+      </div>
+      <ul id="mp-list" class="mp-list"></ul>
+      <p class="muted hidden" id="mp-empty">还没有订阅公众号，先在下方搜索添加。</p>
+
+      <div class="search-box">
+        <input id="search-input" type="text" placeholder="搜索公众号名称…">
+        <button id="btn-search">搜索</button>
+      </div>
+      <ul id="search-results" class="mp-list"></ul>
+    </section>
+
+    <!-- 抓取参数卡片 -->
+    <section class="card">
+      <div class="card-header"><h2>抓取参数</h2></div>
+      <label>每个公众号最多抓取文章数
+        <input id="limit-per-mp" type="number" min="1" max="100">
+      </label>
+      <label>只保留最近 N 天的文章
+        <input id="days-recent" type="number" min="1" max="365">
+      </label>
+      <div class="row">
+        <button id="btn-save">保存参数</button>
+      </div>
+    </section>
+
+    <p class="toast hidden" id="toast"></p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

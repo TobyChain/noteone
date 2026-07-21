@@ -4,8 +4,11 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
 import { AuthRequest } from "../middleware/auth.js";
+import { config } from "../config.js";
 
-export const UPLOAD_DIR = path.resolve(process.cwd(), "uploads");
+export const UPLOAD_DIR = config.dataDir
+  ? path.join(config.dataDir, "uploads")
+  : path.resolve(process.cwd(), "uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // allow-list of image mime types → file extension

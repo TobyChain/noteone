@@ -1,4 +1,7 @@
 import "dotenv/config";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { join } from "path";
+import { randomBytes } from "crypto";
 
 function required(name: string): string {
   const value = process.env[name];
@@ -11,8 +14,33 @@ function required(name: string): string {
 const nodeEnv = process.env.NODE_ENV || "development";
 const isProd = nodeEnv === "production";
 
-const jwtSecret = required("JWT_SECRET");
-if (isProd && (jwtSecret === "change-me-in-production" || jwtSecret.length < 16)) {
+// Embedded single-user mode (packaged .app): NOTEONE_DATA_DIR points at
+// ~/Library/Application Support/NoteOne. The database runs in-process (PGlite),
+// and JWT_SECRET is auto-generated and persisted under the data dir.
+const dataDir = process.env.NOTEONE_DATA_DIR || "";
+const isEmbedded = dataDir !== "";
+if (isEmbedded) {
+  mkdirSync(dataDir, { recursive: true });
+}
+
+function resolveJwtSecret(): string {
+  if (process.env.JWT_SECRET && process.env.JWT_SECRET.trim() !== "") {
+    return process.env.JWT_SECRET;
+  }
+  if (isEmbedded) {
+    const secretPath = join(dataDir, "jwt-secret");
+    if (existsSync(secretPath)) {
+      return readFileSync(secretPath, "utf-8").trim();
+    }
+    const secret = randomBytes(32).toString("hex");
+    writeFileSync(secretPath, secret, { mode: 0o600 });
+    return secret;
+  }
+  return required("JWT_SECRET");
+}
+
+const jwtSecret = resolveJwtSecret();
+if (isProd && !isEmbedded && (jwtSecret === "change-me-in-production" || jwtSecret.length < 16)) {
   throw new Error(
     "[config] JWT_SECRET is weak or default; set a strong secret (>= 16 chars) in production",
   );
@@ -28,15 +56,12 @@ function list(name: string, fallback = ""): string[] {
 export const config = {
   nodeEnv,
   isProd,
+  isEmbedded,
+  dataDir,
   port: parseInt(process.env.PORT || "3000", 10),
-  databaseUrl: required("DATABASE_URL"),
+  // Embedded mode uses PGlite under the data dir; DATABASE_URL is not needed.
+  databaseUrl: isEmbedded ? (process.env.DATABASE_URL || "") : required("DATABASE_URL"),
   jwtSecret,
-  // dev-token login is only ever available when explicitly enabled AND not in production
-  enableDevLogin: process.env.ENABLE_DEV_LOGIN === "true" && !isProd,
-  apple: {
-    // audience(s) the Apple identityToken must be issued for — the app bundle id(s)
-    clientIds: list("APPLE_CLIENT_IDS", "com.noteone.app"),
-  },
   // CORS allow-list; empty => reflect request origin (dev convenience)
   allowedOrigins: list("ALLOWED_ORIGINS"),
   // LLM defaults intentionally empty — open-source NoteOne ships without a bundled provider.
