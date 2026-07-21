@@ -79,7 +79,7 @@ The server reads/writes its config in `ascan/.env` and tracks run status in-memo
 | `POST /api/ascan/merge` | Merge already-run module fragments into a report |
 | `POST /api/ascan/abort` | Abort a running pipeline (kills pid) |
 | `GET /api/ascan/status` | Check run status + recent log lines |
-| `GET /api/ascan/wechat-health` | Probe the configured WAE (wechat-article-exporter) service |
+| `GET /api/ascan/wechat-health` | Check the built-in WeChat MP integration (login state) |
 | `POST /api/ascan/summarize` | Generate LLM one-sentence summary for a report |
 
 ### 闹闹 tools (chat-sessions)

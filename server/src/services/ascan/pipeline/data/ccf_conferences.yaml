@@ -1,0 +1,162 @@
+conferences:
+  # ── CCF-A 类 ──────────────────────────────────────────────────────────
+  - name: NeurIPS
+    full_name: "Advances in Neural Information Processing Systems"
+    rank: A
+    category: ai
+    dblp_key: nips
+    papers_cool_venue: NeurIPS
+    aliases: ["NIPS", "NeurIPS"]
+
+  - name: ICML
+    full_name: "International Conference on Machine Learning"
+    rank: A
+    category: ai
+    dblp_key: icml
+    papers_cool_venue: ICML
+    aliases: ["ICML"]
+
+  - name: ICLR
+    full_name: "International Conference on Learning Representations"
+    rank: A
+    category: ai
+    dblp_key: iclr
+    papers_cool_venue: ICLR
+    aliases: ["ICLR"]
+
+  - name: CVPR
+    full_name: "IEEE/CVF Conference on Computer Vision and Pattern Recognition"
+    rank: A
+    category: cv
+    dblp_key: cvpr
+    papers_cool_venue: CVPR
+    aliases: ["CVPR"]
+
+  - name: ICCV
+    full_name: "IEEE International Conference on Computer Vision"
+    rank: A
+    category: cv
+    dblp_key: iccv
+    papers_cool_venue: ICCV
+    aliases: ["ICCV"]
+
+  - name: ACL
+    full_name: "Annual Meeting of the Association for Computational Linguistics"
+    rank: A
+    category: nlp
+    dblp_key: acl
+    papers_cool_venue: ACL
+    aliases: ["ACL"]
+
+  - name: AAAI
+    full_name: "AAAI Conference on Artificial Intelligence"
+    rank: A
+    category: ai
+    dblp_key: aaai
+    papers_cool_venue: AAAI
+    aliases: ["AAAI"]
+
+  - name: KDD
+    full_name: "ACM SIGKDD Conference on Knowledge Discovery and Data Mining"
+    rank: A
+    category: dm
+    dblp_key: kdd
+    papers_cool_venue: SIGKDD
+    aliases: ["KDD", "SIGKDD"]
+
+  - name: SIGIR
+    full_name: "International ACM SIGIR Conference on Research and Development in Information Retrieval"
+    rank: A
+    category: ir
+    dblp_key: sigir
+    papers_cool_venue: SIGIR
+    aliases: ["SIGIR"]
+
+  - name: WWW
+    full_name: "The Web Conference"
+    rank: A
+    category: ir
+    dblp_key: www
+    papers_cool_venue: WWW
+    aliases: ["WWW", "TheWebConf"]
+
+  - name: CHI
+    full_name: "ACM Conference on Human Factors in Computing Systems"
+    rank: A
+    category: hci
+    dblp_key: chi
+    papers_cool_venue: CHI
+    aliases: ["CHI"]
+
+  - name: SIGMOD
+    full_name: "International Conference on Management of Data"
+    rank: A
+    category: dm
+    dblp_key: sigmod
+    papers_cool_venue: SIGMOD
+    aliases: ["SIGMOD"]
+
+  # ── CCF-B 类 ──────────────────────────────────────────────────────────
+  - name: EMNLP
+    full_name: "Conference on Empirical Methods in Natural Language Processing"
+    rank: B
+    category: nlp
+    dblp_key: emnlp
+    papers_cool_venue: EMNLP
+    aliases: ["EMNLP"]
+
+  - name: NAACL
+    full_name: "Conference of the North American Chapter of the Association for Computational Linguistics"
+    rank: B
+    category: nlp
+    dblp_key: naacl
+    papers_cool_venue: NAACL
+    aliases: ["NAACL", "HLT-NAACL"]
+
+  - name: COLING
+    full_name: "International Conference on Computational Linguistics"
+    rank: B
+    category: nlp
+    dblp_key: coling
+    papers_cool_venue: COLING
+    aliases: ["COLING"]
+
+  - name: IJCAI
+    full_name: "International Joint Conference on Artificial Intelligence"
+    rank: B
+    category: ai
+    dblp_key: ijcai
+    papers_cool_venue: IJCAI
+    aliases: ["IJCAI"]
+
+  - name: ECAI
+    full_name: "European Conference on Artificial Intelligence"
+    rank: B
+    category: ai
+    dblp_key: ecai
+    papers_cool_venue: ECAI
+    aliases: ["ECAI"]
+
+  - name: ECCV
+    full_name: "European Conference on Computer Vision"
+    rank: B
+    category: cv
+    dblp_key: eccv
+    papers_cool_venue: ECCV
+    aliases: ["ECCV"]
+
+  - name: AISTATS
+    full_name: "International Conference on Artificial Intelligence and Statistics"
+    rank: B
+    category: ai
+    dblp_key: aistats
+    papers_cool_venue: AISTATS
+    aliases: ["AISTATS"]
+
+  - name: UAI
+    full_name: "Conference on Uncertainty in Artificial Intelligence"
+    rank: B
+    category: ai
+    dblp_key: uai
+    papers_cool_venue: UAI
+    aliases: ["UAI"]

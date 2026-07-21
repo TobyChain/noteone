@@ -1,20 +1,32 @@
 /**
  * Ascan configuration — .env parsing/serialization for the Python pipeline.
- * Extracted from the former ascan-bridge.ts.
+ *
+ * The config surface (keys, env names, types, defaults, sensitivity) is
+ * defined once in ascan/config.schema.json and shared with the Python side
+ * (ascan/src/config/settings.py, consistency enforced by
+ * ascan/tests/test_config_schema.py).
  */
 import { readFile, writeFile } from "fs/promises";
+import { readFileSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, resolve, join } from "path";
+import { config as appConfig } from "../../config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// ascan/ is at the noteone project root. This file lives at server/src/services/ascan/,
-// so the project root is 4 levels up.
-const ASCAN_ROOT = resolve(__dirname, "../../../../ascan");
+// Dev: ascan/ is at the noteone project root (this file lives at
+// server/src/services/ascan/, project root is 4 levels up).
+// Embedded (packaged .app): everything lives under {DATA_DIR}/ascan.
+const REPO_ASCAN_ROOT = resolve(__dirname, "../../../../ascan");
+const ASCAN_ROOT = appConfig.dataDir ? join(appConfig.dataDir, "ascan") : REPO_ASCAN_ROOT;
 const ASCAN_DOCS = join(ASCAN_ROOT, "docs");
-const ASCAN_ENV = join(ASCAN_ROOT, ".env");
+const ASCAN_ENV = process.env.ASCAN_ENV_PATH || join(ASCAN_ROOT, ".env");
 const ASCAN_LOGS = join(ASCAN_ROOT, "logs");
+if (appConfig.dataDir) {
+  mkdirSync(ASCAN_DOCS, { recursive: true });
+  mkdirSync(ASCAN_LOGS, { recursive: true });
+}
 
 export { ASCAN_ROOT, ASCAN_DOCS, ASCAN_ENV, ASCAN_LOGS };
 
@@ -43,15 +55,36 @@ export interface AscanConfig {
   conference_days_recent: number;
   // Blog
   blog_max_per_source: number;
-  // WeChat MP (WAE — wechat-article-exporter)
-  wechat_wae_url: string;
-  wechat_wae_auth_key: string;
+  // WeChat MP (built-in service)
+  wechat_service_url: string;
+  wechat_auth_key: string;
   wechat_mp_ids: Array<{ id: string; name: string }>;
   wechat_limit_per_mp: number;
   wechat_days_recent: number;
   // Output
   output_dir: string;
   log_level: string;
+}
+
+// ── schema (single source of truth: ascan/config.schema.json) ─
+
+type FieldType = "string" | "int" | "string_list" | "mp_list";
+
+interface SchemaField {
+  key: keyof AscanConfig;
+  type: FieldType;
+  default: any;
+  sensitive?: boolean;
+  group: string;
+}
+
+const SCHEMA_PATH = process.env.ASCAN_SCHEMA_PATH || join(REPO_ASCAN_ROOT, "config.schema.json");
+const schema: { fields: SchemaField[] } = JSON.parse(readFileSync(SCHEMA_PATH, "utf-8"));
+
+export const CONFIG_KEYS: (keyof AscanConfig)[] = schema.fields.map((f) => f.key);
+
+function envNameOf(key: string): string {
+  return key.toUpperCase();
 }
 
 // ── .env parsing ──────────────────────────────────────────────
@@ -115,101 +148,53 @@ function parseMpList(value: string): Array<{ id: string; name: string }> {
   });
 }
 
-function parseInt2(value: string, fallback: number): number {
-  const n = parseInt(value, 10);
-  return isNaN(n) ? fallback : n;
+function parseFieldValue(field: SchemaField, raw: string | undefined): any {
+  if (raw === undefined || raw === "") {
+    return structuredClone(field.default);
+  }
+  switch (field.type) {
+    case "string":
+      return raw;
+    case "int": {
+      const n = parseInt(raw, 10);
+      return isNaN(n) ? field.default : n;
+    }
+    case "string_list":
+      return parseList(raw);
+    case "mp_list":
+      return parseMpList(raw);
+  }
 }
 
 function configFromEnv(env: Record<string, string>): AscanConfig {
-  return {
-    llm_api_key: env.LLM_API_KEY || "",
-    llm_base_url: env.LLM_BASE_URL || "https://yunwu.ai/v1",
-    llm_model: env.LLM_MODEL || "deepseek-v4-pro",
-    llm_max_concurrency: parseInt2(env.LLM_MAX_CONCURRENCY, 5),
-
-    github_token: env.GITHUB_TOKEN || "",
-    github_topics: parseList(env.GITHUB_TOPICS || "digital-twin,digital-avatar,recommendation-system,product-recommendation,e-commerce,product-inspection,compliance-detection,content-moderation,customer-service,chatbot,conversational-ai,llm-agent,ai-agent,rag,multi-agent"),
-    github_max_repos_per_topic: parseInt2(env.GITHUB_MAX_REPOS_PER_TOPIC, 8),
-    github_min_stars: parseInt2(env.GITHUB_MIN_STARS, 500),
-    github_top_analyze: parseInt2(env.GITHUB_TOP_ANALYZE, 20),
-
-    arxiv_subjects: parseList(env.ARXIV_SUBJECTS || '["cs.AI","cs.IR","cs.CL","cs.MA","cs.CV"]'),
-    arxiv_date_offset_days: parseInt2(env.ARXIV_DATE_OFFSET_DAYS, 1),
-    max_papers_per_subject: parseInt2(env.MAX_PAPERS_PER_SUBJECT, 200),
-    max_total_papers: parseInt2(env.MAX_TOTAL_PAPERS, 500),
-
-    semantic_scholar_api_key: env.SEMANTIC_SCHOLAR_API_KEY || "",
-    conference_lookback_days: parseInt2(env.CONFERENCE_LOOKBACK_DAYS, 30),
-    conference_rank_filter: parseList(env.CONFERENCE_RANK_FILTER || "A,B"),
-    conference_categories: parseList(env.CONFERENCE_CATEGORIES || "ai,nlp,cv,dm,ir"),
-    conference_days_recent: parseInt2(env.CONFERENCE_DAYS_RECENT, 90),
-
-    blog_max_per_source: parseInt2(env.BLOG_MAX_PER_SOURCE, 2),
-
-    wechat_wae_url: env.WECHAT_WAE_URL || "http://localhost:3001",
-    wechat_wae_auth_key: env.WECHAT_WAE_AUTH_KEY || "",
-    wechat_mp_ids: parseMpList(env.WECHAT_MP_IDS || ""),
-    wechat_limit_per_mp: parseInt2(env.WECHAT_LIMIT_PER_MP, 20),
-    wechat_days_recent: parseInt2(env.WECHAT_DAYS_RECENT, 30),
-
-    output_dir: env.OUTPUT_DIR || "./docs",
-    log_level: env.LOG_LEVEL || "INFO",
-  };
+  const config = {} as Record<string, any>;
+  for (const field of schema.fields) {
+    config[field.key] = parseFieldValue(field, env[envNameOf(field.key)]);
+  }
+  return config as AscanConfig;
 }
 
 // ── .env writing ──────────────────────────────────────────────
 
-const CONFIG_TO_ENV: Record<keyof AscanConfig, string> = {
-  llm_api_key: "LLM_API_KEY",
-  llm_base_url: "LLM_BASE_URL",
-  llm_model: "LLM_MODEL",
-  llm_max_concurrency: "LLM_MAX_CONCURRENCY",
-  github_token: "GITHUB_TOKEN",
-  github_topics: "GITHUB_TOPICS",
-  github_max_repos_per_topic: "GITHUB_MAX_REPOS_PER_TOPIC",
-  github_min_stars: "GITHUB_MIN_STARS",
-  github_top_analyze: "GITHUB_TOP_ANALYZE",
-  arxiv_subjects: "ARXIV_SUBJECTS",
-  arxiv_date_offset_days: "ARXIV_DATE_OFFSET_DAYS",
-  max_papers_per_subject: "MAX_PAPERS_PER_SUBJECT",
-  max_total_papers: "MAX_TOTAL_PAPERS",
-  semantic_scholar_api_key: "SEMANTIC_SCHOLAR_API_KEY",
-  conference_lookback_days: "CONFERENCE_LOOKBACK_DAYS",
-  conference_rank_filter: "CONFERENCE_RANK_FILTER",
-  conference_categories: "CONFERENCE_CATEGORIES",
-  conference_days_recent: "CONFERENCE_DAYS_RECENT",
-  blog_max_per_source: "BLOG_MAX_PER_SOURCE",
-  wechat_wae_url: "WECHAT_WAE_URL",
-  wechat_wae_auth_key: "WECHAT_WAE_AUTH_KEY",
-  wechat_mp_ids: "WECHAT_MP_IDS",
-  wechat_limit_per_mp: "WECHAT_LIMIT_PER_MP",
-  wechat_days_recent: "WECHAT_DAYS_RECENT",
-  output_dir: "OUTPUT_DIR",
-  log_level: "LOG_LEVEL",
-};
-
-function serializeValue(key: keyof AscanConfig, value: any): string {
-  if (Array.isArray(value)) {
-    return JSON.stringify(value);
-  }
+function serializeValue(value: any): string {
+  if (Array.isArray(value)) return JSON.stringify(value);
   if (typeof value === "number") return String(value);
-  if (typeof value === "string") {
-    return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  }
-  return value || "";
+  return String(value ?? "");
+}
+
+// JSON values contain double quotes; single-quote those lines so both this
+// parser and python-dotenv read them back unmangled.
+function formatEnvLine(envKey: string, value: any): string {
+  const serialized = serializeValue(value);
+  return serialized.includes('"') ? `${envKey}='${serialized}'` : `${envKey}="${serialized}"`;
 }
 
 function updateEnvFile(existingContent: string, updates: Partial<AscanConfig>): string {
   const lines = existingContent.split("\n");
   const envKeyToConfigKey = Object.fromEntries(
-    Object.entries(CONFIG_TO_ENV).map(([ck, ek]) => [ek, ck as keyof AscanConfig]),
+    CONFIG_KEYS.map((key) => [envNameOf(key), key]),
   );
   const updatedKeys = new Set<string>();
-
-  const formatLine = (envKey: string, configKey: keyof AscanConfig, value: any) => {
-    const serialized = serializeValue(configKey, value);
-    return `${envKey}="${serialized}"`;
-  };
 
   const newLines = lines.map((line) => {
     const parsed = parseEnvLine(line);
@@ -217,14 +202,15 @@ function updateEnvFile(existingContent: string, updates: Partial<AscanConfig>): 
     const configKey = envKeyToConfigKey[parsed.key];
     if (configKey && configKey in updates) {
       updatedKeys.add(parsed.key);
-      return formatLine(parsed.key, configKey, updates[configKey]!);
+      return formatEnvLine(parsed.key, updates[configKey]!);
     }
     return line;
   });
 
-  for (const [configKey, envKey] of Object.entries(CONFIG_TO_ENV)) {
-    if (configKey in updates && !updatedKeys.has(envKey)) {
-      newLines.push(formatLine(envKey, configKey as keyof AscanConfig, updates[configKey as keyof AscanConfig]!));
+  for (const key of CONFIG_KEYS) {
+    const envKey = envNameOf(key);
+    if (key in updates && !updatedKeys.has(envKey)) {
+      newLines.push(formatEnvLine(envKey, updates[key]!));
     }
   }
 
@@ -253,4 +239,27 @@ export async function updateConfig(updates: Partial<AscanConfig>): Promise<Ascan
   return getConfig();
 }
 
-export const ASCAN_CONFIG_TO_ENV = CONFIG_TO_ENV;
+// ── masking & update sanitization ─────────────────────────────
+
+const SENSITIVE_KEYS = schema.fields.filter((f) => f.sensitive).map((f) => f.key);
+
+export function maskConfig(config: AscanConfig): AscanConfig {
+  const masked = { ...config };
+  for (const key of SENSITIVE_KEYS) {
+    (masked as any)[key] = masked[key] ? "***" : "";
+  }
+  return masked;
+}
+
+/** Filter updates to known keys; drop nulls and masked "***" placeholders. */
+export function sanitizeConfigUpdates(updates: Record<string, unknown>): Partial<AscanConfig> {
+  const filtered: Partial<AscanConfig> = {};
+  for (const key of CONFIG_KEYS) {
+    if (!(key in updates)) continue;
+    const val = updates[key];
+    if (val == null) continue;
+    if (typeof val === "string" && val === "***") continue;
+    (filtered as any)[key] = val;
+  }
+  return filtered;
+}

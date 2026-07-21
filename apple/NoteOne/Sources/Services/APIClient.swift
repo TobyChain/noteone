@@ -50,13 +50,9 @@ enum APIError: Error, LocalizedError {
 actor APIClient {
     static let shared = APIClient()
 
-    // DEBUG builds talk to a local dev server; release builds default to the production host.
-    // Self-hosters can still override via the SettingsView "服务器" field (calls `configure`).
-    #if DEBUG
+    // Single-machine local deployment — always connects to localhost:3000.
+    // No remote server, no multi-device sync.
     private var baseURL = "http://localhost:3000"
-    #else
-    private var baseURL = "https://api.noteone.app"
-    #endif
     private var token: String?
     private let session: URLSession
 
@@ -70,29 +66,11 @@ actor APIClient {
         self.session = URLSession(configuration: config)
     }
 
-    func configure(baseURL: String, token: String) {
-        self.baseURL = baseURL
-        self.token = token
-    }
-
-    func setPort(_ port: Int) {
-        self.baseURL = "http://localhost:\(port)"
-    }
-
     func setToken(_ token: String) {
         self.token = token
     }
 
     // MARK: - Auth
-
-    func signInWithApple(identityToken: String, email: String?, name: String?) async throws -> AuthResponse {
-        struct Body: Encodable {
-            let identityToken: String
-            let email: String?
-            let name: String?
-        }
-        return try await post("/auth/apple", body: Body(identityToken: identityToken, email: email, name: name))
-    }
 
     func devLogin(name: String) async throws -> AuthResponse {
         struct Body: Encodable {
@@ -288,15 +266,13 @@ actor APIClient {
         }
     }
 
-    // MARK: - Chat
+    // MARK: - WeChat config page (server-hosted, embedded in a WebView)
 
-    func sendChat(messages: [ChatMessage], noteIds: [String]? = nil) async throws -> ChatResponseMessage {
-        let payload = ChatRequest(
-            messages: messages.map { ChatMessagePayload(role: $0.role, content: $0.content) },
-            noteIds: noteIds
-        )
-        let response: ChatResponse = try await post("/api/chat", body: payload)
-        return response.message
+    func wechatConfigURL() -> URL? {
+        guard let token else { return nil }
+        var comps = URLComponents(string: "\(baseURL)/wechat/")
+        comps?.queryItems = [URLQueryItem(name: "token", value: token)]
+        return comps?.url
     }
 
     // MARK: - Chat Sessions

@@ -7,7 +7,7 @@
  * background and returns immediately, so the chat request is not held open.
  * Progress is tracked server-side and polled by the UI.
  */
-import type { ToolDefinition } from "../llm.js";
+import type { ToolDefinition } from "../notty/agent-loop.js";
 import { listReports, getReport, deleteReport, stripHtml } from "./reports.js";
 import { startAscanSupplement, getRunStatus } from "./runner.js";
 import { getUserChatConfig } from "../user-config.js";
@@ -49,7 +49,7 @@ export const ascanToolDefinitions: ToolDefinition[] = [
     type: "function",
     function: {
       name: "start_ascan_supplement",
-      description: "启动新知补充（非阻塞，立即返回）。后台依次运行 arXiv、GitHub、官方动态、博客、会议论文、微信公众号 6 个模块并合并日报。用户说\"补充今日新知\"时调用。进度由 UI 自动展示，无需轮询。wechat 依赖外接 RSS 桥，未就绪会跳过。",
+      description: "启动新知补充（非阻塞，立即返回）。后台依次运行 arXiv、GitHub、官方动态、博客、会议论文、微信公众号 6 个模块并合并日报。用户说\"补充今日新知\"时调用。进度由 UI 自动展示，无需轮询。wechat 需要先在设置中扫码登录微信公众平台，未登录会跳过。",
       parameters: {
         type: "object",
         properties: {

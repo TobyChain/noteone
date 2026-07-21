@@ -1,0 +1,37 @@
+{
+  "$comment": "Single source of truth for the ascan .env config surface shared by server/src/services/ascan/config.ts (TS) and ascan/src/config/settings.py (pydantic). Env var name = key uppercased. Types: string | int | string_list | mp_list. Consistency is enforced by ascan/tests/test_config_schema.py.",
+  "fields": [
+    { "key": "llm_api_key", "type": "string", "default": "", "sensitive": true, "group": "llm" },
+    { "key": "llm_base_url", "type": "string", "default": "https://yunwu.ai/v1", "group": "llm" },
+    { "key": "llm_model", "type": "string", "default": "deepseek-v4-pro", "group": "llm" },
+    { "key": "llm_max_concurrency", "type": "int", "default": 5, "group": "llm" },
+
+    { "key": "github_token", "type": "string", "default": "", "sensitive": true, "group": "github" },
+    { "key": "github_topics", "type": "string_list", "default": ["digital-twin", "digital-avatar", "virtual-human", "recommendation-system", "product-recommendation", "e-commerce", "product-inspection", "compliance-detection", "content-moderation", "customer-service", "chatbot", "conversational-ai", "llm-agent", "ai-agent", "rag", "multi-agent"], "group": "github" },
+    { "key": "github_max_repos_per_topic", "type": "int", "default": 8, "group": "github" },
+    { "key": "github_min_stars", "type": "int", "default": 500, "group": "github" },
+    { "key": "github_top_analyze", "type": "int", "default": 20, "group": "github" },
+
+    { "key": "arxiv_subjects", "type": "string_list", "default": ["cs.AI"], "group": "arxiv" },
+    { "key": "arxiv_date_offset_days", "type": "int", "default": 1, "group": "arxiv" },
+    { "key": "max_papers_per_subject", "type": "int", "default": 200, "group": "arxiv" },
+    { "key": "max_total_papers", "type": "int", "default": 500, "group": "arxiv" },
+
+    { "key": "semantic_scholar_api_key", "type": "string", "default": "", "sensitive": true, "group": "conference" },
+    { "key": "conference_lookback_days", "type": "int", "default": 30, "group": "conference" },
+    { "key": "conference_rank_filter", "type": "string_list", "default": ["A", "B"], "group": "conference" },
+    { "key": "conference_categories", "type": "string_list", "default": ["ai", "nlp", "cv", "dm", "ir"], "group": "conference" },
+    { "key": "conference_days_recent", "type": "int", "default": 90, "group": "conference" },
+
+    { "key": "blog_max_per_source", "type": "int", "default": 2, "group": "blog" },
+
+    { "key": "wechat_service_url", "type": "string", "default": "http://localhost:3000", "group": "wechat" },
+    { "key": "wechat_auth_key", "type": "string", "default": "", "sensitive": true, "group": "wechat" },
+    { "key": "wechat_mp_ids", "type": "mp_list", "default": [], "group": "wechat" },
+    { "key": "wechat_limit_per_mp", "type": "int", "default": 20, "group": "wechat" },
+    { "key": "wechat_days_recent", "type": "int", "default": 30, "group": "wechat" },
+
+    { "key": "output_dir", "type": "string", "default": "./docs", "group": "output" },
+    { "key": "log_level", "type": "string", "default": "INFO", "group": "output" }
+  ]
+}

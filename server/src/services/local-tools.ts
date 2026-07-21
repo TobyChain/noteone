@@ -12,7 +12,7 @@ import { exec } from "child_process";
 import { resolve, normalize, basename } from "path";
 import { homedir } from "os";
 import { readdir, readFile, stat } from "fs/promises";
-import type { ToolDefinition } from "./llm.js";
+import type { ToolDefinition } from "./notty/agent-loop.js";
 
 const HOME = homedir();
 

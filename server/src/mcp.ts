@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import "dotenv/config";
-import { db } from "./db/client.js";
+import { db, rowsOf } from "./db/client.js";
 import { notes, noteTags, tags } from "./db/schema.js";
 import { eq, and, desc, inArray, ne, sql } from "drizzle-orm";
 import { processNote } from "./services/pipeline.js";
@@ -215,7 +215,7 @@ server.tool(
       LIMIT ${safeLimit}
     `);
 
-    const rows = Array.isArray(result) ? result : (result as any).rows || [];
+    const rows = rowsOf(result);
     const text = rows.map((r: any, i: number) =>
       `${i + 1}. [${r.id}] ${r.title || "无标题"} (相似度: ${(r.similarity * 100).toFixed(1)}%)\n   ${r.ai_summary || r.content?.slice(0, 80)}`
     ).join("\n\n");

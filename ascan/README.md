@@ -1,4 +1,9 @@
-# Ascan — 新知 Python Pipeline
+# Ascan — 新知 Python Pipeline（⚠️ 已弃用）
+
+> **本目录已弃用**：新知 pipeline 已完整移植为 TypeScript 并入 NoteOne server
+> （`server/src/services/ascan/pipeline/`），server 通过进程内调用运行，不再 spawn Python。
+> 配置仍以 `config.schema.json` + `.env` 为单一事实源（TS/Python 共用）。
+> 本目录保留作历史参考与移植对比验证。
 
 > 每日扫遍 arXiv、GitHub、官方动态、独立博客、会议论文、微信公众号，LLM 筛选翻译，汇成一份科技前沿日报。
 
@@ -11,7 +16,7 @@
 | official | Anthropic sitemap + DeepMind sitemap | 30 天 cutoff | URL 作为 Blog 去重源 |
 | blog | RSS 订阅（阮一峰/LilianWeng/Sebastian 等） | 30 天 cutoff | 跳过已在 official 的 URL |
 | conference | Semantic Scholar + DBLP（CCF A/B 类会议） | `CONFERENCE_DAYS_RECENT`（默认 90 天） | 跳过 DOI 已在 arxiv 的论文 |
-| wechat | wechat-article-exporter (WAE) REST API | `WECHAT_DAYS_RECENT`（默认 30 天） | article_id DB 去重 |
+| wechat | NoteOne server 内置微信服务 (`/api/wechat/mp/articles`) | `WECHAT_DAYS_RECENT`（默认 30 天） | article_id DB 去重 |
 
 每个模块独立运行 + 持久化片段到 `logs/fragments/{date}/{module}.html|.md`，merge 阶段合并为最终日报 `docs/Ascan-{date}.html|.md`。
 
@@ -48,11 +53,11 @@ python main_daily.py --list-modules
 | `LLM_MAX_CONCURRENCY` | LLM 并发上限（默认 5） |
 | `GITHUB_TOKEN` | GitHub PAT（需 public_repo read） |
 | `ARXIV_SUBJECTS` | arXiv 分类列表 |
-| `WECHAT_WAE_URL` / `WECHAT_WAE_AUTH_KEY` | WAE 服务地址 + 扫码后的 auth-key（4 天过期） |
+| `WECHAT_SERVICE_URL` / `WECHAT_AUTH_KEY` | NoteOne server 地址 + 扫码登录的 auth-key（4 天过期，扫码成功后自动写入） |
 | `WECHAT_MP_IDS` | 公众号列表 `[{"id":"<fakeid>","name":"..."}]` |
 | `WECHAT_DAYS_RECENT` / `CONFERENCE_DAYS_RECENT` | 时效过滤窗口 |
 
-微信抓取部署详见根目录 [docs/wechat-wae-setup.md](../docs/wechat-wae-setup.md)。
+微信抓取已内置于 NoteOne server，在 App「设置 → 微信公众号」中扫码登录并添加订阅即可。
 
 ## 数据库
 
@@ -72,7 +77,6 @@ ascan 使用独立的 PostgreSQL schema（与 NoteOne server 共享 `DATABASE_UR
 
 - [AUTOMATION_FLOW.md](AUTOMATION_FLOW.md) — launchd 定时任务 + 钉钉上传流程
 - [CHANGELOG.md](CHANGELOG.md) — 版本变更
-- [../docs/wechat-wae-setup.md](../docs/wechat-wae-setup.md) — 微信抓取部署指南
 - [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) — 整体架构
 
 ## 与 NoteOne server 的协作

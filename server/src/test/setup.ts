@@ -3,8 +3,6 @@
 
 process.env.NODE_ENV ??= "test";
 process.env.JWT_SECRET ??= "test-secret-must-be-at-least-16-chars-long";
-process.env.APPLE_CLIENT_IDS ??= "com.noteone.app";
-process.env.ENABLE_DEV_LOGIN ??= "false";
 
 // When integration tests are enabled, point the application's `db` client at the test DB.
 // Must happen BEFORE any module that reads DATABASE_URL is imported.

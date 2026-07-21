@@ -53,8 +53,8 @@ class Settings(BaseSettings):
     )
 
     # ==================== GitHub Agent 配置 ====================
-    github_token: Optional[str] = Field(
-        default=None,
+    github_token: str = Field(
+        default="",
         description="GitHub Personal Access Token (public_repo read scope)"
     )
     github_topics: List[str] = Field(
@@ -215,8 +215,8 @@ class Settings(BaseSettings):
     )
 
     # ==================== 会议论文追踪配置 ====================
-    semantic_scholar_api_key: Optional[str] = Field(
-        default=None,
+    semantic_scholar_api_key: str = Field(
+        default="",
         description="Semantic Scholar API Key（免费申请，提高限流到 1 req/sec）"
     )
     conference_lookback_days: int = Field(
@@ -257,17 +257,17 @@ class Settings(BaseSettings):
     )
 
     # ==================== 微信公众号追踪配置 ====================
-    wechat_wae_url: str = Field(
-        default="http://localhost:3001",
-        description="wechat-article-exporter 服务地址（原生 Node 部署，避免与 NoteOne server 默认 3000 冲突）"
+    wechat_service_url: str = Field(
+        default="http://localhost:3000",
+        description="NoteOne server 地址（内置微信公众号抓取服务）"
     )
-    wechat_wae_auth_key: str = Field(
+    wechat_auth_key: str = Field(
         default="",
-        description="WAE 扫码登录后的 auth-key cookie 值（4 天过期需重扫）"
+        description="扫码登录后由服务端生成的 auth-key（4 天过期需重扫，登录成功后自动写入）"
     )
     wechat_mp_ids: List[dict] = Field(
         default=[],
-        description="订阅的公众号列表 [{\"id\": \"<WAE fakeid>\", \"name\": \"xxx\"}]，fakeid 在 WAE UI 搜索公众号得到"
+        description="订阅的公众号列表 [{\"id\": \"<fakeid>\", \"name\": \"xxx\"}]，在设置的微信公众号页面搜索添加"
     )
     wechat_limit_per_mp: int = Field(
         default=20,

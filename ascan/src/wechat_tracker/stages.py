@@ -13,7 +13,7 @@ from src.database.repositories import WeChatArticleRepository
 
 
 class FetchWeChatStage(PipelineStage):
-    """Fetch articles via wechat-article-exporter (WAE) REST API, dedup against DB."""
+    """Fetch articles via the NoteOne server's built-in WeChat MP API, dedup against DB."""
 
     def __init__(self):
         super().__init__("fetching_wechat")
@@ -22,20 +22,20 @@ class FetchWeChatStage(PipelineStage):
         from src.config.settings import get_settings
         settings = get_settings()
 
-        wae_url = getattr(settings, "wechat_wae_url", "")
-        auth_key = getattr(settings, "wechat_wae_auth_key", "")
+        service_url = getattr(settings, "wechat_service_url", "")
+        auth_key = getattr(settings, "wechat_auth_key", "")
         mp_list = getattr(settings, "wechat_mp_ids", [])
         limit = getattr(settings, "wechat_limit_per_mp", 20)
         days_recent = getattr(settings, "wechat_days_recent", 30)
 
-        if not wae_url or not auth_key or not mp_list:
-            logger.warning("WeChat tracker 未配置 wae_url / auth_key / mp_ids，跳过")
+        if not service_url or not auth_key or not mp_list:
+            logger.warning("WeChat tracker 未配置 service_url / auth_key / mp_ids，跳过")
             context.wechat_articles = []
             return True
 
-        logger.info(f"Fetching WeChat via WAE from {wae_url}, {len(mp_list)} MPs, days_recent={days_recent}")
+        logger.info(f"Fetching WeChat via {service_url}, {len(mp_list)} MPs, days_recent={days_recent}")
 
-        all_articles = fetch_all_mps(wae_url, auth_key, mp_list, limit=limit, days_recent=days_recent)
+        all_articles = fetch_all_mps(service_url, auth_key, mp_list, limit=limit, days_recent=days_recent)
 
         db = get_db_session()
         repo = WeChatArticleRepository(db)

@@ -1,8 +1,8 @@
 import SwiftUI
-import AuthenticationServices
 
 struct LoginView: View {
     @EnvironmentObject var authService: AuthService
+    @State private var name = ""
 
     var body: some View {
         VStack(spacing: 32) {
@@ -10,45 +10,35 @@ struct LoginView: View {
                 Image(systemName: "note.text")
                     .font(.system(size: 64))
                     .foregroundStyle(.blue)
-                Text("NoteOne")
+                Text("壹识")
                     .font(.largeTitle.bold())
                 Text("顺手记一条")
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }
 
-            SignInWithAppleButton(.signIn) { request in
-                request.requestedScopes = [.email, .fullName]
-            } onCompletion: { result in
-                switch result {
-                case .success(let auth):
-                    if let credential = auth.credential as? ASAuthorizationAppleIDCredential {
-                        authService.signInWithApple(credential: credential)
-                    }
-                case .failure(let error):
-                    print("Sign in failed: \(error)")
-                }
-            }
-            .signInWithAppleButtonStyle(.black)
-            .frame(height: 50)
-            .frame(maxWidth: 280)
-
-            #if DEBUG
-            Divider()
-                .frame(maxWidth: 280)
-
-            Button {
-                authService.devLogin(name: "Bingtao")
-            } label: {
-                Label("开发者快速登录", systemImage: "hammer.fill")
+            VStack(spacing: 16) {
+                TextField("你的名字", text: $name)
+                    .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 280)
-                    .frame(height: 44)
+                    .onSubmit { login() }
+
+                Button(action: login) {
+                    Label("进入", systemImage: "arrow.right.circle.fill")
+                        .frame(maxWidth: 280)
+                        .frame(height: 44)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
-            #endif
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func login() {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        authService.devLogin(name: trimmed)
     }
 }

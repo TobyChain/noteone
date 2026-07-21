@@ -2,6 +2,7 @@
 *.swp
 node_modules/
 dist/
+server/bundle/
 
 # Xcode
 *.xcodeproj/xcuserdata/

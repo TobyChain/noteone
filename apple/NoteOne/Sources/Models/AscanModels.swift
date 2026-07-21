@@ -48,8 +48,8 @@ struct AscanConfig: Codable, Hashable {
 
     var blogMaxPerSource: Int = 2
 
-    var wechatWaeUrl: String = ""
-    var wechatWaeAuthKey: String = ""
+    var wechatServiceUrl: String = ""
+    var wechatAuthKey: String = ""
     var wechatMpIds: [WechatMpId] = []
     var wechatLimitPerMp: Int = 20
     var wechatDaysRecent: Int = 30
@@ -65,11 +65,10 @@ struct WechatMpId: Codable, Hashable {
 
 struct WechatHealthResponse: Decodable {
     let status: String  // unconfigured | ready | auth_expired | unreachable
-    let waeUrl: String?
     let mpCount: Int?
     let nickname: String?
-    let reason: String?
-    let error: String?
+    let expiresAt: String?
+    let message: String?
 }
 
 struct AscanModuleProgress: Decodable, Hashable {

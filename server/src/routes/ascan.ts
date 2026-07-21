@@ -1,18 +1,6 @@
 /**
- * Ascan API routes.
- * - GET  /api/ascan/reports        — list all daily reports
- * - GET  /api/ascan/reports/:date  — get a single report's HTML
- * - GET  /api/ascan/reports/:date/path — get file path for a report
- * - DELETE /api/ascan/reports/:date — delete a daily report
- * - GET  /api/ascan/config         — get current ascan configuration
- * - PATCH /api/ascan/config        — update ascan configuration
- * - POST /api/ascan/trigger        — trigger a full pipeline run (fire-and-forget)
- * - POST /api/ascan/run-module     — run a single module (blocking, for 闹闹 orchestration)
- * - POST /api/ascan/merge          — merge module fragments into a report (blocking)
- * - POST /api/ascan/abort          — abort a running pipeline
- * - GET  /api/ascan/status         — check run status
- * - GET  /api/ascan/docs-path      — get docs directory path for Finder reveal
- * - GET  /api/ascan/wechat-health  — probe the configured WeChat RSS bridge
+ * Ascan API routes (thin layer — business logic lives in services/ascan/*).
+ * Errors bubble up to the central error handler in index.ts.
  */
 
 import { Router } from "express";
@@ -25,7 +13,7 @@ import {
   generateReportSummary,
   getDocsPath,
 } from "../services/ascan/reports.js";
-import { getConfig, updateConfig, type AscanConfig } from "../services/ascan/config.js";
+import { getConfig, updateConfig, maskConfig, sanitizeConfigUpdates } from "../services/ascan/config.js";
 import {
   triggerRun,
   abortRun,
@@ -33,64 +21,37 @@ import {
   runModule,
   mergeReport,
 } from "../services/ascan/runner.js";
+import { moduleNames } from "../services/ascan/pipeline/index.js";
 import { getUserChatConfig } from "../services/user-config.js";
+import { checkWechatHealth } from "../services/wechat/service.js";
 
 export const ascanRouter = Router();
 
-const SENSITIVE_KEYS: (keyof AscanConfig)[] = ["llm_api_key", "github_token", "semantic_scholar_api_key", "wechat_wae_auth_key"];
-
-function maskConfig(config: AscanConfig): AscanConfig {
-  const masked = { ...config };
-  for (const key of SENSITIVE_KEYS) {
-    (masked as any)[key] = masked[key] ? "***" : "";
-  }
-  return masked;
+function validDate(date: unknown): date is string {
+  return typeof date === "string" && /^\d{8}$/.test(date);
 }
 
-/**
- * GET /api/ascan/reports
- * List all available daily reports (HTML files in ascan/docs/).
- */
 ascanRouter.get("/reports", async (_req: AuthRequest, res) => {
-  try {
-    const reports = await listReports();
-    res.json({ reports });
-  } catch (err: any) {
-    console.error("[ascan] listReports failed:", err);
-    res.status(500).json({ error: "Failed to list reports" });
-  }
+  res.json({ reports: await listReports() });
 });
 
-/**
- * GET /api/ascan/reports/:date
- * Get a single report's full HTML content.
- */
 ascanRouter.get("/reports/:date", async (req: AuthRequest, res) => {
   const date = req.params.date as string;
-  if (!/^\d{8}$/.test(date)) {
+  if (!validDate(date)) {
     res.status(400).json({ error: "Invalid date format. Use YYYYMMDD." });
     return;
   }
-  try {
-    const html = await getReport(date);
-    if (!html) {
-      res.status(404).json({ error: "Report not found" });
-      return;
-    }
-    res.json({ date, html });
-  } catch (err: any) {
-    console.error("[ascan] getReport failed:", err);
-    res.status(500).json({ error: "Failed to get report" });
+  const html = await getReport(date);
+  if (!html) {
+    res.status(404).json({ error: "Report not found" });
+    return;
   }
+  res.json({ date, html });
 });
 
-/**
- * GET /api/ascan/reports/:date/path
- * Get the file system path for a report (for "reveal in Finder").
- */
 ascanRouter.get("/reports/:date/path", async (req: AuthRequest, res) => {
   const date = req.params.date as string;
-  if (!/^\d{8}$/.test(date)) {
+  if (!validDate(date)) {
     res.status(400).json({ error: "Invalid date format. Use YYYYMMDD." });
     return;
   }
@@ -102,308 +63,108 @@ ascanRouter.get("/reports/:date/path", async (req: AuthRequest, res) => {
   res.json({ date, path: filePath });
 });
 
-/**
- * DELETE /api/ascan/reports/:date
- * Delete a daily report and its sidecar files (html / md / summary).
- */
 ascanRouter.delete("/reports/:date", async (req: AuthRequest, res) => {
   const date = req.params.date as string;
-  if (!/^\d{8}$/.test(date)) {
+  if (!validDate(date)) {
     res.status(400).json({ error: "Invalid date format. Use YYYYMMDD." });
     return;
   }
   try {
-    const result = await deleteReport(date);
-    res.json(result);
+    res.json(await deleteReport(date));
   } catch (err: any) {
     if (err?.message?.includes("running")) {
       res.status(409).json({ error: err.message });
-    } else {
-      console.error("[ascan] deleteReport failed:", err);
-      res.status(500).json({ error: "Failed to delete report" });
+      return;
     }
+    throw err;
   }
 });
 
-/**
- * GET /api/ascan/config
- * Get current ascan configuration (parsed from .env).
- */
 ascanRouter.get("/config", async (_req: AuthRequest, res) => {
-  try {
-    const config = await getConfig();
-    res.json(maskConfig(config));
-  } catch (err: any) {
-    console.error("[ascan] getConfig failed:", err);
-    res.status(500).json({ error: "Failed to get config" });
-  }
+  res.json(maskConfig(await getConfig()));
 });
 
-/**
- * PATCH /api/ascan/config
- * Update ascan configuration (writes to .env).
- * Body: Partial<AscanConfig>
- */
 ascanRouter.patch("/config", async (req: AuthRequest, res) => {
-  const updates = req.body as Partial<AscanConfig>;
-  if (!updates || typeof updates !== "object") {
+  if (!req.body || typeof req.body !== "object") {
     res.status(400).json({ error: "Invalid request body" });
     return;
   }
-
-  // Filter to only known keys
-  const allowedKeys: (keyof AscanConfig)[] = [
-    "llm_api_key",
-    "llm_base_url",
-    "llm_model",
-    "llm_max_concurrency",
-    "github_token",
-    "github_topics",
-    "github_max_repos_per_topic",
-    "github_min_stars",
-    "github_top_analyze",
-    "arxiv_subjects",
-    "arxiv_date_offset_days",
-    "max_papers_per_subject",
-    "max_total_papers",
-    "semantic_scholar_api_key",
-    "conference_lookback_days",
-    "conference_rank_filter",
-    "conference_categories",
-    "conference_days_recent",
-    "blog_max_per_source",
-    "wechat_wae_url",
-    "wechat_wae_auth_key",
-    "wechat_mp_ids",
-    "wechat_limit_per_mp",
-    "wechat_days_recent",
-    "output_dir",
-    "log_level",
-  ];
-  const filtered: Partial<AscanConfig> = {};
-  for (const key of allowedKeys) {
-    if (key in updates) {
-      // Skip masked values — don't overwrite with "***"
-      const val = updates[key];
-      if (val == null) continue;
-      if (typeof val === "string" && val === "***") continue;
-      (filtered as any)[key] = val;
-    }
-  }
-
-  try {
-    const updated = await updateConfig(filtered);
-    res.json(maskConfig(updated));
-  } catch (err: any) {
-    console.error("[ascan] updateConfig failed:", err);
-    res.status(500).json({ error: "Failed to update config" });
-  }
+  const updated = await updateConfig(sanitizeConfigUpdates(req.body));
+  res.json(maskConfig(updated));
 });
 
-/**
- * POST /api/ascan/trigger
- * Trigger an ascan pipeline run.
- * Body: { date?: string }  — YYYYMMDD format, optional
- */
 ascanRouter.post("/trigger", async (req: AuthRequest, res) => {
   const { date } = req.body || {};
-  if (date && !/^\d{8}$/.test(date)) {
+  if (date && !validDate(date)) {
     res.status(400).json({ error: "Invalid date format. Use YYYYMMDD." });
     return;
   }
   try {
     const llmConfig = await getUserChatConfig(req.userId!);
-    const result = await triggerRun(date, llmConfig);
-    res.json(result);
+    res.json(await triggerRun(date, llmConfig));
   } catch (err: any) {
-    console.error("[ascan] triggerRun failed:", err);
-    const message = err?.message?.includes("already in progress")
-      ? "A pipeline run is already in progress"
-      : "Failed to trigger pipeline run";
-    res.status(err?.message?.includes("already in progress") ? 409 : 500).json({ error: message });
+    if (err?.message?.includes("已在运行中")) {
+      res.status(409).json({ error: "A pipeline run is already in progress" });
+      return;
+    }
+    throw err;
   }
 });
 
-/**
- * POST /api/ascan/run-module
- * Run a single ascan module (blocking). Returns the module result.
- * Body: { module: string, date?: string }
- */
 ascanRouter.post("/run-module", async (req: AuthRequest, res) => {
   const { module, date } = req.body || {};
-  const allowed = ["arxiv", "github", "official", "blog", "conference", "wechat"];
+  const allowed: string[] = moduleNames();
   if (!module || !allowed.includes(module)) {
     res.status(400).json({ error: `Invalid module. Allowed: ${allowed.join(", ")}` });
     return;
   }
-  if (date && !/^\d{8}$/.test(date)) {
+  if (date && !validDate(date)) {
     res.status(400).json({ error: "Invalid date format. Use YYYYMMDD." });
     return;
   }
-  try {
-    const llmConfig = await getUserChatConfig(req.userId!);
-    const result = await runModule(module, date, llmConfig);
-    res.json(result);
-  } catch (err: any) {
-    console.error("[ascan] runModule failed:", err);
-    res.status(500).json({ error: `Failed to run module ${module}: ${err?.message || err}` });
-  }
+  const llmConfig = await getUserChatConfig(req.userId!);
+  res.json(await runModule(module, date, llmConfig));
 });
 
-/**
- * POST /api/ascan/merge
- * Merge already-run module fragments into a daily report (blocking).
- * Body: { date?: string }
- */
 ascanRouter.post("/merge", async (req: AuthRequest, res) => {
   const { date } = req.body || {};
-  if (date && !/^\d{8}$/.test(date)) {
+  if (date && !validDate(date)) {
     res.status(400).json({ error: "Invalid date format. Use YYYYMMDD." });
     return;
   }
-  try {
-    const result = await mergeReport(date);
-    res.json(result);
-  } catch (err: any) {
-    console.error("[ascan] mergeReport failed:", err);
-    res.status(500).json({ error: `Failed to merge: ${err?.message || err}` });
-  }
+  res.json(await mergeReport(date));
 });
 
-/**
- * GET /api/ascan/status
- * Check current run status (lock file, recent logs).
- */
 ascanRouter.get("/status", async (_req: AuthRequest, res) => {
-  try {
-    const status = await getRunStatus();
-    res.json(status);
-  } catch (err: any) {
-    console.error("[ascan] getStatus failed:", err);
-    res.status(500).json({ error: "Failed to get status" });
-  }
+  res.json(await getRunStatus());
 });
 
-/**
- * POST /api/ascan/abort
- * Abort a running pipeline (kills the process, removes lock file).
- */
 ascanRouter.post("/abort", async (_req: AuthRequest, res) => {
-  try {
-    const result = await abortRun();
-    res.json(result);
-  } catch (err: any) {
-    console.error("[ascan] abortRun failed:", err);
-    res.status(500).json({ error: "Failed to abort pipeline" });
-  }
+  res.json(await abortRun());
 });
 
-/**
- * GET /api/ascan/docs-path
- * Get the docs directory path (for "reveal in Finder").
- */
 ascanRouter.get("/docs-path", async (_req: AuthRequest, res) => {
-  try {
-    res.json({ path: getDocsPath() });
-  } catch {
-    res.status(500).json({ error: "Failed to get docs path" });
-  }
+  res.json({ path: getDocsPath() });
 });
 
-/**
- * GET /api/ascan/wechat-health
- * Probe the configured WAE (wechat-article-exporter) service. Returns:
- *   { status: "unconfigured" }                              — wae_url or auth_key empty
- *   { status: "ready", waeUrl, mpCount, nickname? }         — WAE reachable + auth valid
- *   { status: "auth_expired", waeUrl, error }               — WAE reachable but auth_key invalid/expired
- *   { status: "unreachable", waeUrl, error }                — fetch failed
- */
 ascanRouter.get("/wechat-health", async (_req: AuthRequest, res) => {
-  try {
-    const cfg = await getConfig();
-    const waeUrl = (cfg.wechat_wae_url || "").trim();
-    const authKey = (cfg.wechat_wae_auth_key || "").trim();
-    const mps = cfg.wechat_mp_ids || [];
-    if (!waeUrl) {
-      res.json({ status: "unconfigured", reason: "no_wae_url" });
-      return;
-    }
-    if (!authKey) {
-      res.json({ status: "unconfigured", waeUrl, reason: "no_auth_key" });
-      return;
-    }
-    const probeUrl = `${waeUrl.replace(/\/$/, "")}/api/web/mp/info`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
-    try {
-      const r = await fetch(probeUrl, {
-        signal: controller.signal,
-        headers: {
-          "User-Agent": "noteone-health/1.0",
-          "Cookie": `auth-key=${authKey}`,
-        },
-      });
-      clearTimeout(timer);
-      if (!r.ok) {
-        res.json({ status: "unreachable", waeUrl, error: `HTTP ${r.status}` });
-        return;
-      }
-      const data = await r.json() as any;
-      // WAE's /api/web/mp/info returns { nick_name, head_img } on success,
-      // or { err: "..." } / { base_resp: { ret: 200003 } } when auth expired.
-      if (data?.base_resp?.ret === 200003 || data?.err) {
-        res.json({
-          status: "auth_expired",
-          waeUrl,
-          error: data?.err || data?.base_resp?.err_msg || "auth-key 失效或已过期，请重新扫码",
-        });
-        return;
-      }
-      res.json({
-        status: "ready",
-        waeUrl,
-        mpCount: mps.length,
-        nickname: data?.nick_name || null,
-      });
-    } catch (err: any) {
-      clearTimeout(timer);
-      res.json({
-        status: "unreachable",
-        waeUrl,
-        error: err?.name === "AbortError" ? "timeout (5s)" : (err?.message || String(err)),
-      });
-    }
-  } catch (err: any) {
-    res.status(500).json({ error: "Failed to probe wechat health", detail: String(err?.message || err) });
-  }
+  res.json(await checkWechatHealth());
 });
 
-/**
- * POST /api/ascan/summarize
- * Generate LLM summary for a report (or all reports missing summaries).
- * Body: { date?: string }  — YYYYMMDD, optional. If omitted, generates for all.
- */
 ascanRouter.post("/summarize", async (req: AuthRequest, res) => {
-  try {
-    const { date } = req.body || {};
-    if (date) {
-      if (!/^\d{8}$/.test(date)) {
-        res.status(400).json({ error: "Invalid date format. Use YYYYMMDD." });
-        return;
-      }
-      const summary = await generateReportSummary(date);
-      res.json({ date, summary });
-    } else {
-      const reports = await listReports();
-      const results: { date: string; summary: string }[] = [];
-      for (const r of reports) {
-        const summary = await generateReportSummary(r.date);
-        results.push({ date: r.date, summary });
-      }
-      res.json({ summaries: results });
+  const { date } = req.body || {};
+  if (date) {
+    if (!validDate(date)) {
+      res.status(400).json({ error: "Invalid date format. Use YYYYMMDD." });
+      return;
     }
-  } catch (err: any) {
-    console.error("[ascan] summarize failed:", err);
-    res.status(500).json({ error: "Failed to generate summaries" });
+    res.json({ date, summary: await generateReportSummary(date) });
+    return;
   }
+  const reports = await listReports();
+  const results: { date: string; summary: string }[] = [];
+  for (const r of reports) {
+    results.push({ date: r.date, summary: await generateReportSummary(r.date) });
+  }
+  res.json({ summaries: results });
 });

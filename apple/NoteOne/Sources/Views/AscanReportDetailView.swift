@@ -7,10 +7,21 @@ import AppKit
 import UIKit
 #endif
 
+private enum AddToNotesState: Equatable {
+    case idle
+    case saving
+    case success
+    case failed(String)
+    case noSelection
+}
+
 struct AscanReportDetailView: View {
     let htmlContent: String
     let date: String
     let onBack: () -> Void
+
+    @State private var webView: WKWebView?
+    @State private var addToNotesState: AddToNotesState = .idle
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,6 +38,13 @@ struct AscanReportDetailView: View {
                     .foregroundStyle(Color.ink)
                 Spacer()
                 Button {
+                    addToNotes()
+                } label: {
+                    Image(systemName: "square.and.arrow.down.on.rectangle")
+                        .foregroundStyle(Color.inkTertiary)
+                }
+                .help("添加到往事")
+                Button {
                     #if os(macOS)
                     let pasteboard = NSPasteboard.general
                     pasteboard.clearContents()
@@ -38,6 +56,7 @@ struct AscanReportDetailView: View {
                     Image(systemName: "doc.on.doc")
                         .foregroundStyle(Color.inkTertiary)
                 }
+                .help("复制 HTML")
             }
             .padding(.horizontal, DG.sp16)
             .padding(.vertical, DG.sp8)
@@ -52,17 +71,91 @@ struct AscanReportDetailView: View {
                     .frame(height: 0.5)
             }
 
-            AscanWebView(htmlContent: htmlContent)
+            AscanWebView(htmlContent: htmlContent) { wv in
+                webView = wv
+            }
+            .overlay(alignment: .bottom) {
+                if addToNotesState != .idle {
+                    addToNotesBanner
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
         }
         .navigationBarBackButtonHidden(true)
     }
+
+    @ViewBuilder
+    private var addToNotesBanner: some View {
+        let (icon, text, color): (String, String, Color) = {
+            switch addToNotesState {
+            case .saving: return ("arrow.2.circle", "正在保存到往事…", Color.accent)
+            case .success: return ("checkmark.circle.fill", "已添加到往事", Color.success)
+            case .noSelection: return ("exclamationmark.triangle", "请先在日报中选中文本", Color.warning)
+            case .failed(let msg): return ("xmark.circle.fill", "保存失败: \(msg)", Color.danger)
+            default: return ("", "", .clear)
+            }
+        }()
+        HStack(spacing: DG.sp8) {
+            if addToNotesState == .saving {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: icon).foregroundStyle(color)
+            }
+            Text(text).font(.caption).foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, DG.sp16)
+        .padding(.vertical, DG.sp8)
+        .background(.ultraThinMaterial)
+    }
+
+    private func addToNotes() {
+        guard let wv = webView else { return }
+        addToNotesState = .saving
+        wv.evaluateJavaScript("window.getSelection().toString()") { result, _ in
+            let selectedText = (result as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            DispatchQueue.main.async {
+                if selectedText.isEmpty {
+                    addToNotesState = .noSelection
+                    scheduleReset()
+                    return
+                }
+                Task {
+                    do {
+                        let request = CreateNoteRequest(
+                            content: selectedText,
+                            sourceApp: "新知"
+                        )
+                        _ = try await APIClient.shared.createNote(request)
+                        await MainActor.run {
+                            addToNotesState = .success
+                            NotificationCenter.default.post(name: .noteCreated, object: nil)
+                            scheduleReset()
+                        }
+                    } catch {
+                        await MainActor.run {
+                            addToNotesState = .failed(error.localizedDescription)
+                            scheduleReset()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func scheduleReset() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            withAnimation { addToNotesState = .idle }
+        }
+    }
 }
 
-// MARK: - WKWebView with JavaScript enabled (for TOC scroll-spy)
+// MARK: - WKWebView with JavaScript enabled (for TOC scroll-spy + text selection)
 
 #if os(iOS)
 struct AscanWebView: UIViewRepresentable {
     let htmlContent: String
+    var onWebViewReady: ((WKWebView) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -76,6 +169,7 @@ struct AscanWebView: UIViewRepresentable {
         webView.backgroundColor = .systemBackground
         webView.scrollView.backgroundColor = .systemBackground
         webView.navigationDelegate = context.coordinator
+        onWebViewReady?(webView)
         return webView
     }
 
@@ -102,6 +196,7 @@ struct AscanWebView: UIViewRepresentable {
 #elseif os(macOS)
 struct AscanWebView: NSViewRepresentable {
     let htmlContent: String
+    var onWebViewReady: ((WKWebView) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -113,6 +208,7 @@ struct AscanWebView: NSViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.setValue(false, forKey: "drawsBackground")
         webView.navigationDelegate = context.coordinator
+        onWebViewReady?(webView)
         return webView
     }
 

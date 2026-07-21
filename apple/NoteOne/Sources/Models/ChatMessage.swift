@@ -12,20 +12,6 @@ struct ChatMessage: Codable, Identifiable, Sendable {
     }
 }
 
-struct ChatRequest: Encodable {
-    let messages: [ChatMessagePayload]
-    let noteIds: [String]?
-}
-
-struct ChatMessagePayload: Encodable {
-    let role: String
-    let content: String
-}
-
-struct ChatResponse: Decodable {
-    let message: ChatResponseMessage
-}
-
 struct ChatResponseMessage: Decodable {
     let id: String?
     let role: String

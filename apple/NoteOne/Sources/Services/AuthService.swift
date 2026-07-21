@@ -1,14 +1,12 @@
 import SwiftUI
-import AuthenticationServices
 
 @MainActor
-class AuthService: NSObject, ObservableObject {
+class AuthService: ObservableObject {
     @Published var isAuthenticated = false
     @Published var userName: String?
     @Published var userId: String?
 
-    override init() {
-        super.init()
+    init() {
         if let token = KeychainHelper.load(key: "jwt_token") {
             self.userId = Self.decodeUserId(from: token)
             Task {
@@ -16,7 +14,6 @@ class AuthService: NSObject, ObservableObject {
                 self.isAuthenticated = true
             }
         }
-        // Auto sign-out when any API call reports the token is no longer valid.
         NotificationCenter.default.addObserver(
             forName: .unauthorized, object: nil, queue: .main
         ) { [weak self] _ in
@@ -41,31 +38,6 @@ class AuthService: NSObject, ObservableObject {
         return userId
     }
 
-    func signInWithApple(credential: ASAuthorizationAppleIDCredential) {
-        guard let tokenData = credential.identityToken,
-              let identityToken = String(data: tokenData, encoding: .utf8) else {
-            print("Auth failed: missing identityToken")
-            return
-        }
-        let email = credential.email
-        let name = credential.fullName?.givenName
-
-        Task {
-            do {
-                let response = try await APIClient.shared.signInWithApple(
-                    identityToken: identityToken, email: email, name: name
-                )
-                KeychainHelper.save(key: "jwt_token", value: response.token)
-                await APIClient.shared.setToken(response.token)
-                self.isAuthenticated = true
-                self.userName = response.user.name
-                self.userId = response.user.id
-            } catch {
-                print("Auth failed: \(error)")
-            }
-        }
-    }
-
     func signOut() {
         KeychainHelper.delete(key: "jwt_token")
         isAuthenticated = false
@@ -83,7 +55,7 @@ class AuthService: NSObject, ObservableObject {
                 self.userName = response.user.name
                 self.userId = response.user.id
             } catch {
-                print("Dev login failed: \(error)")
+                print("Login failed: \(error)")
             }
         }
     }

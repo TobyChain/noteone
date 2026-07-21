@@ -146,7 +146,7 @@ open NoteOne.xcodeproj
 
 「设置 → 新知」配置科技日报参数：ArXiv 分类、GitHub topics、论文数量上限、会议等级、博客源、微信公众号等。点击「运行」或跟闹闹说"补充今日新知"即可触发 pipeline 生成当日日报。
 
-微信公众号抓取基于 [wechat-article-exporter](https://github.com/wechat-article/wechat-article-exporter)（原生 Node.js 部署，无需 Docker），部署步骤详见 [docs/wechat-wae-setup.md](docs/wechat-wae-setup.md)。
+微信公众号抓取已内置于 NoteOne server（`/api/wechat`），在「设置 → 微信公众号」中扫码登录公众平台并搜索添加订阅的公众号即可，无需部署任何外部服务。
 
 #### MCP 接入
 
@@ -198,19 +198,19 @@ noteone/
 │   ├── NoteOne/Sources/        #   Models · Views · Services · Theme
 │   └── README.md               #   构建说明
 ├── server/                     # REST API + 内嵌 MCP（Express 5 + TS）
-│   ├── src/routes/             #   auth · notes · tags · search · chat · ascan · reports
-│   ├── src/services/           #   pipeline · llm · context-manager · ascan/ · scheduler · local-tools
+│   ├── src/routes/             #   auth · notes · tags · search · chat-sessions · ascan · wechat · reports
+│   ├── src/services/           #   notty/ · llm · ascan/pipeline/（TS 新知 6 模块）· wechat/ · scheduler
 │   └── README.md               #   后端说明
-├── ascan/                      # 新知 Python Pipeline
+├── ascan/                      # 新知 Python Pipeline（已弃用，移植为 server 内 TS，保留作参考）
+│   ├── config.schema.json      #   配置单一事实源（TS/Python 共用）
 │   ├── src/                    #   pipeline · tools · trackers · config
 │   ├── docs/                   #   生成的 HTML 日报
-│   ├── scripts/                #   launchd 定时任务 · TOC 注入工具
 │   └── README.md               #   pipeline 入门
+├── scripts/package-dmg.sh      # dmg 单体分发打包（内嵌 Node + PGlite，双击即用）
 ├── mcp-server/                 # 独立 MCP（HTTP 代理，5 只读工具）
 ├── browser-extension/          # Chrome 扩展（Manifest V3）
 ├── docs/
 │   ├── ARCHITECTURE.md         #   架构权威文档
-│   ├── wechat-wae-setup.md     #   微信抓取部署指南
 │   ├── design/                 #   早期设计稿
 │   ├── plans/                  #   早期实施计划
 │   └── history/                #   历史迭代日志
