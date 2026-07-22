@@ -299,8 +299,27 @@ async function getAllAnalyzedSlugs(): Promise<Set<string>> {
 
 // ── LLM analysis (analyzer.py) ────────────────────────────────
 
-function buildArticlePrompt(item: OfficialItem): string {
+function buildArticlePrompt(item: OfficialItem, language: "zh" | "en"): string {
   const contentPreview = (item.content || item.summary || "").slice(0, 1500);
+
+  if (language === "en") {
+    return `You are a tech content editor. Generate a summary for the following technical article, output in JSON format.
+
+## Article Info
+- Title: ${item.title || "Unknown"}
+- Date: ${item.date || "Unknown"}
+- Source: ${item.source}
+- Summary: ${item.summary || ""}
+- Content preview (first 1500 chars): ${contentPreview}
+
+## Output Requirements
+Output a strict JSON object with the following fields:
+- one_liner: plain English explanation of what this research/update is about (max 30 words)
+- summary_cn: English summary (2-3 sentences)
+- core_insight: core technical insight or contribution (English, 2-3 sentences)
+
+Output JSON only, no other content.`;
+  }
 
   return `你是一位技术内容编辑。请为以下技术文章生成中文摘要，输出JSON格式。
 
@@ -323,7 +342,8 @@ function buildArticlePrompt(item: OfficialItem): string {
 /** Analyze a single article (retry/JSON repair handled by chatJsonRetry). */
 async function analyzeItem(ctx: ModuleContext, item: OfficialItem): Promise<OfficialAnalysis | null> {
   try {
-    const data = await ctx.llm.chatJsonRetry<Record<string, unknown>>(buildArticlePrompt(item));
+    const lang = ctx.language || "zh";
+    const data = await ctx.llm.chatJsonRetry<Record<string, unknown>>(buildArticlePrompt(item, lang));
     return {
       one_liner: String(data.one_liner ?? ""),
       summary_cn: String(data.summary_cn ?? ""),
@@ -340,7 +360,25 @@ async function analyzeItem(ctx: ModuleContext, item: OfficialItem): Promise<Offi
 
 const SRC_LABEL: Record<string, string> = { anthropic: "Anthropic", openai: "OpenAI", deepmind: "DeepMind" };
 
-function officialsToDailyHtml(items: OfficialItem[], analyses: Map<string, OfficialAnalysis | null>): string {
+function officialsToDailyHtml(items: OfficialItem[], analyses: Map<string, OfficialAnalysis | null>, language: "zh" | "en" = "zh"): string {
+  const L = language === "en"
+    ? {
+        note: (n: number, srcs: string) => `Found ${n} official updates (within 30 days), from ${srcs}.`,
+        quickView: "Quick View",
+        headers: ["Source", "Title", "Date", "Summary"],
+        oneLiner: "Summary:",
+        coreInsight: "Core Insight:",
+        empty: "No official updates today.",
+      }
+    : {
+        note: (n: number, srcs: string) => `共发现 ${n} 条官方动态（30 天内），来自 ${srcs}。`,
+        quickView: "文章速览",
+        headers: ["来源", "标题", "日期", "一句话"],
+        oneLiner: "一句话：",
+        coreInsight: "核心洞察：",
+        empty: "今日无官方动态更新。",
+      };
+
   const articles: Array<[OfficialItem, OfficialAnalysis | null]> = items.map((item) => [item, analyses.get(item.slug) ?? null]);
 
   // Count by source
@@ -351,15 +389,14 @@ function officialsToDailyHtml(items: OfficialItem[], analyses: Map<string, Offic
 
   const lines: string[] = [];
   lines.push(
-    `<p class="meta-note">共发现 ${items.length} 条官方动态（30 天内），` +
-    `来自 ${escapeHtml([...sourceCounts.keys()].join("、"))}。</p>`,
+    `<p class="meta-note">${escapeHtml(L.note(items.length, [...sourceCounts.keys()].join("、")))}</p>`,
   );
 
   // Summary table for analyzed articles — round-robin across sources
   const analyzed = articles.filter((pair): pair is [OfficialItem, OfficialAnalysis] => pair[1] !== null);
   if (analyzed.length) {
     lines.push('<div class="summary-table-wrapper"><table class="summary-table">');
-    lines.push("<thead><tr><th>来源</th><th>标题</th><th>日期</th><th>一句话</th></tr></thead>");
+    lines.push(`<thead><tr>${L.headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>`);
     lines.push("<tbody>");
     // Round-robin: take up to 8 per source
     const bySource = new Map<string, Array<[OfficialItem, OfficialAnalysis]>>();
@@ -397,9 +434,9 @@ function officialsToDailyHtml(items: OfficialItem[], analyses: Map<string, Offic
     lines.push(`<h3><a href="${escapeHtml(item.url)}" target="_blank">${escapeHtml(item.title || item.slug)}</a></h3>`);
     lines.push(`<p class="meta-list">${categoryTag}<span>📅 ${escapeHtml(item.date || "")}</span></p>`);
 
-    if (a.one_liner) lines.push(`<p class="lead"><strong>一句话：</strong>${escapeHtml(a.one_liner)}</p>`);
+    if (a.one_liner) lines.push(`<p class="lead"><strong>${escapeHtml(L.oneLiner)}</strong>${escapeHtml(a.one_liner)}</p>`);
     if (a.summary_cn) lines.push(`<div class="abstract-cn"><p>${escapeHtml(a.summary_cn)}</p></div>`);
-    if (a.core_insight) lines.push(`<p><strong>核心洞察：</strong>${escapeHtml(a.core_insight)}</p>`);
+    if (a.core_insight) lines.push(`<p><strong>${escapeHtml(L.coreInsight)}</strong>${escapeHtml(a.core_insight)}</p>`);
 
     lines.push("</div>");
   }
@@ -408,9 +445,35 @@ function officialsToDailyHtml(items: OfficialItem[], analyses: Map<string, Offic
   return lines.join("\n");
 }
 
-function officialsToDailyMd(items: OfficialItem[], analyses: Map<string, OfficialAnalysis | null>): string {
+function officialsToDailyMd(items: OfficialItem[], analyses: Map<string, OfficialAnalysis | null>, language: "zh" | "en" = "zh"): string {
+  const L = language === "en"
+    ? {
+        note: (n: number) => `Found ${n} official updates (within 30 days).`,
+        quickView: "Quick View",
+        headers: ["Source", "Title", "Date", "Summary"],
+        deepAnalysis: "Deep Analysis",
+        source: "Source:",
+        date: "Date:",
+        category: "Category:",
+        oneLiner: "Summary:",
+        coreInsight: "Core Insight:",
+        empty: "No official updates today.",
+      }
+    : {
+        note: (n: number) => `共发现 ${n} 条官方动态（30 天内）。`,
+        quickView: "文章速览",
+        headers: ["来源", "标题", "日期", "一句话"],
+        deepAnalysis: "深度解析",
+        source: "来源：",
+        date: "日期：",
+        category: "分类：",
+        oneLiner: "一句话：",
+        coreInsight: "核心洞察：",
+        empty: "今日无官方动态更新。",
+      };
+
   const lines: string[] = [];
-  lines.push(`共发现 ${items.length} 条官方动态（30 天内）。`);
+  lines.push(L.note(items.length));
   lines.push("");
 
   const analyzed: Array<[OfficialItem, OfficialAnalysis]> = [];
@@ -421,9 +484,9 @@ function officialsToDailyMd(items: OfficialItem[], analyses: Map<string, Officia
 
   // Summary table
   if (analyzed.length) {
-    lines.push("#### 文章速览");
+    lines.push(`#### ${L.quickView}`);
     lines.push("");
-    lines.push("| 来源 | 标题 | 日期 | 一句话 |");
+    lines.push(`| ${L.headers[0]} | ${L.headers[1]} | ${L.headers[2]} | ${L.headers[3]} |`);
     lines.push("|------|------|------|--------|");
     const bySource = new Map<string, Array<[OfficialItem, OfficialAnalysis]>>();
     for (const [item, a] of analyzed) {
@@ -442,20 +505,20 @@ function officialsToDailyMd(items: OfficialItem[], analyses: Map<string, Officia
 
   // Detailed analysis
   if (analyzed.length) {
-    lines.push("#### 深度解析");
+    lines.push(`#### ${L.deepAnalysis}`);
     lines.push("");
     for (const [item, a] of analyzed) {
       const sourceLabel = SRC_LABEL[item.source] ?? item.source;
       lines.push(`##### [${item.title || item.slug}](${item.url})`);
       lines.push("");
-      lines.push(`**来源：** ${sourceLabel} | **日期：** ${item.date || ""}`);
-      if (item.category) lines.push(`**分类：** ${item.category}`);
+      lines.push(`**${L.source}** ${sourceLabel} | **${L.date}** ${item.date || ""}`);
+      if (item.category) lines.push(`**${L.category}** ${item.category}`);
       lines.push("");
-      lines.push(`**一句话：** ${a.one_liner}`);
+      lines.push(`**${L.oneLiner}** ${a.one_liner}`);
       lines.push("");
       lines.push(`> ${a.summary_cn}`);
       lines.push("");
-      lines.push(`**核心洞察：** ${a.core_insight}`);
+      lines.push(`**${L.coreInsight}** ${a.core_insight}`);
       lines.push("");
       lines.push("---");
       lines.push("");
@@ -463,7 +526,7 @@ function officialsToDailyMd(items: OfficialItem[], analyses: Map<string, Officia
   }
 
   if (!analyzed.length) {
-    lines.push("_今日无官方动态更新。_");
+    lines.push(`_${L.empty}_`);
   }
 
   return lines.join("\n");
@@ -628,17 +691,22 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
   }
 
   // ── Stage 4: Build fragment ──
+  const lang = ctx.language || "zh";
   if (!items.length) {
     log("No items for official report, using placeholder");
     return {
-      html: '<p class="empty-state">今日无 Anthropic Research 或 DeepMind 新文章。</p>',
-      md: "_今日无 Anthropic Research 或 DeepMind 新文章。_",
+      html: lang === "en"
+        ? '<p class="empty-state">No new Anthropic Research or DeepMind articles today.</p>'
+        : '<p class="empty-state">今日无 Anthropic Research 或 DeepMind 新文章。</p>',
+      md: lang === "en"
+        ? "_No new Anthropic Research or DeepMind articles today._"
+        : "_今日无 Anthropic Research 或 DeepMind 新文章。_",
       count: 0,
     };
   }
 
-  const html = officialsToDailyHtml(items, analyses);
-  const md = officialsToDailyMd(items, analyses);
+  const html = officialsToDailyHtml(items, analyses, lang);
+  const md = officialsToDailyMd(items, analyses, lang);
   log(`Official HTML+MD 片段已生成 (HTML: ${html.length} chars)`);
 
   return { html, md, count: items.length };

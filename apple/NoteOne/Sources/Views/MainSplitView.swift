@@ -81,13 +81,13 @@ struct MainSplitView: View {
                 Image(systemName: drawerVisible ? "sidebar.right" : "sidebar.right")
                     .symbolVariant(drawerVisible ? .fill : .none)
             }
-            .help(drawerVisible ? "隐藏 Notty" : "显示 Notty")
+            .help(drawerVisible ? L("隐藏 Notty", "Hide Notty") : L("显示 Notty", "Show Notty"))
         }
         ToolbarItem(placement: .primaryAction) {
             Button { showMCPInstall = true } label: {
                 Image(systemName: "puzzlepiece.extension")
             }
-            .help("MCP 一键安装")
+            .help(L("MCP 一键安装", "MCP Quick Install"))
         }
     }
 
@@ -122,31 +122,31 @@ struct MainSplitView: View {
                     if isRunning {
                         ProgressView()
                             .controlSize(.small)
-                        Text(ascanRunStatus?.recentLog ?? "运行中…")
+                        Text(ascanRunStatus?.recentLog ?? L("运行中…", "Running…"))
                             .font(.caption)
                             .foregroundStyle(Color.inkSecondary)
                             .lineLimit(1)
                         Spacer()
-                        Button("打断") { Task { await abortAscan() } }
+                        Button(L("打断", "Abort")) { Task { await abortAscan() } }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                             .tint(Color.danger)
                     } else if ascanJustFinished {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(Color.success)
-                        Text("新知补充完成")
+                        Text(L("新知补充完成", "NewSee Update Complete"))
                             .font(.caption)
                             .foregroundStyle(Color.inkSecondary)
                         Spacer()
                     } else if ascanHadError {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(Color.danger)
-                        Text(ascanLastError ?? "运行出错")
+                        Text(ascanLastError ?? L("运行出错", "Error"))
                             .font(.caption)
                             .foregroundStyle(Color.inkSecondary)
                             .lineLimit(2)
                         Spacer()
-                        Button("续跑") { Task { await triggerAscan() } }
+                        Button(L("续跑", "Resume")) { Task { await triggerAscan() } }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                     }
@@ -186,10 +186,10 @@ struct MainSplitView: View {
                 Image(systemName: "globe")
                     .font(.system(size: 42))
                     .foregroundStyle(Color.inkTertiary)
-                Text("新知")
+                Text(L("新知", "NewSee"))
                     .font(.headline)
                     .foregroundStyle(Color.inkSecondary)
-                Text("从左侧选择一份日报查看")
+                Text(L("从左侧选择一份日报查看", "Select a report from the left to view"))
                     .font(.subheadline)
                     .foregroundStyle(Color.inkTertiary)
             }
@@ -200,14 +200,14 @@ struct MainSplitView: View {
                     selection = .ascanReports
                 }
             } else {
-                ProgressView("加载日报…")
+                ProgressView(L("加载日报…", "Loading report…"))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .task { await loadAscanReportHTML(date: date) }
             }
         case .ascanConfig:
             UnifiedSettingsView()
         case .empty:
-            emptyPlaceholder("从左侧选择笔记")
+            emptyPlaceholder(L("从左侧选择笔记", "Select a note from the left"))
         }
     }
 

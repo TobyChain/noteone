@@ -104,7 +104,7 @@ struct MainSidebar: View {
         VStack(spacing: 0) {
             // 往事
             moduleHeader(
-                title: "往事",
+                title: L("往事", "OldScene"),
                 icon: "note.text",
                 isExpanded: $isNotesExpanded,
                 action: { if let firstNote = groupedNotes.first?.1.first { selection = .note(firstNote.id) } }
@@ -113,16 +113,16 @@ struct MainSidebar: View {
                     Image(systemName: "plus.circle")
                 }
                 .buttonStyle(.plain)
-                .help("新建笔记")
+                .help(L("新建笔记", "New Note"))
 
                 Menu {
                     Button {
                         filterType = nil
                     } label: {
                         if filterType == nil {
-                            Label("全部类型", systemImage: "checkmark")
+                            Label(L("全部类型", "All Types"), systemImage: "checkmark")
                         } else {
-                            Text("全部类型")
+                            Text(L("全部类型", "All Types"))
                         }
                     }
                     Divider()
@@ -144,12 +144,12 @@ struct MainSidebar: View {
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
-                .help("按类型筛选")
+                .help(L("按类型筛选", "Filter by Type"))
                 Button(action: { Task { await onRefresh() } }) {
                     Image(systemName: "arrow.clockwise")
                 }
                 .buttonStyle(.plain)
-                .help("刷新笔记列表")
+                .help(L("刷新笔记列表", "Refresh Notes"))
             }
 
             if isNotesExpanded && !groupedNotes.isEmpty {
@@ -172,7 +172,7 @@ struct MainSidebar: View {
                                         Button(role: .destructive) {
                                             onDeleteNote(note)
                                         } label: {
-                                            Label("移到垃圾箱", systemImage: "trash")
+                                            Label(L("移到垃圾箱", "Move to Trash"), systemImage: "trash")
                                         }
                                     }
                                 }
@@ -193,7 +193,7 @@ struct MainSidebar: View {
                         .font(.caption2)
                         .rotationEffect(.degrees(isAscanExpanded ? 90 : 0))
                         .foregroundStyle(Color.inkTertiary)
-                    Label("新知", systemImage: "globe")
+                    Label(L("新知", "NewSee"), systemImage: "globe")
                         .font(.subheadline.bold())
                         .foregroundStyle(Color.ink)
                     Spacer()
@@ -236,7 +236,7 @@ struct MainSidebar: View {
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 8))
                                         .rotationEffect(.degrees(isCollapsed ? 0 : 90))
-                                    Text(title)
+                                    Text(LDateGroup(title))
                                         .font(.caption2)
                                     if isCollapsed {
                                         Text("\(reports.count)")
@@ -290,13 +290,13 @@ struct MainSidebar: View {
                                                 } catch {}
                                             }
                                         } label: {
-                                            Label("在 Finder 中显示", systemImage: "folder")
+                                            Label(L("在 Finder 中显示", "Show in Finder"), systemImage: "folder")
                                         }
                                         #endif
                                         Button(role: .destructive) {
                                             onDeleteAscanReport(report.date)
                                         } label: {
-                                            Label("删除", systemImage: "trash")
+                                            Label(L("删除", "Delete"), systemImage: "trash")
                                         }
                                     }
                                 }
@@ -308,7 +308,7 @@ struct MainSidebar: View {
         }
         .background(Color.canvas)
         .onAppear { startAscanPolling() }
-        .searchable(text: $searchText, prompt: "搜索往事...")
+        .searchable(text: $searchText, prompt: L("搜索往事...", "Search OldScene..."))
         .onSubmit(of: .search) { Task { await onSearch(searchText) } }
         .onChange(of: searchText) { _, newValue in
             if newValue.isEmpty { Task { await onSearch("") } }
@@ -316,7 +316,7 @@ struct MainSidebar: View {
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 0) {
                 Button(action: onShowTrash) {
-                    Label("垃圾箱", systemImage: "trash")
+                    Label(L("垃圾箱", "Trash"), systemImage: "trash")
                         .font(.subheadline)
                         .foregroundStyle(Color.inkSecondary)
                         .frame(maxWidth: .infinity)
@@ -327,7 +327,7 @@ struct MainSidebar: View {
                 Divider().frame(height: 20)
 
                 Button(action: onShowConfig) {
-                    Label("设置", systemImage: "gearshape")
+                    Label(L("设置", "Settings"), systemImage: "gearshape")
                         .font(.subheadline)
                         .foregroundStyle(Color.inkSecondary)
                         .frame(maxWidth: .infinity)
@@ -388,7 +388,7 @@ struct MainSidebar: View {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 8))
                     .rotationEffect(.degrees(isCollapsed ? 0 : 90))
-                Text(title)
+                Text(LDateGroup(title))
                     .font(.caption2)
                 if isCollapsed {
                     Text("\(count)")
@@ -413,7 +413,7 @@ struct MainSidebar: View {
                 do {
                     let status = try await APIClient.shared.getAscanStatus()
                     isAscanRunning = status.isRunning
-                    ascanRunningStatus = status.recentLog ?? (status.isRunning ? "运行中…" : nil)
+                    ascanRunningStatus = status.recentLog ?? (status.isRunning ? L("运行中…", "Running…") : nil)
                     if !status.isRunning {
                         ascanRunningStatus = nil
                         await onRefresh()

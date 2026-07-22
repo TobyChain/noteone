@@ -15,12 +15,14 @@ router.get("/", async (req: AuthRequest, res) => {
   });
   const settings = (user?.settings ?? {}) as any;
   const llm = settings.llm ?? {};
+  const language = settings.language === "en" ? "en" : "zh";
   res.json({
     llm: {
       baseUrl: llm.baseUrl ?? null,
       model: llm.model ?? null,
       hasApiKey: typeof llm.apiKey === "string" && llm.apiKey.length > 0,
     },
+    language,
   });
 });
 
@@ -31,6 +33,7 @@ const updateSchema = z.object({
     baseUrl: z.string().optional(),
     model: z.string().optional(),
   }).optional(),
+  language: z.enum(["zh", "en"]).optional(),
 });
 
 // PATCH /api/settings — merge LLM config into the user's settings.
@@ -56,7 +59,11 @@ router.patch("/", async (req: AuthRequest, res) => {
     else mergedLlm[key] = incoming[key] as string;
   }
 
-  const merged = { ...current, llm: mergedLlm };
+  const merged: Record<string, unknown> = { ...current, llm: mergedLlm };
+  if (parsed.data.language !== undefined) {
+    merged.language = parsed.data.language;
+  }
+
   await db.update(users)
     .set({ settings: merged, updatedAt: new Date() })
     .where(eq(users.id, req.userId!));
@@ -67,6 +74,7 @@ router.patch("/", async (req: AuthRequest, res) => {
       model: mergedLlm.model ?? null,
       hasApiKey: typeof mergedLlm.apiKey === "string" && mergedLlm.apiKey.length > 0,
     },
+    language: (merged.language === "en" ? "en" : "zh") as "zh" | "en",
   });
 });
 

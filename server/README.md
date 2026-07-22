@@ -64,16 +64,18 @@ Coverage focus:
 In addition to notes / tags / search / chat-sessions / settings / uploads, the server
 exposes:
 
-### Ascan pipeline (`/api/ascan/*`)
+### NewSee pipeline (`/api/ascan/*`)
 
-The Ascan Python pipeline runs as a child process spawned via `child_process.spawn`.
+> Note: API paths retain `/api/ascan/` for backward compatibility; this is the NewSee pipeline.
+
+The NewSee Python pipeline runs as a child process spawned via `child_process.spawn`.
 The server reads/writes its config in `ascan/.env` and tracks run status in-memory.
 
 | Endpoint | Purpose |
 |----------|---------|
 | `GET /api/ascan/reports` · `/:date` · `/:date/path` | List / read / get file path for daily reports |
 | `DELETE /api/ascan/reports/:date` | Delete a daily report (+ sidecar files) |
-| `GET` / `PATCH /api/ascan/config` | Read / update ascan config (writes to `ascan/.env`) |
+| `GET` / `PATCH /api/ascan/config` | Read / update NewSee config (writes to `ascan/.env`) |
 | `POST /api/ascan/trigger` | Fire-and-forget full pipeline run |
 | `POST /api/ascan/run-module` | Run a single module (blocking, for 闹闹 orchestration) |
 | `POST /api/ascan/merge` | Merge already-run module fragments into a report |
@@ -85,7 +87,7 @@ The server reads/writes its config in `ascan/.env` and tracks run status in-memo
 ### 闹闹 tools (chat-sessions)
 
 闹闹 (Notty) chat sessions expose tools beyond basic chat:
-- **Ascan**: `start_ascan_supplement` (non-blocking), `get_ascan_status`, `list/get/delete_ascan_report`
+- **NewSee**: `start_ascan_supplement` (non-blocking), `get_ascan_status`, `list/get/delete_ascan_report`
 - **Local terminal**: `run_command` (whitelist: grep/find/ls/cat/wc/head/tail/stat/file/diff/which/echo + more), `search_files`, `list_files`, `read_file` — restricted to `~/Documents` `~/Desktop` `~/Downloads`, blocks shell metacharacters
 - **Scheduled tasks**: `schedule_task` (cron), `list_scheduled_tasks`, `cancel_scheduled_task` — DB-persisted, auto-restored on server boot via `node-cron`
 

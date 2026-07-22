@@ -358,7 +358,7 @@ async function fetchAllConferences(
 
 // ── LLM analysis (analyzer.py) ────────────────────────────────
 
-const PROMPT_TEMPLATE = `你是一位 AI 领域的学术论文分析专家。请分析以下会议论文，生成中文摘要和评估。
+const PROMPT_TEMPLATE_ZH = `你是一位 AI 领域的学术论文分析专家。请分析以下会议论文，生成中文摘要和评估。
 
 论文信息：
 - 标题：{title}
@@ -382,6 +382,30 @@ relevance 判断标准：
 - 一般推荐：相关性较低或增量改进
 - 不推荐：与关注方向无关`;
 
+const PROMPT_TEMPLATE_EN = `You are an expert academic paper analyst in the AI field. Analyze the following conference paper and generate a summary and assessment.
+
+Paper info:
+- Title: {title}
+- Venue: {venue} (Rank {rank}, {category})
+- Authors: {authors}
+- Abstract: {abstract}
+
+Output strictly as JSON (no markdown code block markers):
+{
+  "one_liner": "one-liner summary (max 20 words)",
+  "summary_cn": "English summary + core contribution (max 150 words)",
+  "keywords": ["keyword1", "keyword2", "keyword3"],
+  "core_recommendation": "why it's worth attention and its relevance to AI frontier (max 50 words)",
+  "relevance": "Highly Recommended/Recommended/Worth Reading/Moderately Recommended/Not Recommended"
+}
+
+relevance criteria:
+- Highly Recommended: breakthrough results, major impact on LLM/Agent/Agent Architecture
+- Recommended: important innovation, significant contribution to AI frontier
+- Worth Reading: valuable research, some reference value
+- Moderately Recommended: lower relevance or incremental improvement
+- Not Recommended: unrelated to focus areas`;
+
 const FAILED_ANALYSIS: ConferenceAnalysis = {
   oneLiner: "[分析失败]",
   summaryCn: "",
@@ -390,25 +414,27 @@ const FAILED_ANALYSIS: ConferenceAnalysis = {
   relevance: "不推荐",
 };
 
-function buildPrompt(paper: ConferencePaper): string {
+function buildPrompt(paper: ConferencePaper, language: "zh" | "en"): string {
+  const template = language === "en" ? PROMPT_TEMPLATE_EN : PROMPT_TEMPLATE_ZH;
   const authors = paper.authors.slice(0, 5).join(", ") + (paper.authors.length > 5 ? "..." : "");
-  return PROMPT_TEMPLATE
+  return template
     .replace("{title}", paper.title)
     .replace("{venue}", paper.venue)
     .replace("{rank}", paper.rank)
     .replace("{category}", paper.category)
     .replace("{authors}", authors)
-    .replace("{abstract}", paper.abstract || "（无摘要）");
+    .replace("{abstract}", paper.abstract || (language === "en" ? "(No abstract)" : "（无摘要）"));
 }
 
 async function analyzePapersBatch(
   papers: ConferencePaper[],
   ctx: ModuleContext,
 ): Promise<Map<string, ConferenceAnalysis>> {
+  const lang = ctx.language || "zh";
   const results = await ctx.llm.mapConcurrent<ConferencePaper, [string, ConferenceAnalysis]>(
     papers,
     async (paper) => {
-      const data = await ctx.llm.chatJsonRetry<any>(buildPrompt(paper));
+      const data = await ctx.llm.chatJsonRetry<any>(buildPrompt(paper, lang));
       return [paper.paperKey, {
         oneLiner: data?.one_liner ?? "",
         summaryCn: data?.summary_cn ?? "",
@@ -453,8 +479,31 @@ function confPapersToHtml(
   papers: ConferencePaper[],
   analyses: Map<string, ConferenceAnalysis>,
   dateCompact: string,
+  language: "zh" | "en" = "zh",
 ): string {
-  if (!papers.length) return '<p class="empty-state">近期无新会议论文。</p>';
+  if (!papers.length) return language === "en" ? '<p class="empty-state">No recent conference papers.</p>' : '<p class="empty-state">近期无新会议论文。</p>';
+
+  const L = language === "en"
+    ? {
+        total: (n: number) => `${n} papers`,
+        classA: (n: number) => `Class A ${n}`,
+        classB: (n: number) => `Class B ${n}`,
+        authors: "Authors:",
+        oneLiner: "Summary:",
+        summary: "Abstract",
+        generating: "Abstract generating...",
+        coreRec: "Core Recommendation:",
+      }
+    : {
+        total: (n: number) => `共 ${n} 篇论文`,
+        classA: (n: number) => `A 类 ${n} 篇`,
+        classB: (n: number) => `B 类 ${n} 篇`,
+        authors: "作者：",
+        oneLiner: "一句话总结：",
+        summary: "中文摘要",
+        generating: "中文摘要生成中...",
+        coreRec: "核心推荐：",
+      };
 
   const sortedPapers = sortPapers(papers, analyses);
 
@@ -463,9 +512,9 @@ function confPapersToHtml(
 
   const parts: string[] = [
     '<div class="conf-stats">' +
-      `<span class="stat-chip">共 ${papers.length} 篇论文</span>` +
-      `<span class="stat-chip stat-a">A 类 ${aCount} 篇</span>` +
-      `<span class="stat-chip stat-b">B 类 ${bCount} 篇</span>` +
+      `<span class="stat-chip">${L.total(papers.length)}</span>` +
+      `<span class="stat-chip stat-a">${L.classA(aCount)}</span>` +
+      `<span class="stat-chip stat-b">${L.classB(bCount)}</span>` +
       "</div>",
     `<div class="report-list conf-list" data-date="${dateCompact}">`,
   ];
@@ -517,26 +566,26 @@ function confPapersToHtml(
     // Summary block (Chinese abstract)
     const summaryBlock = summaryCn
       ? '<section class="summary-block">' +
-        "<h4>中文摘要</h4>" +
+        `<h4>${L.summary}</h4>` +
         `<p>${escapeHtml(summaryCn)}</p>` +
         "</section>"
       : '<section class="summary-block">' +
-        "<h4>中文摘要</h4>" +
-        '<p class="muted">中文摘要生成中...</p>' +
+        `<h4>${L.summary}</h4>` +
+        `<p class="muted">${L.generating}</p>` +
         "</section>";
 
     // Core recommendation
     const recHtml = coreRec
-      ? `<p class="recommendation"><strong>核心推荐：</strong>${escapeHtml(coreRec)}</p>`
+      ? `<p class="recommendation"><strong>${L.coreRec}</strong>${escapeHtml(coreRec)}</p>`
       : "";
 
     parts.push(
       '<article class="card paper-card">' +
         `<h3>${idx}. ${escapeHtml(paper.title)}</h3>` +
-        `<p class="meta"><strong>作者：</strong>${escapeHtml(authorsStr)}</p>` +
+        `<p class="meta"><strong>${L.authors}</strong>${escapeHtml(authorsStr)}</p>` +
         `<div class="tags">${badges.join("")}</div>` +
         kwTags +
-        `<p><strong>一句话总结：</strong>${escapeHtml(oneLiner)}</p>` +
+        `<p><strong>${L.oneLiner}</strong>${escapeHtml(oneLiner)}</p>` +
         (linksHtml ? `<p class="links">${linksHtml}</p>` : "") +
         summaryBlock +
         recHtml +
@@ -552,15 +601,20 @@ function confPapersToMd(
   papers: ConferencePaper[],
   analyses: Map<string, ConferenceAnalysis>,
   _dateCompact: string,
+  language: "zh" | "en" = "zh",
 ): string {
-  if (!papers.length) return "_近期无新会议论文。_";
+  if (!papers.length) return language === "en" ? "_No recent conference papers._" : "_近期无新会议论文。_";
+
+  const L = language === "en"
+    ? { total: (n: number) => `${n} papers`, classA: (n: number) => `Class A ${n}`, classB: (n: number) => `Class B ${n}`, authors: "Authors:", venue: "Venue:", keywords: "Keywords:", oneLiner: "Summary:", links: "Links:", generating: "Abstract generating...", coreRec: "Core Recommendation:" }
+    : { total: (n: number) => `共 ${n} 篇`, classA: (n: number) => `A 类 ${n} 篇`, classB: (n: number) => `B 类 ${n} 篇`, authors: "作者：", venue: "会议：", keywords: "关键词：", oneLiner: "一句话总结：", links: "链接：", generating: "中文摘要生成中...", coreRec: "核心推荐：" };
 
   const sortedPapers = sortPapers(papers, analyses);
 
   const aCount = papers.filter((p) => p.rank === "A").length;
   const bCount = papers.filter((p) => p.rank === "B").length;
 
-  const lines: string[] = [`> 共 ${papers.length} 篇 | A 类 ${aCount} 篇 | B 类 ${bCount} 篇`, ""];
+  const lines: string[] = [`> ${L.total(papers.length)} | ${L.classA(aCount)} | ${L.classB(bCount)}`, ""];
 
   sortedPapers.forEach((paper, i) => {
     const idx = i + 1;
@@ -574,28 +628,28 @@ function confPapersToMd(
 
     lines.push(`### ${idx}. ${paper.title}`);
     lines.push("");
-    lines.push(`**作者：** ${authorsStr}`);
+    lines.push(`**${L.authors}** ${authorsStr}`);
     lines.push(
-      `**会议：** ${paper.venue} ${paper.year ?? ""} (${paper.rank}类)` +
+      `**${L.venue}** ${paper.venue} ${paper.year ?? ""} (${paper.rank})` +
         (paper.paperType ? ` · ${paper.paperType}` : ""),
     );
     if (keywords.length) {
       const kwStr = keywords.slice(0, 5).map((kw) => `\`${kw}\``).join(" ");
-      lines.push(`**关键词：** ${kwStr}`);
+      lines.push(`**${L.keywords}** ${kwStr}`);
     }
     if (oneLiner) {
-      lines.push(`**一句话总结：** ${oneLiner}`);
+      lines.push(`**${L.oneLiner}** ${oneLiner}`);
     }
 
     const links: string[] = [];
     if (paper.url) links.push(`[Abstract](${paper.url})`);
     if (paper.pdfUrl) links.push(`[PDF](${paper.pdfUrl})`);
-    if (links.length) lines.push(`**链接：** ${links.join(" · ")}`);
+    if (links.length) lines.push(`**${L.links}** ${links.join(" · ")}`);
 
     lines.push("");
-    lines.push(summaryCn ? `> ${summaryCn}` : "> _中文摘要生成中..._");
+    lines.push(summaryCn ? `> ${summaryCn}` : `> _${L.generating}_`);
 
-    if (coreRec) lines.push(`> **核心推荐：** ${coreRec}`);
+    if (coreRec) lines.push(`> **${L.coreRec}** ${coreRec}`);
 
     lines.push("");
     lines.push("---");
@@ -816,8 +870,9 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
   }
 
   // ── BuildConfFragmentStage ──
-  const html = confPapersToHtml(newPapers, analyses, ctx.dateCompact);
-  const md = confPapersToMd(newPapers, analyses, ctx.dateCompact);
+  const lang = ctx.language || "zh";
+  const html = confPapersToHtml(newPapers, analyses, ctx.dateCompact, lang);
+  const md = confPapersToMd(newPapers, analyses, ctx.dateCompact, lang);
 
   if (newPapers.length) {
     log(`会议论文 HTML+MD 片段已生成 (HTML: ${html.length} chars, ${newPapers.length} 篇)`);

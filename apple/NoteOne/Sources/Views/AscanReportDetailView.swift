@@ -33,7 +33,7 @@ struct AscanReportDetailView: View {
                         .foregroundStyle(Color.inkTertiary)
                 }
                 Spacer()
-                Text("新知-\(date)")
+                Text(L("新知", "NewSee") + "-\(date)")
                     .font(.headline)
                     .foregroundStyle(Color.ink)
                 Spacer()
@@ -43,7 +43,7 @@ struct AscanReportDetailView: View {
                     Image(systemName: "square.and.arrow.down.on.rectangle")
                         .foregroundStyle(Color.inkTertiary)
                 }
-                .help("添加到往事")
+                .help(L("添加到往事", "Add to OldScene"))
                 Button {
                     #if os(macOS)
                     let pasteboard = NSPasteboard.general
@@ -56,7 +56,7 @@ struct AscanReportDetailView: View {
                     Image(systemName: "doc.on.doc")
                         .foregroundStyle(Color.inkTertiary)
                 }
-                .help("复制 HTML")
+                .help(L("复制 HTML", "Copy HTML"))
             }
             .padding(.horizontal, DG.sp16)
             .padding(.vertical, DG.sp8)
@@ -88,10 +88,10 @@ struct AscanReportDetailView: View {
     private var addToNotesBanner: some View {
         let (icon, text, color): (String, String, Color) = {
             switch addToNotesState {
-            case .saving: return ("arrow.2.circle", "正在保存到往事…", Color.accent)
-            case .success: return ("checkmark.circle.fill", "已添加到往事", Color.success)
-            case .noSelection: return ("exclamationmark.triangle", "请先在日报中选中文本", Color.warning)
-            case .failed(let msg): return ("xmark.circle.fill", "保存失败: \(msg)", Color.danger)
+            case .saving: return ("arrow.2.circle", L("正在保存到往事…", "Saving to OldScene…"), Color.accent)
+            case .success: return ("checkmark.circle.fill", L("已添加到往事", "Added to OldScene"), Color.success)
+            case .noSelection: return ("exclamationmark.triangle", L("请先在日报中选中文本", "Please select text in the report first"), Color.warning)
+            case .failed(let msg): return ("xmark.circle.fill", L("保存失败: ", "Save failed: ") + msg, Color.danger)
             default: return ("", "", .clear)
             }
         }()

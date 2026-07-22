@@ -8,13 +8,13 @@ struct TrashView: View {
     var body: some View {
         Group {
             if isLoading && notes.isEmpty {
-                ProgressView("加载中...")
+                ProgressView(L("加载中...", "Loading..."))
             } else if notes.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "trash")
                         .font(.largeTitle)
                         .foregroundStyle(Color.inkTertiary)
-                    Text("垃圾箱为空")
+                    Text(L("垃圾箱为空", "Trash is empty"))
                         .foregroundStyle(Color.inkSecondary)
                 }
             } else {
@@ -25,22 +25,22 @@ struct TrashView: View {
                 }
             }
         }
-        .navigationTitle("垃圾箱")
+        .navigationTitle(L("垃圾箱", "Trash"))
         .toolbar {
             if !notes.isEmpty {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("清空垃圾箱", role: .destructive) {
+                    Button(L("清空垃圾箱", "Empty Trash"), role: .destructive) {
                         showEmptyConfirm = true
                     }
                     .foregroundStyle(.red)
                 }
             }
         }
-        .confirmationDialog("清空垃圾箱？", isPresented: $showEmptyConfirm, titleVisibility: .visible) {
-            Button("全部永久删除", role: .destructive) { emptyTrash() }
-            Button("取消", role: .cancel) {}
+        .confirmationDialog(L("清空垃圾箱？", "Empty Trash?"), isPresented: $showEmptyConfirm, titleVisibility: .visible) {
+            Button(L("全部永久删除", "Delete All Permanently"), role: .destructive) { emptyTrash() }
+            Button(L("取消", "Cancel"), role: .cancel) {}
         } message: {
-            Text("此操作不可撤销，所有垃圾箱中的笔记将被永久删除")
+            Text(L("此操作不可撤销，所有垃圾箱中的笔记将被永久删除", "This action cannot be undone. All notes in the trash will be permanently deleted."))
         }
         .task { await loadTrash() }
     }
@@ -102,7 +102,7 @@ private struct TrashRowView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(note.title ?? "无标题")
+            Text(note.title ?? L("无标题", "Untitled"))
                 .font(.headline)
                 .foregroundStyle(Color.ink)
                 .lineLimit(1)
@@ -115,18 +115,18 @@ private struct TrashRowView: View {
             HStack {
                 if let deletedAt = note.deletedAt {
                     let daysLeft = max(0, 30 - Calendar.current.dateComponents([.day], from: deletedAt, to: Date()).day!)
-                    Text("\(daysLeft) 天后自动清理")
+                    Text(L("\(daysLeft) 天后自动清理", "Auto-cleaned in \(daysLeft) day(s)"))
                         .font(.caption2)
                         .foregroundStyle(daysLeft <= 7 ? .red : Color.inkTertiary)
                 }
 
                 Spacer()
 
-                Button("恢复", action: onRestore)
+                Button(L("恢复", "Restore"), action: onRestore)
                     .buttonStyle(.bordered)
                     .controlSize(.mini)
 
-                Button("删除", action: onDelete)
+                Button(L("删除", "Delete"), action: onDelete)
                     .foregroundStyle(.red)
                     .controlSize(.mini)
             }

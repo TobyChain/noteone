@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 extension Notification.Name {
     /// Posted when a payload was deposited into DropPayloadStore and the capture view
-    /// should pick it up (also drives the iOS tab switch to “记一条”).
+    /// should pick it up (also drives the iOS tab switch to "记一条").
     static let droppedPayloadReady = Notification.Name("droppedPayloadReady")
 }
 
@@ -24,7 +24,7 @@ struct ContentView: View {
                 NoteListView()
             }
             .tabItem {
-                Label("往事", systemImage: "note.text")
+                Label(L("往事", "OldScene"), systemImage: "note.text")
             }
             .tag(0)
 
@@ -32,7 +32,7 @@ struct ContentView: View {
                 CaptureView()
             }
             .tabItem {
-                Label("记一条", systemImage: "plus.circle.fill")
+                Label(L("记一条", "Capture"), systemImage: "plus.circle.fill")
             }
             .tag(1)
 
@@ -40,7 +40,7 @@ struct ContentView: View {
                 NottyView()
             }
             .tabItem {
-                Label("闹闹", systemImage: "bubble.left.fill")
+                Label(L("闹闹", "Notty"), systemImage: "bubble.left.fill")
             }
             .tag(2)
 
@@ -48,7 +48,7 @@ struct ContentView: View {
                 ReportsView()
             }
             .tabItem {
-                Label("报告", systemImage: "chart.bar.doc.horizontal")
+                Label(L("报告", "Reports"), systemImage: "chart.bar.doc.horizontal")
             }
             .tag(3)
 
@@ -56,7 +56,7 @@ struct ContentView: View {
                 AscanReportListView()
             }
             .tabItem {
-                Label("新知", systemImage: "globe")
+                Label(L("新知", "NewSee"), systemImage: "globe")
             }
             .tag(4)
 
@@ -64,7 +64,7 @@ struct ContentView: View {
                 UnifiedSettingsView()
             }
             .tabItem {
-                Label("设置", systemImage: "gear")
+                Label(L("设置", "Settings"), systemImage: "gear")
             }
             .tag(5)
         }

@@ -50,7 +50,7 @@ struct AscanReportListView: View {
                         reportRow(report)
                     }
                 } header: {
-                    Text("今日新知").font(.subheadline.bold()).foregroundStyle(Color.ink)
+                    Text(L("今日新知", "Today's NewSee")).font(.subheadline.bold()).foregroundStyle(Color.ink)
                 }
             }
 
@@ -61,7 +61,7 @@ struct AscanReportListView: View {
                 }
             } header: {
                 HStack {
-                    Text("往期新知").font(.subheadline.bold()).foregroundStyle(Color.ink)
+                    Text(L("往期新知", "Past NewSee")).font(.subheadline.bold()).foregroundStyle(Color.ink)
                     Spacer()
                     Text("\(pastReports.count)")
                         .font(.caption2)
@@ -74,7 +74,7 @@ struct AscanReportListView: View {
             HStack(spacing: DG.sp8) {
                 Image(systemName: "sparkles")
                     .foregroundStyle(Color.accent)
-                Text("跟闹闹说\"帮我补充今日新知\"即可运行")
+                Text(L("跟闹闹说\"帮我补充今日新知\"即可运行", "Tell Notty \"help me supplement today's NewSee\" to run"))
                     .font(.caption)
                     .foregroundStyle(Color.inkSecondary)
                 Spacer()
@@ -85,21 +85,21 @@ struct AscanReportListView: View {
         }
         .overlay {
             if isLoading && reports.isEmpty {
-                ProgressView("加载中…")
+                ProgressView(L("加载中…", "Loading…"))
             } else if let err = errorMessage, reports.isEmpty {
                 EmptyStateView(
                     icon: "exclamationmark.triangle",
-                    title: "加载失败",
+                    title: L("加载失败", "Load Failed"),
                     subtitle: err,
-                    actionTitle: "重试",
+                    actionTitle: L("重试", "Retry"),
                     action: { errorMessage = nil; Task { await loadReports() } }
                 )
                 .foregroundStyle(Color.danger)
             } else if reports.isEmpty {
                 EmptyStateView(
                     icon: "globe",
-                    title: "还没有新知",
-                    subtitle: "跟闹闹说\"帮我补充今日新知\"\n即可生成今天的科技前沿日报"
+                    title: L("还没有新知", "No NewSee Yet"),
+                    subtitle: L("跟闹闹说\"帮我补充今日新知\"\n即可生成今天的科技前沿日报", "Tell Notty \"help me supplement today's NewSee\"\nto generate today's tech frontier report")
                 )
             }
         }
@@ -142,7 +142,7 @@ struct AscanReportListView: View {
             Button {
                 Task { await revealInFinder(date: report.date) }
             } label: {
-                Label("在访达中显示", systemImage: "folder")
+                Label(L("在访达中显示", "Show in Finder"), systemImage: "folder")
             }
             #endif
         }

@@ -1,4 +1,6 @@
-# Ascan — 新知 Python Pipeline（⚠️ 已弃用）
+# NewSee — 新知 Python Pipeline（⚠️ 已弃用）
+
+> 注：目录名保留为 `ascan/`，功能已更名为 NewSee。
 
 > **本目录已弃用**：新知 pipeline 已完整移植为 TypeScript 并入 NoteOne server
 > （`server/src/services/ascan/pipeline/`），server 通过进程内调用运行，不再 spawn Python。
@@ -18,7 +20,7 @@
 | conference | Semantic Scholar + DBLP（CCF A/B 类会议） | `CONFERENCE_DAYS_RECENT`（默认 90 天） | 跳过 DOI 已在 arxiv 的论文 |
 | wechat | NoteOne server 内置微信服务 (`/api/wechat/mp/articles`) | `WECHAT_DAYS_RECENT`（默认 30 天） | article_id DB 去重 |
 
-每个模块独立运行 + 持久化片段到 `logs/fragments/{date}/{module}.html|.md`，merge 阶段合并为最终日报 `docs/Ascan-{date}.html|.md`。
+每个模块独立运行 + 持久化片段到 `logs/fragments/{date}/{module}.html|.md`，merge 阶段合并为最终日报 `docs/NewSee-{date}.html|.md`。
 
 ## 快速开始
 
@@ -61,7 +63,7 @@ python main_daily.py --list-modules
 
 ## 数据库
 
-ascan 使用独立的 PostgreSQL schema（与 NoteOne server 共享 `DATABASE_URL`），表前缀 `ascan_*` 避免 conflict：
+NewSee 使用独立的 PostgreSQL schema（与 NoteOne server 共享 `DATABASE_URL`），表前缀 `ascan_*` 避免 conflict：
 
 - `papers` — arXiv 论文 + LLM 分析
 - `github_repos` — GitHub 仓库 + 增量追踪

@@ -474,48 +474,88 @@ export interface ModuleFragments {
   wechat: string;
 }
 
+const MODULE_LABELS_ZH: Record<string, string> = {
+  official: "官方动态跟踪",
+  blog: "独立博客订阅",
+  github: "GitHub 项目挖掘",
+  arxiv: "arXiv 论文精选",
+  conference: "会议论文追踪",
+  wechat: "微信公众号",
+};
+
+const MODULE_LABELS_EN: Record<string, string> = {
+  official: "Official Updates",
+  blog: "Independent Blogs",
+  github: "GitHub Projects",
+  arxiv: "arXiv Papers",
+  conference: "Conference Papers",
+  wechat: "WeChat Articles",
+};
+
+const EMPTY_STATE_ZH: Record<string, string> = {
+  official: "今日无 Anthropic Research 或 DeepMind 新文章。",
+  blog: "今日无独立博客更新。",
+  github: "今日无 GitHub 数据。",
+  arxiv: "今日无 arXiv 数据。",
+  conference: "今日无会议论文数据。",
+  wechat: "今日无微信公众号数据。",
+};
+
+const EMPTY_STATE_EN: Record<string, string> = {
+  official: "No new Anthropic Research or DeepMind articles today.",
+  blog: "No independent blog updates today.",
+  github: "No GitHub data today.",
+  arxiv: "No arXiv data today.",
+  conference: "No conference paper data today.",
+  wechat: "No WeChat article data today.",
+};
+
 /**
  * Combine arXiv, GitHub, official tracker, blog, conference and WeChat
  * fragments into one standalone HTML daily report.
  */
-export function buildUnifiedHtml(dateCompact: string, fragments: ModuleFragments, moduleOrder?: string[]): string {
+export function buildUnifiedHtml(dateCompact: string, fragments: ModuleFragments, moduleOrder?: string[], language: "zh" | "en" = "zh"): string {
   const DEFAULT_ORDER = ["official", "blog", "github", "arxiv", "conference", "wechat"];
   const order = moduleOrder?.length ? moduleOrder : DEFAULT_ORDER;
+  const labels = language === "en" ? MODULE_LABELS_EN : MODULE_LABELS_ZH;
+  const emptyStates = language === "en" ? EMPTY_STATE_EN : EMPTY_STATE_ZH;
+  const outlineLabel = language === "en" ? "Outline" : "大纲";
+  const titlePrefix = language === "en" ? "NewSee" : "新知";
 
   const sectionConfigs: Record<string, { id: string; label: string; body: string }> = {
     official: {
       id: "official-tracker",
-      label: "官方动态跟踪",
-      body: fragments.official?.trim() || '<p class="empty-state">今日无 Anthropic Research 或 DeepMind 新文章。</p>',
+      label: labels.official,
+      body: fragments.official?.trim() || `<p class="empty-state">${emptyStates.official}</p>`,
     },
     blog: {
       id: "blog-subs",
-      label: "独立博客订阅",
-      body: fragments.blog?.trim() || '<p class="empty-state">今日无独立博客更新。</p>',
+      label: labels.blog,
+      body: fragments.blog?.trim() || `<p class="empty-state">${emptyStates.blog}</p>`,
     },
     github: {
       id: "github-repos",
-      label: "GitHub 项目挖掘",
-      body: fragments.github?.trim() || '<p class="empty-state">今日无 GitHub 数据。</p>',
+      label: labels.github,
+      body: fragments.github?.trim() || `<p class="empty-state">${emptyStates.github}</p>`,
     },
     arxiv: {
       id: "arxiv-papers",
-      label: "arXiv 论文精选",
-      body: fragments.arxiv?.trim() || '<p class="empty-state">今日无 arXiv 数据。</p>',
+      label: labels.arxiv,
+      body: fragments.arxiv?.trim() || `<p class="empty-state">${emptyStates.arxiv}</p>`,
     },
     conference: {
       id: "conference-papers",
-      label: "会议论文追踪",
+      label: labels.conference,
       body: (fragments.conference?.trim() && !fragments.conference.includes("empty-state"))
         ? fragments.conference.trim()
-        : '<p class="empty-state">今日无会议论文数据。</p>',
+        : `<p class="empty-state">${emptyStates.conference}</p>`,
     },
     wechat: {
       id: "wechat-mp",
-      label: "微信公众号",
+      label: labels.wechat,
       body: (fragments.wechat?.trim() && !fragments.wechat.includes("empty-state"))
         ? fragments.wechat.trim()
-        : '<p class="empty-state">今日无微信公众号数据。</p>',
+        : `<p class="empty-state">${emptyStates.wechat}</p>`,
     },
   };
 
@@ -551,7 +591,7 @@ export function buildUnifiedHtml(dateCompact: string, fragments: ModuleFragments
   const tocCardHtml = `
     <nav class="toc-card" id="toc-card">
       <div class="toc-card-header">
-        <span class="toc-card-title">📑 大纲</span>
+        <span class="toc-card-title">📑 ${escapeHtml(outlineLabel)}</span>
         <span class="toc-card-toggle">▼</span>
       </div>
       <div class="toc-list">
@@ -574,11 +614,11 @@ ${tocDotsHtml}
     `;
 
   return `<!doctype html>
-<html lang="zh-CN">
+<html lang="${language === "en" ? "en" : "zh-CN"}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ascan-${escapeHtml(dateCompact)}</title>
+  <title>${escapeHtml(titlePrefix)}-${escapeHtml(dateCompact)}</title>
   <style>${REPORT_CSS}</style>
 </head>
 <body>
@@ -597,22 +637,26 @@ ${tocDotsHtml}
 }
 
 /** Combine module Markdown fragments into one unified Markdown daily report. */
-export function buildUnifiedMd(dateCompact: string, fragments: ModuleFragments, moduleOrder?: string[]): string {
+export function buildUnifiedMd(dateCompact: string, fragments: ModuleFragments, moduleOrder?: string[], language: "zh" | "en" = "zh"): string {
   const DEFAULT_ORDER = ["official", "blog", "github", "arxiv", "conference", "wechat"];
   const order = moduleOrder?.length ? moduleOrder : DEFAULT_ORDER;
   const dateDisplay = `${dateCompact.slice(0, 4)}-${dateCompact.slice(4, 6)}-${dateCompact.slice(6, 8)}`;
+  const labels = language === "en" ? MODULE_LABELS_EN : MODULE_LABELS_ZH;
+  const emptyStates = language === "en" ? EMPTY_STATE_EN : EMPTY_STATE_ZH;
+  const subtitle = language === "en" ? "Tech Frontier Daily" : "科技前沿日报";
+  const titlePrefix = language === "en" ? "NewSee" : "新知";
 
   const bodies: Record<string, { body: string; label: string }> = {
-    official: { label: "官方动态跟踪", body: fragments.official?.trim() || "_今日无 Anthropic Research 或 OpenAI 新文章。_" },
-    blog: { label: "独立博客订阅", body: fragments.blog?.trim() || "_今日无独立博客更新。_" },
-    github: { label: "GitHub 项目挖掘", body: fragments.github?.trim() || "_今日无 GitHub 数据。_" },
-    arxiv: { label: "arXiv 论文精选", body: fragments.arxiv?.trim() || "_今日无 arXiv 数据。_" },
-    conference: { label: "会议论文追踪", body: fragments.conference?.trim() || "_今日无会议论文数据。_" },
-    wechat: { label: "微信公众号", body: fragments.wechat?.trim() || "_今日无微信公众号数据。_" },
+    official: { label: labels.official, body: fragments.official?.trim() || `_${emptyStates.official}_` },
+    blog: { label: labels.blog, body: fragments.blog?.trim() || `_${emptyStates.blog}_` },
+    github: { label: labels.github, body: fragments.github?.trim() || `_${emptyStates.github}_` },
+    arxiv: { label: labels.arxiv, body: fragments.arxiv?.trim() || `_${emptyStates.arxiv}_` },
+    conference: { label: labels.conference, body: fragments.conference?.trim() || `_${emptyStates.conference}_` },
+    wechat: { label: labels.wechat, body: fragments.wechat?.trim() || `_${emptyStates.wechat}_` },
   };
 
   const subtitleParts = order.filter((k) => bodies[k]).map((k) => bodies[k].label);
-  const subtitle = subtitleParts.join(" + ");
+  const subtitleLine = subtitleParts.join(" + ");
 
   const parts = order.map((key, i) => {
     const cfg = bodies[key];
@@ -620,9 +664,9 @@ export function buildUnifiedMd(dateCompact: string, fragments: ModuleFragments, 
     return `## Part ${i + 1} — ${cfg.label}\n\n${cfg.body}`;
   }).filter(Boolean).join("\n\n");
 
-  return `# Ascan-${dateCompact}
+  return `# ${titlePrefix}-${dateCompact}
 
-> 科技前沿日报 · ${dateDisplay} · ${subtitle}
+> ${subtitle} · ${dateDisplay} · ${subtitleLine}
 
 ${parts}
 ---

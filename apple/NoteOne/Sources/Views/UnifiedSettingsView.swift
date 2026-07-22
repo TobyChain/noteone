@@ -3,6 +3,6 @@ import SwiftUI
 struct UnifiedSettingsView: View {
     var body: some View {
         SettingsView()
-            .navigationTitle("设置")
+            .navigationTitle(L("设置", "Settings"))
     }
 }

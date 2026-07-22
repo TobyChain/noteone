@@ -78,7 +78,7 @@ struct CaptureView: View {
         #if os(iOS)
         .padding(.horizontal, 4)
         #endif
-        .navigationTitle("记一条")
+        .navigationTitle(L("记一条", "Capture"))
         .onDrop(of: [.image, .url, .plainText], isTargeted: $isDropTargeted) { providers in
             handleDrop(providers)
         }
@@ -95,7 +95,7 @@ struct CaptureView: View {
             Image(systemName: "note.text.badge.plus")
                 .font(.system(size: 14))
                 .foregroundStyle(Color.accent)
-            Text("添加到往事")
+            Text(L("添加到往事", "Add to OldScene"))
                 .font(.subheadline.bold())
                 .foregroundStyle(Color.ink)
             Spacer()
@@ -117,7 +117,7 @@ struct CaptureView: View {
     private var textEditorArea: some View {
         ZStack(alignment: .topLeading) {
             if content.isEmpty {
-                Text("记录你看到的内容…（也可拖入文本/链接/图片）")
+                Text(L("记录你看到的内容…（也可拖入文本/链接/图片）", "Write what you saw… (you can also drag text/links/images)"))
                     .foregroundStyle(Color.inkTertiary)
                     .font(.body)
                     .padding(.top, 8)
@@ -148,7 +148,7 @@ struct CaptureView: View {
             Image(systemName: "link")
                 .font(.caption)
                 .foregroundStyle(Color.inkTertiary)
-            TextField("来源链接（可选）", text: $sourceUrl)
+            TextField(L("来源链接（可选）", "Source URL (optional)"), text: $sourceUrl)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
         }
@@ -165,7 +165,7 @@ struct CaptureView: View {
     private var bottomBar: some View {
         HStack {
             #if os(macOS)
-            Button("取消") { onDismiss?() }
+            Button(L("取消", "Cancel")) { onDismiss?() }
                 .keyboardShortcut(.escape)
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.inkSecondary)
@@ -177,7 +177,7 @@ struct CaptureView: View {
                 if isSaving {
                     ProgressView().controlSize(.small)
                 } else {
-                    Label("保存", systemImage: "square.and.arrow.down")
+                    Label(L("保存", "Save"), systemImage: "square.and.arrow.down")
                         .font(.subheadline.bold())
                 }
             }
@@ -197,7 +197,7 @@ struct CaptureView: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 48))
                 .foregroundStyle(Color.success)
-            Text("已保存到往事")
+            Text(L("已保存到往事", "Saved to OldScene"))
                 .font(.headline)
                 .foregroundStyle(Color.ink)
         }
