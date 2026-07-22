@@ -31,3 +31,15 @@ export async function getUserChatConfig(userId: string): Promise<LLMConfig> {
     model: pickString(llm.model) ?? def.model,
   };
 }
+
+/**
+ * Read the user's UI language preference from settings.
+ * Returns "en" if explicitly set; otherwise defaults to "zh".
+ */
+export async function getUserLanguage(userId: string): Promise<"zh" | "en"> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { settings: true },
+  });
+  return (user?.settings as any)?.language === "en" ? "en" : "zh";
+}

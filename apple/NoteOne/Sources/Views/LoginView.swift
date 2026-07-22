@@ -12,19 +12,19 @@ struct LoginView: View {
                     .foregroundStyle(.blue)
                 Text("壹识")
                     .font(.largeTitle.bold())
-                Text("顺手记一条")
+                Text(L("顺手记一条", "Capture anything"))
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }
 
             VStack(spacing: 16) {
-                TextField("你的名字", text: $name)
+                TextField(L("你的名字", "Your name"), text: $name)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 280)
                     .onSubmit { login() }
 
                 Button(action: login) {
-                    Label("进入", systemImage: "arrow.right.circle.fill")
+                    Label(L("进入", "Enter"), systemImage: "arrow.right.circle.fill")
                         .frame(maxWidth: 280)
                         .frame(height: 44)
                 }

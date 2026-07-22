@@ -20,7 +20,7 @@ struct ReportsView: View {
                 reportListView
             }
         }
-        .navigationTitle("每日报告")
+        .navigationTitle(L("每日报告", "Daily Report"))
         .task {
             await loadReports()
         }
@@ -34,7 +34,7 @@ struct ReportsView: View {
             // Report list
             if isLoading && reports.isEmpty {
                 Spacer()
-                ProgressView("加载中…")
+                ProgressView(L("加载中…", "Loading…"))
                 Spacer()
             } else if reports.isEmpty {
                 Spacer()
@@ -42,17 +42,17 @@ struct ReportsView: View {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.system(size: 48))
                         .foregroundStyle(.secondary)
-                    Text("还没有报告")
+                    Text(L("还没有报告", "No reports yet"))
                         .font(.headline)
                         .foregroundStyle(.secondary)
-                    Text("点击上方按钮生成今天的灵感报告")
+                    Text(L("点击上方按钮生成今天的灵感报告", "Tap the button above to generate today's inspiration report"))
                         .font(.subheadline)
                         .foregroundStyle(.tertiary)
                 }
                 Spacer()
             } else {
                 List {
-                    Section("历史报告") {
+                    Section(L("历史报告", "History")) {
                         ForEach(reports) { report in
                             Button {
                                 selectedReport = report
@@ -63,7 +63,7 @@ struct ReportsView: View {
                                 Button(role: .destructive) {
                                     Task { await deleteReport(report) }
                                 } label: {
-                                    Label("删除", systemImage: "trash")
+                                    Label(L("删除", "Delete"), systemImage: "trash")
                                 }
                             }
                         }
@@ -77,11 +77,11 @@ struct ReportsView: View {
         VStack(spacing: 16) {
             // Style picker
             HStack {
-                Text("风格")
+                Text(L("风格", "Style"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Picker("风格", selection: $selectedStyle) {
+                Picker(L("风格", "Style"), selection: $selectedStyle) {
                     ForEach(ReportStyle.allCases, id: \.self) { style in
                         Label(style.displayName, systemImage: style.icon).tag(style)
                     }
@@ -91,11 +91,11 @@ struct ReportsView: View {
 
             // Depth picker
             HStack {
-                Text("深度")
+                Text(L("深度", "Depth"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Picker("深度", selection: $selectedDepth) {
+                Picker(L("深度", "Depth"), selection: $selectedDepth) {
                     ForEach(ReportDepth.allCases, id: \.self) { depth in
                         Text("\(depth.displayName) · \(depth.description)").tag(depth)
                     }
@@ -114,7 +114,7 @@ struct ReportsView: View {
                     } else {
                         Image(systemName: "sparkles")
                     }
-                    Text(isGenerating ? "闹闹正在生成…" : "生成今日报告")
+                    Text(isGenerating ? L("闹闹正在生成…", "Notty is generating…") : L("生成今日报告", "Generate Today's Report"))
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
@@ -147,7 +147,7 @@ struct ReportsView: View {
                         .foregroundStyle(.secondary)
                 }
                 if report.status == .failed {
-                    Text("生成失败")
+                    Text(L("生成失败", "Generation Failed"))
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
@@ -252,13 +252,13 @@ struct ReportDetailView: View {
                 VStack(spacing: 12) {
                     if report.status == .generating {
                         ProgressView()
-                        Text("闹闹正在生成报告…")
+                        Text(L("闹闹正在生成报告…", "Notty is generating report…"))
                             .foregroundStyle(.secondary)
                     } else if report.status == .failed {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.largeTitle)
                             .foregroundStyle(.red)
-                        Text("生成失败")
+                        Text(L("生成失败", "Generation Failed"))
                             .font(.headline)
                         if let err = report.errorMessage {
                             Text(err)

@@ -278,9 +278,27 @@ async function saveAnalysis(articleId: string, analysis: WeChatAnalysis): Promis
 
 // ── LLM analysis (analyzer.py) ────────────────────────────────
 
-function buildPrompt(article: WeChatArticle): string {
+function buildPrompt(article: WeChatArticle, language: "zh" | "en"): string {
   // Use first 1500 chars of content to avoid token limit
-  const content = (article.content || article.summary || "（无内容）").slice(0, 1500);
+  const content = (article.content || article.summary || (language === "en" ? "(No content)" : "（无内容）")).slice(0, 1500);
+  if (language === "en") {
+    return `You are an AI content analysis expert. Analyze the following WeChat article and generate a summary and assessment.
+
+Article info:
+- WeChat MP: ${article.mp_name}
+- Title: ${article.title}
+- Author: ${article.author || "Unknown"}
+- Content summary: ${content}
+
+Output strictly as JSON (no markdown code block markers):
+{
+  "one_liner": "one-liner English summary (max 30 words)",
+  "summary_cn": "English summary (max 200 words)",
+  "keywords": ["keyword1", "keyword2", "keyword3"],
+  "core_recommendation": "why it's worth attention and its relevance to LLM/Agent/Agent Architecture (max 80 words)",
+  "relevance": "Highly Recommended/Recommended/Worth Reading/Moderately Recommended/Not Recommended"
+}`;
+  }
   return `你是一位 AI 领域的内容分析专家。请分析以下微信公众号文章，生成中文摘要和评估。
 
 文章信息：
@@ -312,10 +330,11 @@ async function analyzeArticlesBatch(
   articles: WeChatArticle[],
   ctx: ModuleContext,
 ): Promise<Map<string, WeChatAnalysis>> {
+  const lang = ctx.language || "zh";
   const results = await ctx.llm.mapConcurrent<WeChatArticle, [string, WeChatAnalysis]>(
     articles,
     async (article) => {
-      const data = await ctx.llm.chatJsonRetry<any>(buildPrompt(article));
+      const data = await ctx.llm.chatJsonRetry<any>(buildPrompt(article, lang));
       const analysis: WeChatAnalysis = {
         one_liner: data.one_liner ?? "",
         summary_cn: data.summary_cn ?? "",
@@ -353,8 +372,13 @@ function wechatArticlesToHtml(
   articles: WeChatArticle[],
   analyses: Map<string, WeChatAnalysis>,
   dateCompact: string,
+  language: "zh" | "en" = "zh",
 ): string {
-  if (!articles.length) return '<p class="empty-state">今日无微信公众号更新。</p>';
+  if (!articles.length) return language === "en" ? '<p class="empty-state">No WeChat article updates today.</p>' : '<p class="empty-state">今日无微信公众号更新。</p>';
+
+  const L = language === "en"
+    ? { oneLiner: "Summary:", summary: "Abstract", generating: "Abstract generating...", coreRec: "Core Recommendation:", author: "Author", published: "Published", source: "Source", readOriginal: "Read Original" }
+    : { oneLiner: "一句话总结：", summary: "中文摘要", generating: "中文摘要生成中...", coreRec: "核心推荐：", author: "作者", published: "发布", source: "来源", readOriginal: "阅读原文" };
 
   const sorted = sortArticles(articles, analyses);
   const parts: string[] = [`<div class="report-list wechat-list" data-date="${dateCompact}">`];
@@ -369,7 +393,7 @@ function wechatArticlesToHtml(
     const relevance = analysis ? analysis.relevance : "";
 
     const badges = [`<span class="tag tag-venue">${escapeHtml(article.mp_name)}</span>`];
-    if (relevance && relevance !== "不推荐") {
+    if (relevance && relevance !== "不推荐" && relevance !== "Not Recommended") {
       badges.push(`<span class="tag tag-relevance">${escapeHtml(relevance)}</span>`);
     }
 
@@ -382,26 +406,26 @@ function wechatArticlesToHtml(
     }
 
     const summaryBlock = summaryCn
-      ? `<section class="summary-block"><h4>中文摘要</h4><p>${escapeHtml(summaryCn)}</p></section>`
-      : '<section class="summary-block"><h4>中文摘要</h4><p class="muted">中文摘要生成中...</p></section>';
+      ? `<section class="summary-block"><h4>${L.summary}</h4><p>${escapeHtml(summaryCn)}</p></section>`
+      : `<section class="summary-block"><h4>${L.summary}</h4><p class="muted">${L.generating}</p></section>`;
 
     let recHtml = "";
     if (coreRec) {
-      recHtml = `<p class="recommendation"><strong>核心推荐：</strong>${escapeHtml(coreRec)}</p>`;
+      recHtml = `<p class="recommendation"><strong>${L.coreRec}</strong>${escapeHtml(coreRec)}</p>`;
     }
 
     const meta: string[] = [];
-    if (article.author) meta.push(`作者：${escapeHtml(article.author)}`);
-    if (article.publish_time) meta.push(`发布：${escapeHtml(article.publish_time.slice(0, 16))}`);
+    if (article.author) meta.push(`${L.author}：${escapeHtml(article.author)}`);
+    if (article.publish_time) meta.push(`${L.published}：${escapeHtml(article.publish_time.slice(0, 16))}`);
 
     parts.push(
       `<article class="card paper-card">` +
         `<h3>${idx}. ${escapeHtml(article.title)}</h3>` +
-        `<p class="meta"><strong>${meta.length ? meta.join(" · ") : "来源"}</strong></p>` +
+        `<p class="meta"><strong>${meta.length ? meta.join(" · ") : L.source}</strong></p>` +
         `<div class="tags">${badges.join("")}</div>` +
         `${kwTags}` +
-        `<p><strong>一句话总结：</strong>${escapeHtml(oneLiner)}</p>` +
-        `<p class="links"><a href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer">阅读原文</a></p>` +
+        `<p><strong>${L.oneLiner}</strong>${escapeHtml(oneLiner)}</p>` +
+        `<p class="links"><a href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer">${L.readOriginal}</a></p>` +
         `${summaryBlock}` +
         `${recHtml}` +
         `</article>`,
@@ -416,11 +440,16 @@ function wechatArticlesToMd(
   articles: WeChatArticle[],
   analyses: Map<string, WeChatAnalysis>,
   _dateCompact: string,
+  language: "zh" | "en" = "zh",
 ): string {
-  if (!articles.length) return "_今日无微信公众号更新。_";
+  if (!articles.length) return language === "en" ? "_No WeChat article updates today._" : "_今日无微信公众号更新。_";
+
+  const L = language === "en"
+    ? { total: (n: number) => `${n} new articles`, author: "Author", published: "Published", mp: "WeChat MP:", keywords: "Keywords:", oneLiner: "Summary:", link: "Link:", readOriginal: "Read Original", generating: "Abstract generating...", coreRec: "Core Recommendation:" }
+    : { total: (n: number) => `共 ${n} 篇新文章`, author: "作者", published: "发布", mp: "公众号：", keywords: "关键词：", oneLiner: "一句话总结：", link: "链接：", readOriginal: "阅读原文", generating: "中文摘要生成中...", coreRec: "核心推荐：" };
 
   const sorted = sortArticles(articles, analyses);
-  const lines: string[] = [`> 共 ${articles.length} 篇新文章`, ""];
+  const lines: string[] = [`> ${L.total(articles.length)}`, ""];
 
   sorted.forEach((article, i) => {
     const idx = i + 1;
@@ -431,23 +460,23 @@ function wechatArticlesToMd(
     const coreRec = analysis ? analysis.core_recommendation : "";
 
     const meta: string[] = [];
-    if (article.author) meta.push(`作者：${article.author}`);
-    if (article.publish_time) meta.push(`发布：${article.publish_time.slice(0, 16)}`);
+    if (article.author) meta.push(`${L.author}：${article.author}`);
+    if (article.publish_time) meta.push(`${L.published}：${article.publish_time.slice(0, 16)}`);
 
     lines.push(`### ${idx}. ${article.title}`);
     lines.push("");
-    lines.push(`**${meta.length ? meta.join(" · ") : "来源"}**`);
-    lines.push(`**公众号：** ${article.mp_name}`);
+    lines.push(`**${meta.length ? meta.join(" · ") : L.author}**`);
+    lines.push(`**${L.mp}** ${article.mp_name}`);
     if (keywords.length) {
       const kwStr = keywords.slice(0, 5).map((kw) => `\`${kw}\``).join(" ");
-      lines.push(`**关键词：** ${kwStr}`);
+      lines.push(`**${L.keywords}** ${kwStr}`);
     }
-    if (oneLiner) lines.push(`**一句话总结：** ${oneLiner}`);
-    lines.push(`**链接：** [阅读原文](${article.url})`);
+    if (oneLiner) lines.push(`**${L.oneLiner}** ${oneLiner}`);
+    lines.push(`**${L.link}** [${L.readOriginal}](${article.url})`);
     lines.push("");
     if (summaryCn) lines.push(`> ${summaryCn}`);
-    else lines.push("> _中文摘要生成中..._");
-    if (coreRec) lines.push(`> **核心推荐：** ${coreRec}`);
+    else lines.push(`> _${L.generating}_`);
+    if (coreRec) lines.push(`> **${L.coreRec}** ${coreRec}`);
     lines.push("");
     lines.push("---");
     lines.push("");
@@ -539,11 +568,12 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
   const daysRecent = config.wechat_days_recent;
 
   // ── FetchWeChatStage ──
+  const lang0 = ctx.language || "zh";
   if (!authKey || !mpList.length) {
     log("WeChat tracker 未配置 auth_key / mp_ids，跳过");
     return {
-      html: wechatArticlesToHtml([], new Map(), dateCompact),
-      md: wechatArticlesToMd([], new Map(), dateCompact),
+      html: wechatArticlesToHtml([], new Map(), dateCompact, lang0),
+      md: wechatArticlesToMd([], new Map(), dateCompact, lang0),
       count: 0,
     };
   }
@@ -617,8 +647,9 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
   const filteredArticles = await llmFilterArticles(newArticles, ctx);
 
   // ── BuildWeChatFragmentStage ──
-  const html = wechatArticlesToHtml(filteredArticles, analyses, dateCompact);
-  const md = wechatArticlesToMd(filteredArticles, analyses, dateCompact);
+  const lang = ctx.language || "zh";
+  const html = wechatArticlesToHtml(filteredArticles, analyses, dateCompact, lang);
+  const md = wechatArticlesToMd(filteredArticles, analyses, dateCompact, lang);
 
   if (filteredArticles.length) {
     log(`WeChat HTML+MD 片段已生成 (${html.length} chars, ${filteredArticles.length} 篇)`);

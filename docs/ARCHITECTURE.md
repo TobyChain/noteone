@@ -7,7 +7,7 @@
 > **注**：2026-07 系列变更尚未全面回写本文档。主要差异：
 > - 删除"记实"模块（Writer）—— 本文中涉及 记实/WriterView/WriterAssistantView/markdown 编辑器/writer-messages 路由的部分均已移除
 > - 微信抓取已内置于 server（`services/wechat/` + `/api/wechat` + `/wechat/` 配置页），不再依赖外部 wechat-article-exporter 部署
-> - 新知 pipeline 已从 Python 移植为 TypeScript（`server/src/services/ascan/pipeline/`，单入口编排 6 模块，进程内运行），`ascan/` Python 目录弃用保留
+> - 新知（NewSee）pipeline 已从 Python 移植为 TypeScript（`server/src/services/ascan/pipeline/`，单入口编排 6 模块，进程内运行），`ascan/` Python 目录弃用保留
 > - 支持 dmg 单体分发：`scripts/package-dmg.sh` 打包内嵌 Node 运行时 + PGlite（Postgres-in-WASM，`NOTEONE_DATA_DIR` 内嵌模式）；App 侧 `ServerLauncher.swift` 自动拉起内置 server
 > - 新增 `scheduled_tasks` 表 + `services/scheduler.ts` + `services/schedule-tools.ts`（闹闹可创建 cron 定时任务）
 > - 新增 `services/local-tools.ts`（闹闹可调白名单本地终端命令）

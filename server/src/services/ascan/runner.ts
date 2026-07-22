@@ -9,7 +9,7 @@
  */
 import { generateReportSummary } from "./reports.js";
 import {
-  MODULE_LABELS,
+  getModuleLabels,
   mergePipelineReport,
   moduleNames,
   runPipelineModule,
@@ -18,6 +18,7 @@ import {
 import { PipelineLLM } from "./pipeline/llm.js";
 import { getConfig } from "./config.js";
 import { readUserPreferences } from "./pipeline/index.js";
+import { getUserLanguage } from "../user-config.js";
 
 export interface AscanRunStatus {
   isRunning: boolean;
@@ -51,14 +52,15 @@ export interface SupplementProgress {
 
 const ALL_MODULES = moduleNames();
 
-function freshProgress(date: string): SupplementProgress {
+function freshProgress(date: string, language: "zh" | "en" = "zh"): SupplementProgress {
+  const labels = getModuleLabels(language);
   return {
     isRunning: false,
     date,
     startedAt: null,
     phase: "running",
     modules: ALL_MODULES.map((m) => ({
-      name: m, label: MODULE_LABELS[m], status: "pending" as const, chars: 0, error: null,
+      name: m, label: labels[m], status: "pending" as const, chars: 0, error: null,
     })),
     currentModule: null,
     error: null,
@@ -94,8 +96,11 @@ export async function mergeReport(
 ): Promise<{ ok: boolean; date: string; html_path: string; md_path: string }> {
   const dateStr = date || todayDateStr();
   console.log(`[ascan] mergeReport date=${dateStr} (in-process)`);
-  const prefs = userId ? await readUserPreferences(userId) : undefined;
-  return mergePipelineReport(dateStr, prefs?.moduleOrder);
+  const [prefs, language] = await Promise.all([
+    userId ? readUserPreferences(userId) : undefined,
+    userId ? getUserLanguage(userId) : ("zh" as const),
+  ]);
+  return mergePipelineReport(dateStr, prefs?.moduleOrder, language);
 }
 
 // ── Non-blocking supplement ────────────────────────────────────────────
@@ -115,8 +120,11 @@ async function runSupplement(dateStr: string, llmConfig?: LLMOverride, userId?: 
     maxConcurrency: config.llm_max_concurrency,
   });
 
-  // Read user preferences for module order and focus
-  const prefs = userId ? await readUserPreferences(userId) : undefined;
+  // Read user preferences and language for module order, focus, and report labels
+  const [prefs, language] = await Promise.all([
+    userId ? readUserPreferences(userId) : undefined,
+    userId ? getUserLanguage(userId) : ("zh" as const),
+  ]);
 
   // Run all modules in parallel
   const results = await Promise.allSettled(
@@ -156,7 +164,7 @@ async function runSupplement(dateStr: string, llmConfig?: LLMOverride, userId?: 
   supplementProgress!.phase = "merging";
   supplementProgress!.currentModule = "merge";
   try {
-    const r = await mergePipelineReport(dateStr, prefs?.moduleOrder);
+    const r = await mergePipelineReport(dateStr, prefs?.moduleOrder, language);
     supplementProgress!.phase = r.ok ? "done" : "failed";
     supplementProgress!.error = r.ok ? null : r.md_path;
     if (r.ok) {
@@ -190,7 +198,9 @@ export async function startAscanSupplement(
   if (supplementProgress?.isRunning || pipelineBusy) {
     throw new Error("新知补充已在运行中");
   }
-  supplementProgress = freshProgress(dateStr);
+  const language = userId ? await getUserLanguage(userId) : "zh";
+  const labels = getModuleLabels(language);
+  supplementProgress = freshProgress(dateStr, language);
   supplementProgress.isRunning = true;
   supplementProgress.startedAt = new Date().toISOString();
   pipelineBusy = true;
@@ -209,7 +219,7 @@ export async function startAscanSupplement(
       pipelineBusy = false;
     });
 
-  return { started: true, date: dateStr, modules: ALL_MODULES.map((m) => MODULE_LABELS[m]) };
+  return { started: true, date: dateStr, modules: ALL_MODULES.map((m) => labels[m]) };
 }
 
 export function getSupplementProgress(): SupplementProgress | null {

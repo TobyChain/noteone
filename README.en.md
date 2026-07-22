@@ -6,8 +6,8 @@
 NoteOne is an AI-powered personal knowledge system.
 
 - **Capture → Organize**: Capture anything, AI silently tags / summarizes / embeds
-- **Notty (闹闹)**: Core agent — runs local terminal commands, schedules tasks, orchestrates the Ascan pipeline
-- **Ascan (新知)**: Daily scan of arXiv / GitHub / official blogs / conference papers / WeChat, curated HTML report
+- **Notty (闹闹)**: Core agent — runs local terminal commands, schedules tasks, orchestrates the NewSee pipeline
+- **NewSee (新知)**: Daily scan of arXiv / GitHub / official blogs / conference papers / WeChat, curated HTML report
 - **MCP**: Claude / Cursor / Codex talk directly to your note database
 
 [中文](README.md) · [English](README.en.md) · [License](#license)
@@ -20,9 +20,9 @@ NoteOne is an AI-powered personal knowledge system.
 |---|---|
 | **Capture** | macOS global hotkey, iOS Share Extension, drag-and-drop. Auto-grabs URL, title, selected text, clipboard image |
 | **AI Pipeline** | Async: fetch link → title/summary → 4-dim tagging → 1536-d embedding |
-| **Notes (往事)** | Time-grouped list, semantic search, tag filter, one-tap new note, AI summary cards |
-| **Notty (闹闹)** | 3-layer context mgmt, doom-loop detection, tool persistence, Markdown. Tools: terminal / cron / Ascan / web / notes |
-| **Ascan (新知)** | 6-module daily pipeline (arXiv · GitHub · official · blog · conference · WeChat), TOC-navigated HTML report |
+| **OldScene (往事)** | Time-grouped list, semantic search, tag filter, one-tap new note, AI summary cards |
+| **Notty (闹闹)** | 3-layer context mgmt, doom-loop detection, tool persistence, Markdown. Tools: terminal / cron / NewSee / web / notes |
+| **NewSee (新知)** | 6-module daily pipeline (arXiv · GitHub · official · blog · conference · WeChat), TOC-navigated HTML report |
 | **Scheduled Tasks** | Natural-language cron via Notty, DB-persisted, auto-restored on boot |
 | **MCP** | 8 tools for Claude / Cursor / Codex to read/write notes |
 | **Reports** | Notty reads today's notes → web search → 4 styles × 3 depths HTML report |
@@ -36,7 +36,7 @@ NoteOne is an AI-powered personal knowledge system.
   │                        Client (SwiftUI)                        │
   │                                                               │
   │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
-  │  │  Notes   │  │  Ascan   │  │ Capture  │  │  Notty   │     │
+  │  │ OldScene │  │  NewSee  │  │ Capture  │  │  Notty   │     │
   │  │  往事     │  │  新知     │  │  记一条   │  │  闹闹     │     │
   │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘     │
   │       └─────────────┴─────────────┴─────────────┘            │
@@ -57,7 +57,7 @@ NoteOne is an AI-powered personal knowledge system.
   │  │  → embed            │  │  doom-loop detection           │    │
   │  └─────────────────────┘  └──────────────────────────────┘    │
   │                                                                │
-  │  PGlite embedded (WASM) / PostgreSQL 16   Ascan TS Pipeline      │
+  │  PGlite embedded (WASM) / PostgreSQL 16   NewSee TS Pipeline     │
   │  notes · tags · chat · reports           arXiv · GitHub · blog   │
   │  scheduled_tasks · ascan_*                                       │
   └────────────────────────────────────────────────────────────────┘
@@ -124,7 +124,7 @@ Requires Xcode 16 / iOS 17 / macOS 14 / Swift 6. See [apple/README.md](apple/REA
 
 #### Configure LLM
 
-NoteOne is open-source and does not bundle an LLM. All AI features (tagging, summaries, Notty chat, reports, Ascan daily) require your own API key. Open **Settings → AI Model**:
+NoteOne is open-source and does not bundle an LLM. All AI features (tagging, summaries, Notty chat, reports, NewSee daily) require your own API key. Open **Settings → AI Model**:
 
 | Field | Example |
 |---|---|
@@ -136,9 +136,9 @@ NoteOne is open-source and does not bundle an LLM. All AI features (tagging, sum
 
 Without config, notes still save normally — AI steps are skipped.
 
-#### Ascan config
+#### NewSee config
 
-**Settings → Ascan** configures daily report parameters: arXiv categories, GitHub topics, paper limits, conference rank filter, blog sources, WeChat public accounts. Click "Run" or tell Notty "supplement today's new knowledge" to trigger the pipeline.
+**Settings → NewSee** configures daily report parameters: arXiv categories, GitHub topics, paper limits, conference rank filter, blog sources, WeChat public accounts. Click "Run" or tell Notty "supplement today's new knowledge" to trigger the pipeline.
 
 WeChat crawling is built into the NoteOne server (`/api/wechat`). Open "Settings → WeChat" to scan the login QR code and manage subscribed accounts — no external service required.
 
@@ -186,7 +186,7 @@ Tools: `list_notes` · `get_note` · `create_note` · `update_note` · `delete_n
 | Backend | Node.js + TypeScript, Express 5, Drizzle ORM |
 | DB | PGlite (WASM, embedded) / PostgreSQL 16 + pgvector |
 | AI | Any OpenAI-compatible API (chat temp 0.3, text-embedding-3-small 1536-d) |
-| Ascan | TypeScript pipeline (6 modules, in-process) |
+| NewSee | TypeScript pipeline (6 modules, in-process) |
 | MCP | @modelcontextprotocol/sdk (stdio) |
 | Auth | Apple Sign In (JWKS-verified) + JWT (30 d) |
 
@@ -201,10 +201,10 @@ All `/api/*` need `Authorization: Bearer <JWT>`.
 | Tags | `POST/GET /api/tags` · `DELETE /api/tags/:id` |
 | Search | `POST /api/search` (pgvector) |
 | Notty | `GET/POST /api/chat-sessions` · `GET/DELETE /api/chat-sessions/:id` · `POST /:id/messages` |
-| Ascan · Reports | `GET /api/ascan/reports` · `/:date` · `/:date/path` · `DELETE /:date` |
-| Ascan · Config | `GET` / `PATCH /api/ascan/config` |
-| Ascan · Run | `POST /api/ascan/trigger` · `/run-module` · `/merge` · `/abort` · `GET /status` |
-| Ascan · Misc | `GET /api/ascan/wechat-health` · `POST /api/ascan/summarize` |
+| NewSee · Reports | `GET /api/ascan/reports` · `/:date` · `/:date/path` · `DELETE /:date` |
+| NewSee · Config | `GET` / `PATCH /api/ascan/config` |
+| NewSee · Run | `POST /api/ascan/trigger` · `/run-module` · `/merge` · `/abort` · `GET /status` |
+| NewSee · Misc | `GET /api/ascan/wechat-health` · `POST /api/ascan/summarize` |
 | Reports | `GET /api/reports` · `POST /api/reports/daily` · `GET/DELETE /api/reports/:id` |
 | Misc | `POST /api/uploads/image` · `GET /api/stats` · `GET/PATCH /api/settings` · `GET /api/export` · `DELETE /api/account` |
 
@@ -217,7 +217,7 @@ All `/api/*` need `Authorization: Bearer <JWT>`.
 
 [Apache License 2.0](LICENSE) © 2026 TobyChain
 
-All NoteOne code (client, backend, Ascan pipeline, MCP servers, schema, migrations, deploy configs, browser extension) is open-sourced under Apache 2.0.
+All NoteOne code (client, backend, NewSee pipeline, MCP servers, schema, migrations, deploy configs, browser extension) is open-sourced under Apache 2.0.
 
 Why Apache 2.0 over MIT:
 - **Patent protection**: explicit patent grant + retaliation clause

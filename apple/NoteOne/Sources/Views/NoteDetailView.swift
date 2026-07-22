@@ -24,9 +24,9 @@ struct NoteDetailView: View {
                     Image(systemName: "trash")
                         .font(.largeTitle)
                         .foregroundStyle(Color.inkTertiary)
-                    Text("已移入垃圾箱")
+                    Text(L("已移入垃圾箱", "Moved to Trash"))
                         .foregroundStyle(Color.inkSecondary)
-                    Text("30 天后自动清理")
+                    Text(L("30 天后自动清理", "Auto-cleaned in 30 days"))
                         .font(.caption)
                         .foregroundStyle(Color.inkTertiary)
                 }
@@ -42,7 +42,7 @@ struct NoteDetailView: View {
                         }
 
                         if isEditing {
-                            TextField("标题", text: $editTitle)
+                            TextField(L("标题", "Title"), text: $editTitle)
                                 .font(.title)
                                 .textFieldStyle(.plain)
                                 .foregroundStyle(Color.ink)
@@ -78,7 +78,7 @@ struct NoteDetailView: View {
                     .padding()
                 }
             } else {
-                ProgressView("加载中...")
+                ProgressView(L("加载中...", "Loading..."))
             }
         }
         .toolbar {
@@ -88,30 +88,30 @@ struct NoteDetailView: View {
                         Button { restoreNote() } label: {
                             Image(systemName: "arrow.uturn.backward")
                         }
-                        .help("恢复")
+                        .help(L("恢复", "Restore"))
                     } else if isEditing {
-                        Button("取消") { isEditing = false }
-                        Button("保存") { saveEdit() }
+                        Button(L("取消", "Cancel")) { isEditing = false }
+                        Button(L("保存", "Save")) { saveEdit() }
                             .buttonStyle(.borderedProminent)
                     } else {
                         Button { startEditing() } label: {
                             Image(systemName: "pencil")
                         }
-                        .help("编辑")
+                        .help(L("编辑", "Edit"))
                         Button { showDeleteConfirm = true } label: {
                             Image(systemName: "trash")
                                 .foregroundStyle(Color.danger)
                         }
-                        .help("移入垃圾箱")
+                        .help(L("移入垃圾箱", "Move to Trash"))
                     }
                 }
             }
         }
-        .confirmationDialog("移入垃圾箱？", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("移入垃圾箱", role: .destructive) { deleteNote() }
-            Button("取消", role: .cancel) {}
+        .confirmationDialog(L("移入垃圾箱？", "Move to Trash?"), isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button(L("移入垃圾箱", "Move to Trash"), role: .destructive) { deleteNote() }
+            Button(L("取消", "Cancel"), role: .cancel) {}
         } message: {
-            Text("笔记将在 30 天后自动清理，期间可随时恢复")
+            Text(L("笔记将在 30 天后自动清理，期间可随时恢复", "The note will be auto-cleaned in 30 days. You can restore it anytime during this period."))
         }
         .onChange(of: noteId) {
             // Identity is stable across selections now (no .id()), so explicitly swap to the
@@ -127,7 +127,7 @@ struct NoteDetailView: View {
 
     @ViewBuilder
     private func noteHeader(_ note: Note) -> some View {
-        Text(note.title ?? "无标题")
+        Text(note.title ?? L("无标题", "Untitled"))
             .font(.title)
             .foregroundStyle(Color.ink)
             .textSelection(.enabled)
@@ -151,7 +151,7 @@ struct NoteDetailView: View {
                 case .success(let image):
                     image.resizable().scaledToFit()
                 case .failure:
-                    Label("图片加载失败", systemImage: "photo")
+                    Label(L("图片加载失败", "Image load failed"), systemImage: "photo")
                         .foregroundStyle(Color.inkTertiary)
                 case .empty:
                     ProgressView()
@@ -332,7 +332,7 @@ private struct AIProcessingBanner: View {
             Image(systemName: "sparkles")
                 .foregroundStyle(Color.accent)
                 .symbolEffect(.pulse, options: .repeating)
-            Text("Notty 正在细品...")
+            Text(L("Notty 正在细品...", "Notty is processing..."))
                 .font(.subheadline)
                 .foregroundStyle(Color.inkSecondary)
             Spacer()
@@ -348,11 +348,11 @@ private struct FailedBanner: View {
         HStack(spacing: DG.sp8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(Color.danger)
-            Text("生成失败")
+            Text(L("生成失败", "Generation Failed"))
                 .font(.subheadline)
                 .foregroundStyle(Color.inkSecondary)
             Spacer()
-            Button("重试", action: onRetry)
+            Button(L("重试", "Retry"), action: onRetry)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
         }
@@ -369,23 +369,23 @@ private struct TrashedBanner: View {
         HStack(spacing: DG.sp8) {
             Image(systemName: "trash")
                 .foregroundStyle(Color.danger)
-            Text("此笔记在垃圾箱中")
+            Text(L("此笔记在垃圾箱中", "This note is in the Trash"))
                 .font(.subheadline)
                 .foregroundStyle(Color.inkSecondary)
             Spacer()
-            Button("恢复", action: onRestore)
+            Button(L("恢复", "Restore"), action: onRestore)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
-            Button("永久删除") { showPermanentConfirm = true }
+            Button(L("永久删除", "Delete Permanently")) { showPermanentConfirm = true }
                 .foregroundStyle(Color.danger)
                 .controlSize(.small)
         }
         .bannerStyle(tint: Color.danger)
-        .confirmationDialog("永久删除？", isPresented: $showPermanentConfirm, titleVisibility: .visible) {
-            Button("永久删除", role: .destructive, action: onPermanentDelete)
-            Button("取消", role: .cancel) {}
+        .confirmationDialog(L("永久删除？", "Delete Permanently?"), isPresented: $showPermanentConfirm, titleVisibility: .visible) {
+            Button(L("永久删除", "Delete Permanently"), role: .destructive, action: onPermanentDelete)
+            Button(L("取消", "Cancel"), role: .cancel) {}
         } message: {
-            Text("此操作不可撤销")
+            Text(L("此操作不可撤销", "This action cannot be undone"))
         }
     }
 }
@@ -440,7 +440,7 @@ private struct MetaSection: View {
                 Label(url, systemImage: "link")
             }
             if let app = note.sourceApp {
-                Label("来自 \(app)", systemImage: "app")
+                Label(L("来自 ", "From ") + app, systemImage: "app")
             }
             if let author = note.author {
                 Label(author, systemImage: "person")
@@ -450,7 +450,7 @@ private struct MetaSection: View {
             }
             Label(note.createdAt.formatted(), systemImage: "calendar")
             if note.updatedAt.timeIntervalSince(note.createdAt) > 60 {
-                Label("编辑于 \(note.updatedAt.formatted())", systemImage: "pencil.circle")
+                Label(L("编辑于 ", "Edited at ") + note.updatedAt.formatted(), systemImage: "pencil.circle")
             }
         }
         .font(.caption)

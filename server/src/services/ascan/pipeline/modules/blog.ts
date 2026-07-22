@@ -235,8 +235,26 @@ async function saveAnalysis(slug: string, analysis: BlogAnalysis): Promise<void>
 
 // ── stage 2: LLM analysis (port of analyzer.py) ───────────────
 
-function buildBlogPrompt(post: BlogPost): string {
+function buildBlogPrompt(post: BlogPost, language: "zh" | "en"): string {
   const contentPreview = (post.summary || "").slice(0, 1500);
+
+  if (language === "en") {
+    return `You are a tech content editor. Generate a summary for the following blog article, output in JSON format.
+
+## Article Info
+- Title: ${post.title || "Unknown"}
+- Date: ${post.date || "Unknown"}
+- Source: ${post.sourceLabel}
+- Summary: ${post.summary || ""}
+- Content preview: ${contentPreview}
+
+## Output Requirements
+Output a strict JSON object with the following fields:
+- one_liner: plain English explanation of what this blog is about (max 30 words)
+- summary_cn: English summary (2-3 sentences)
+
+Output JSON only, no other content.`;
+  }
 
   return `你是一位技术内容编辑。请为以下技术博客文章生成中文摘要，输出JSON格式。
 
@@ -258,7 +276,8 @@ function buildBlogPrompt(post: BlogPost): string {
 /** Analyze a single post (retry/JSON repair handled by chatJsonRetry). */
 async function analyzePost(ctx: ModuleContext, post: BlogPost): Promise<BlogAnalysis | null> {
   try {
-    const data = await ctx.llm.chatJsonRetry<Record<string, any>>(buildBlogPrompt(post));
+    const lang = ctx.language || "zh";
+    const data = await ctx.llm.chatJsonRetry<Record<string, any>>(buildBlogPrompt(post, lang));
     return {
       oneLiner: data.one_liner ?? "",
       summaryCn: data.summary_cn ?? "",
@@ -301,11 +320,15 @@ function groupBySourceLabel(posts: BlogPost[]): Map<string, BlogPost[]> {
   return grouped;
 }
 
-function blogsToDailyHtml(posts: BlogPost[], analyses: Map<string, BlogAnalysis | null>): string {
-  if (!posts.length) return '<p class="empty-state">今日无独立博客更新。</p>';
+function blogsToDailyHtml(posts: BlogPost[], analyses: Map<string, BlogAnalysis | null>, language: "zh" | "en" = "zh"): string {
+  if (!posts.length) return language === "en" ? '<p class="empty-state">No independent blog updates today.</p>' : '<p class="empty-state">今日无独立博客更新。</p>';
+
+  const L = language === "en"
+    ? { note: (n: number) => `${n} new articles (within 30 days).`, source: "Source:", date: "Date:", readOriginal: "Read Original" }
+    : { note: (n: number) => `共 ${n} 篇新文章（30 天内）。`, source: "来源：", date: "日期：", readOriginal: "阅读原文" };
 
   const lines: string[] = [`<div class="report-list blog-list">`];
-  lines.push(`<p class="section-note">共 ${posts.length} 篇新文章（30 天内）。</p>`);
+  lines.push(`<p class="section-note">${L.note(posts.length)}</p>`);
 
   for (const [sourceLabel, srcPosts] of groupBySourceLabel(posts)) {
     lines.push(`<h3>${escapeHtml(sourceLabel)}</h3>`);
@@ -317,13 +340,13 @@ function blogsToDailyHtml(posts: BlogPost[], analyses: Map<string, BlogAnalysis 
       lines.push('<article class="card">');
       lines.push(`<h4><a href="${escapeHtml(post.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(titleDisplay)}</a></h4>`);
       const metaParts: string[] = [];
-      metaParts.push(`<strong>来源：${escapeHtml(sourceLabel)}</strong>`);
-      if (dateStr) metaParts.push(`日期：${escapeHtml(dateStr)}`);
+      metaParts.push(`<strong>${L.source}${escapeHtml(sourceLabel)}</strong>`);
+      if (dateStr) metaParts.push(`${L.date}${escapeHtml(dateStr)}`);
       lines.push(`<p class="meta">${metaParts.join(" · ")}</p>`);
       if (summary) {
         lines.push(`<p>${escapeHtml(summary)}</p>`);
       }
-      lines.push(`<p class="links"><a href="${escapeHtml(post.url)}" target="_blank" rel="noopener noreferrer">阅读原文</a></p>`);
+      lines.push(`<p class="links"><a href="${escapeHtml(post.url)}" target="_blank" rel="noopener noreferrer">${L.readOriginal}</a></p>`);
       lines.push("</article>");
     }
   }
@@ -332,11 +355,15 @@ function blogsToDailyHtml(posts: BlogPost[], analyses: Map<string, BlogAnalysis 
   return lines.join("\n");
 }
 
-function blogsToDailyMd(posts: BlogPost[], analyses: Map<string, BlogAnalysis | null>): string {
-  if (!posts.length) return "_今日无独立博客更新。_";
+function blogsToDailyMd(posts: BlogPost[], analyses: Map<string, BlogAnalysis | null>, language: "zh" | "en" = "zh"): string {
+  if (!posts.length) return language === "en" ? "_No independent blog updates today._" : "_今日无独立博客更新。_";
+
+  const L = language === "en"
+    ? { note: (n: number) => `${n} new articles (within 30 days).`, source: "Source:", date: "Date:", link: "Link:", readOriginal: "Read Original" }
+    : { note: (n: number) => `共 ${n} 篇新文章（30 天内）。`, source: "来源：", date: "日期：", link: "链接：", readOriginal: "阅读原文" };
 
   const lines: string[] = [];
-  lines.push(`共 ${posts.length} 篇新文章（30 天内）。`);
+  lines.push(L.note(posts.length));
   lines.push("");
 
   for (const [sourceLabel, srcPosts] of groupBySourceLabel(posts)) {
@@ -349,11 +376,11 @@ function blogsToDailyMd(posts: BlogPost[], analyses: Map<string, BlogAnalysis | 
 
       lines.push(`#### [${titleDisplay}](${post.url})`);
       lines.push("");
-      const metaParts: string[] = [`**来源：** ${sourceLabel}`];
-      if (dateStr) metaParts.push(`**日期：** ${dateStr}`);
+      const metaParts: string[] = [`**${L.source}** ${sourceLabel}`];
+      if (dateStr) metaParts.push(`**${L.date}** ${dateStr}`);
       lines.push(metaParts.join(" · "));
       if (summary) lines.push(`> ${summary}`);
-      lines.push(`**链接：** [阅读原文](${post.url})`);
+      lines.push(`**${L.link}** [${L.readOriginal}](${post.url})`);
       lines.push("");
       lines.push("---");
       lines.push("");
@@ -412,9 +439,10 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
   // ── Stage 3 (empty-state short-circuit) ─────────────────────
   if (newPosts.length === 0) {
     ctx.log("无博客帖子，使用占位符");
+    const lang0 = ctx.language || "zh";
     return {
-      html: '<p class="empty-state">今日无独立博客更新。</p>',
-      md: "_今日无独立博客更新。_",
+      html: lang0 === "en" ? '<p class="empty-state">No independent blog updates today.</p>' : '<p class="empty-state">今日无独立博客更新。</p>',
+      md: lang0 === "en" ? "_No independent blog updates today._" : "_今日无独立博客更新。_",
       count: 0,
     };
   }
@@ -451,8 +479,9 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
   ctx.log(`Analysis done: ${successCount}/${newPosts.length} (${toAnalyze.length} LLM calls)`);
 
   // ── Stage 3: Build Fragment ─────────────────────────────────
-  const html = blogsToDailyHtml(newPosts, analyses);
-  const md = blogsToDailyMd(newPosts, analyses);
+  const lang = ctx.language || "zh";
+  const html = blogsToDailyHtml(newPosts, analyses, lang);
+  const md = blogsToDailyMd(newPosts, analyses, lang);
   ctx.log(`博客 HTML+MD 片段已生成 (HTML: ${html.length} chars, ${newPosts.length} 篇)`);
 
   return { html, md, count: newPosts.length };

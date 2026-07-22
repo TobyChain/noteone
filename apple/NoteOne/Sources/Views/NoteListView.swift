@@ -70,18 +70,18 @@ struct NoteListView: View {
                             Button(role: .destructive) {
                                 deleteNote(note)
                             } label: {
-                                Label("垃圾箱", systemImage: "trash")
+                                Label(L("垃圾箱", "Trash"), systemImage: "trash")
                             }
                         }
                         #endif
                     }
                 } header: {
-                    Text(section.0)
+                    Text(LDateGroup(section.0))
                 }
             }
         }
-        .navigationTitle("往事")
-        .searchable(text: $searchText, prompt: "搜索往事...")
+        .navigationTitle(L("往事", "OldScene"))
+        .searchable(text: $searchText, prompt: L("搜索往事...", "Search OldScene..."))
         .onSubmit(of: .search) { search() }
         #if !os(macOS)
         .navigationDestination(for: String.self) { noteId in
@@ -93,7 +93,7 @@ struct NoteListView: View {
             } label: {
                 HStack {
                     Image(systemName: "trash")
-                    Text("垃圾箱")
+                    Text(L("垃圾箱", "Trash"))
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.caption)
@@ -112,14 +112,14 @@ struct NoteListView: View {
                 Button { showCreateNote = true } label: {
                     Image(systemName: "square.and.pencil")
                 }
-                .help("新建笔记")
+                .help(L("新建笔记", "New Note"))
             }
             #if os(macOS)
             ToolbarItem(placement: .primaryAction) {
                 Button(action: { Task { await loadNotes() } }) {
                     Image(systemName: "arrow.clockwise")
                 }
-                .help("刷新笔记列表")
+                .help(L("刷新笔记列表", "Refresh Notes"))
             }
             #endif
             ToolbarItem(placement: .automatic) {
@@ -128,9 +128,9 @@ struct NoteListView: View {
                         filterType = nil
                     } label: {
                         if filterType == nil {
-                            Label("全部类型", systemImage: "checkmark")
+                            Label(L("全部类型", "All Types"), systemImage: "checkmark")
                         } else {
-                            Text("全部类型")
+                            Text(L("全部类型", "All Types"))
                         }
                     }
                     Divider()
@@ -148,7 +148,7 @@ struct NoteListView: View {
                 } label: {
                     Image(systemName: filterType == nil ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
                 }
-                .help("按类型筛选")
+                .help(L("按类型筛选", "Filter by Type"))
             }
         }
         .task { await loadNotes() }
@@ -264,7 +264,7 @@ struct NoteRowView: View {
                     .foregroundStyle(Color.inkTertiary)
                     .frame(width: 16)
 
-                Text(note.title ?? "无标题")
+                Text(note.title ?? L("无标题", "Untitled"))
                     .font(.headline)
                     .foregroundStyle(Color.ink)
                     .lineLimit(1)
@@ -302,7 +302,7 @@ struct NoteRowView: View {
         // Long-press to drag the note out as plain text — lets users re-use captured
         // fragments in any app (Notes, Mail, a document) without copy/paste.
         .draggable(NoteDragPayload(note: note)) {
-            Label(note.title ?? "无标题", systemImage: note.contentType.iconName)
+            Label(note.title ?? L("无标题", "Untitled"), systemImage: note.contentType.iconName)
                 .font(.caption)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
@@ -315,11 +315,11 @@ struct NoteRowView: View {
 extension ContentType {
     var displayName: String {
         switch self {
-        case .text: return "文本"
-        case .image: return "图片"
-        case .video: return "视频"
-        case .link: return "链接"
-        case .mixed: return "混合"
+        case .text: return L("文本", "Text")
+        case .image: return L("图片", "Image")
+        case .video: return L("视频", "Video")
+        case .link: return L("链接", "Link")
+        case .mixed: return L("混合", "Mixed")
         }
     }
 

@@ -7,7 +7,7 @@
 
 - **捕获 → 整理**：随手记下所见所闻，AI 静默打标、摘要、向量化
 - **闹闹（Notty）**：核心 Agent，可调度本地终端、定时任务、新知补充等工具
-- **新知（Ascan）**：每日扫遍 arXiv / GitHub / 官方博客 / 独立笔耕 / 会议论文 / 微信公众号，生成科技前沿日报
+- **新知（NewSee）**：每日扫遍 arXiv / GitHub / 官方博客 / 独立笔耕 / 会议论文 / 微信公众号，生成科技前沿日报
 - **MCP**：让 Claude / Cursor 等外部 AI 直连你的笔记库
 
 [中文](README.md) · [English](README.en.md) · [License](#license)
@@ -23,9 +23,9 @@
 |---|---|
 | **顺手捕获** | macOS 全局快捷键悬浮窗 / iOS Share Extension / 拖拽。自动抓取 URL、标题、选中文本、剪贴板图片 |
 | **AI 静默整理** | 异步流水线：抓链接正文 → 生成标题与一句话摘要 → 四维度打标（format/topic/domain/module）→ 向量化入库 |
-| **往事（笔记）** | 时间分组列表 + 语义搜索 + 标签筛选；一键新建笔记；每条附 AI 摘要、来源、作者、标签 |
+| **往事（OldScene，笔记）** | 时间分组列表 + 语义搜索 + 标签筛选；一键新建笔记；每条附 AI 摘要、来源、作者、标签 |
 | **闹闹（Notty）** | 三层上下文管理 + doom-loop 检测 + 工具调用持久化 + Markdown 渲染。可调本地终端、定时任务、新知补充、联网检索等工具 |
-| **新知（Ascan）** | 每日 6 模块并发抓取（arXiv / GitHub / 官方 / 博客 / 会议 / 微信），LLM 筛选翻译，生成带大纲导航的 HTML 日报；闹闹可逐模块编排 |
+| **新知（NewSee）** | 每日 6 模块并发抓取（arXiv / GitHub / 官方 / 博客 / 会议 / 微信），LLM 筛选翻译，生成带大纲导航的 HTML 日报；闹闹可逐模块编排 |
 | **定时任务** | 闹闹通过自然语言创建 cron 任务（如"每天 8 点补充新知"），DB 持久化 + 服务启动自动恢复 |
 | **MCP Server** | Claude / Cursor / Codex 等 AI 直连笔记库：检索、读取、创建、更新、软删、恢复 |
 | **每日报告** | 闹闹读取当天笔记 → 联网检索 → 生成 4 风格 × 3 深度的 HTML 报告 |
@@ -63,7 +63,7 @@
   │  │  → 向量化            │  │  doom-loop 检测              │    │
   │  └─────────────────────┘  └──────────────────────────────┘    │
   │                                                                │
-  │  PGlite 内嵌 (WASM) / PostgreSQL 16   新知 TS Pipeline          │
+  │  PGlite 内嵌 (WASM) / PostgreSQL 16   NewSee TS Pipeline         │
   │  notes · tags · chat · reports        arXiv · GitHub · 博客 ... │
   │  scheduled_tasks · ascan_*                                      │
   └────────────────────────────────────────────────────────────────┘
@@ -234,7 +234,7 @@ noteone/
 
 [Apache License 2.0](LICENSE) © 2026 TobyChain
 
-壹识 NoteOne 全部代码（客户端、后端、Ascan pipeline、MCP servers、Schema、迁移、部署配置、浏览器扩展）均在 Apache 2.0 协议下开源。
+壹识 NoteOne 全部代码（客户端、后端、NewSee pipeline、MCP servers、Schema、迁移、部署配置、浏览器扩展）均在 Apache 2.0 协议下开源。
 
 为什么选 Apache 2.0 而不是 MIT：
 - **专利保护**：明确授予专利权 + 报复条款，防止他人用代码后反诉专利侵权

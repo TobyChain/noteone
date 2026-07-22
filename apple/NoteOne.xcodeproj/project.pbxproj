@@ -67,7 +67,9 @@
 		B73B4E0F7C9199E1D24D78C2 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09BC0033D2386FF0223874AF /* AuthService.swift */; };
 		BE542556499CAE7E9BEB758B /* ReportScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E6049FD1E08FF125D9F2C7 /* ReportScheduler.swift */; };
 		BED52FECAD8F2EC26D54A16E /* AscanReportListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E466F11801DBE484BAC936A3 /* AscanReportListView.swift */; };
+		C22CE2548E2B97A6202CF8AB /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E32898665D7F1037FCA772A /* Strings.swift */; };
 		C38213479D5D7D981128ED72 /* AscanConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C58163DA04DCC6DB3C1161 /* AscanConfigView.swift */; };
+		C9059888FEE4DD5E1FFE574B /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E32898665D7F1037FCA772A /* Strings.swift */; };
 		C9D7063EF8E499B5BE1ECFAC /* ServerLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E200FAAB3020409357DC43 /* ServerLauncher.swift */; };
 		CB6B65E525BD4E0FD9A4737F /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37F332F07FEEED5830F8D113 /* ShareSheet.swift */; };
 		CE803CC25812D868463936C7 /* DailyReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 096AC32613C23DFBA4FE9C76 /* DailyReport.swift */; };
@@ -114,6 +116,7 @@
 		73BC93FEB9429E19B23B5E29 /* CaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureView.swift; sourceTree = "<group>"; };
 		76C21DFC46974BFDA55F2506 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
 		77E200FAAB3020409357DC43 /* ServerLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLauncher.swift; sourceTree = "<group>"; };
+		7E32898665D7F1037FCA772A /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
 		82FA9FA28AD13D36EB22561F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		83FCC5C0224750CD7B2821EC /* NoteDragPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteDragPayload.swift; sourceTree = "<group>"; };
 		93ED8FC56B2194277F2CB7C7 /* NoteOneShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = NoteOneShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -198,6 +201,7 @@
 				57015FD0069083C20F758DB0 /* Models */,
 				6E43D3869861EBF76C18AF91 /* Services */,
 				8CADC88D790A56BE0932F797 /* Theme */,
+				E7B6B4AA085BD509B2C4A6BE /* Utils */,
 				CCB774B1C6263F74D65361CA /* Views */,
 			);
 			name = Sources;
@@ -265,6 +269,14 @@
 				93ED8FC56B2194277F2CB7C7 /* NoteOneShareExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		E7B6B4AA085BD509B2C4A6BE /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				7E32898665D7F1037FCA772A /* Strings.swift */,
+			);
+			path = Utils;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -420,6 +432,7 @@
 				C9D7063EF8E499B5BE1ECFAC /* ServerLauncher.swift in Sources */,
 				37554AF0D24204D3657B6399 /* SettingsView.swift in Sources */,
 				CB6B65E525BD4E0FD9A4737F /* ShareSheet.swift in Sources */,
+				C22CE2548E2B97A6202CF8AB /* Strings.swift in Sources */,
 				B47FCC10098D017F3D146CE3 /* SyncQueue.swift in Sources */,
 				2BC4131212ABE644E3B8DAEA /* Tag.swift in Sources */,
 				1618DF935486DBE43FD7E509 /* Theme.swift in Sources */,
@@ -473,6 +486,7 @@
 				F070D55A3185B32FAF7835FA /* ServerLauncher.swift in Sources */,
 				42EB627D9FCCA905E02A9744 /* SettingsView.swift in Sources */,
 				9B3AA753FA557CDA9E899BEA /* ShareSheet.swift in Sources */,
+				C9059888FEE4DD5E1FFE574B /* Strings.swift in Sources */,
 				ED95702218A9FF3F35F3495D /* SyncQueue.swift in Sources */,
 				5802ECF1F8EF845155DFD2C4 /* Tag.swift in Sources */,
 				D93A6AA6BE5BADE41BB54865 /* Theme.swift in Sources */,

@@ -32,7 +32,7 @@ struct AscanConfigView: View {
     var body: some View {
         Form {
             if isLoading {
-                Section { ProgressView("加载配置…") }
+                Section { ProgressView(L("加载配置…", "Loading config…")) }
             } else if let config {
                 configSections(config)
             } else if let err = errorMessage {
@@ -42,7 +42,7 @@ struct AscanConfigView: View {
                 }
             }
         }
-        .navigationTitle("新知配置")
+        .navigationTitle(L("新知配置", "NewSee Config"))
         .task { await loadConfig() }
         .toolbar {
             #if os(macOS)
@@ -53,7 +53,7 @@ struct AscanConfigView: View {
                     if isSaving {
                         ProgressView()
                     } else {
-                        Text("保存")
+                        Text(L("保存", "Save"))
                     }
                 }
                 .disabled(isSaving || config == nil)
@@ -74,23 +74,23 @@ struct AscanConfigView: View {
             ))
             .textFieldStyle(.roundedBorder)
             .disabled(true)
-            TextField("模型名称", text: $llmModel)
+            TextField(L("模型名称", "Model Name"), text: $llmModel)
                 .textFieldStyle(.roundedBorder)
-            Stepper("最大并发: \(llmMaxConcurrency)", value: $llmMaxConcurrency, in: 1...50)
+            Stepper(L("最大并发: ", "Max Concurrency: ") + "\(llmMaxConcurrency)", value: $llmMaxConcurrency, in: 1...50)
         } header: {
-            Label("LLM 配置", systemImage: "cpu")
+            Label(L("LLM 配置", "LLM Config"), systemImage: "cpu")
                 .sectionHeaderStyle()
         }
 
         // ArXiv 配置
         Section {
-            TextField("分类列表 (逗号分隔)", text: $arxivSubjectsText)
+            TextField(L("分类列表 (逗号分隔)", "Subjects (comma-separated)"), text: $arxivSubjectsText)
                 .textFieldStyle(.roundedBorder)
-            Stepper("日期偏移: \(arxivOffsetDays) 天", value: $arxivOffsetDays, in: 0...7)
-            Stepper("每分类最大论文: \(maxPapersPerSubject)", value: $maxPapersPerSubject, in: 10...500, step: 10)
-            Stepper("总最大论文: \(maxTotalPapers)", value: $maxTotalPapers, in: 50...2000, step: 50)
+            Stepper(L("日期偏移: ", "Date Offset: ") + "\(arxivOffsetDays) " + L("天", "days"), value: $arxivOffsetDays, in: 0...7)
+            Stepper(L("每分类最大论文: ", "Max Papers per Subject: ") + "\(maxPapersPerSubject)", value: $maxPapersPerSubject, in: 10...500, step: 10)
+            Stepper(L("总最大论文: ", "Max Total Papers: ") + "\(maxTotalPapers)", value: $maxTotalPapers, in: 50...2000, step: 50)
         } header: {
-            Label("ArXiv 配置", systemImage: "doc.text.magnifyingglass")
+            Label(L("ArXiv 配置", "ArXiv Config"), systemImage: "doc.text.magnifyingglass")
                 .sectionHeaderStyle()
         }
 
@@ -98,14 +98,14 @@ struct AscanConfigView: View {
         Section {
             SecureField("Token", text: $githubToken)
                 .textFieldStyle(.roundedBorder)
-            TextField("Topic 列表 (逗号分隔)", text: $githubTopicsText)
+            TextField(L("Topic 列表 (逗号分隔)", "Topics (comma-separated)"), text: $githubTopicsText)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(3...6)
-            Stepper("每 Topic 最大仓库: \(githubMaxRepos)", value: $githubMaxRepos, in: 1...50)
-            Stepper("最低 Star 数: \(githubMinStars)", value: $githubMinStars, in: 0...5000, step: 100)
-            Stepper("LLM 分析 Top N: \(githubTopAnalyze)", value: $githubTopAnalyze, in: 5...100, step: 5)
+            Stepper(L("每 Topic 最大仓库: ", "Max Repos per Topic: ") + "\(githubMaxRepos)", value: $githubMaxRepos, in: 1...50)
+            Stepper(L("最低 Star 数: ", "Min Stars: ") + "\(githubMinStars)", value: $githubMinStars, in: 0...5000, step: 100)
+            Stepper(L("LLM 分析 Top N: ", "LLM Analyze Top N: ") + "\(githubTopAnalyze)", value: $githubTopAnalyze, in: 5...100, step: 5)
         } header: {
-            Label("GitHub 配置", systemImage: "chevron.left.forwardslash.chevron.right")
+            Label(L("GitHub 配置", "GitHub Config"), systemImage: "chevron.left.forwardslash.chevron.right")
                 .sectionHeaderStyle()
         }
 
@@ -113,33 +113,33 @@ struct AscanConfigView: View {
         Section {
             SecureField("Semantic Scholar API Key", text: $semanticScholarApiKey)
                 .textFieldStyle(.roundedBorder)
-            Stepper("回溯天数: \(conferenceLookbackDays) 天", value: $conferenceLookbackDays, in: 7...90)
-            TextField("会议等级 (逗号分隔)", text: $conferenceRankFilterText)
+            Stepper(L("回溯天数: ", "Lookback Days: ") + "\(conferenceLookbackDays) " + L("天", "days"), value: $conferenceLookbackDays, in: 7...90)
+            TextField(L("会议等级 (逗号分隔)", "Conference Rank (comma-separated)"), text: $conferenceRankFilterText)
                 .textFieldStyle(.roundedBorder)
-            TextField("方向分类 (逗号分隔)", text: $conferenceCategoriesText)
+            TextField(L("方向分类 (逗号分隔)", "Categories (comma-separated)"), text: $conferenceCategoriesText)
                 .textFieldStyle(.roundedBorder)
         } header: {
-            Label("会议论文配置", systemImage: "graduationcap")
+            Label(L("会议论文配置", "Conference Papers Config"), systemImage: "graduationcap")
                 .sectionHeaderStyle()
         }
 
         // 博客
         Section {
-            Stepper("每源最大文章: \(blogMaxPerSource)", value: $blogMaxPerSource, in: 1...10)
+            Stepper(L("每源最大文章: ", "Max Articles per Source: ") + "\(blogMaxPerSource)", value: $blogMaxPerSource, in: 1...10)
         } header: {
-            Label("博客", systemImage: "rss")
+            Label(L("博客", "Blog"), systemImage: "rss")
                 .sectionHeaderStyle()
         }
 
         // 日志
         Section {
-            Picker("日志级别", selection: $logLevel) {
+            Picker(L("日志级别", "Log Level"), selection: $logLevel) {
                 ForEach(["DEBUG", "INFO", "WARNING", "ERROR"], id: \.self) { level in
                     Text(level).tag(level)
                 }
             }
         } header: {
-            Label("日志", systemImage: "text.line.last.and.rectangle.triangle")
+            Label(L("日志", "Log"), systemImage: "text.line.last.and.rectangle.triangle")
                 .sectionHeaderStyle()
         }
 
@@ -162,9 +162,9 @@ struct AscanConfigView: View {
                 Task { await saveConfig() }
             } label: {
                 if isSaving {
-                    ProgressView("保存中…")
+                    ProgressView(L("保存中…", "Saving…"))
                 } else {
-                    Text("保存配置")
+                    Text(L("保存配置", "Save Config"))
                         .font(.headline)
                 }
             }
@@ -244,7 +244,7 @@ struct AscanConfigView: View {
             llmApiKey = updated.llmApiKey
             githubToken = updated.githubToken
             semanticScholarApiKey = updated.semanticScholarApiKey
-            saveMessage = "配置已保存"
+            saveMessage = L("配置已保存", "Config saved")
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -398,7 +398,7 @@ function scoreStage(ctx: ModuleContext, papers: RawPaper[]): MultiDimensionScore
 // ── Stage 4: Analyze (LLM concurrent) + DB write-back ─────────────────────
 
 /** Prompt — verbatim port of call_llm.LLMClient._create_analysis_prompt. */
-function createAnalysisPrompt(title: string, abstract: string): string {
+function createAnalysisPrompt(title: string, abstract: string, language: "zh" | "en"): string {
   const highPriority = HIGH_PRIORITY_KEYWORDS.slice(0, 4).join("/");
   const topInst = TOP_INSTITUTIONS.slice(0, 3).join("/");
 
@@ -406,6 +406,23 @@ function createAnalysisPrompt(title: string, abstract: string): string {
   let abstractSafe = abstract.replace(/"/g, "'").replace(/\\/g, "\\\\");
   if (abstractSafe.length > 1500) {
     abstractSafe = abstractSafe.slice(0, 1500) + "...";
+  }
+
+  if (language === "en") {
+    return (
+      "Analyze this paper and reply ONLY with a JSON object (no markdown, no explanation). " +
+      "IMPORTANT: keep trans_abs under 300 characters to avoid truncation. " +
+      "JSON fields: trans_abs=concise English translation/paraphrase of abstract (accurate, MAX 300 chars), " +
+      "compressed=2-3 sentence English summary of research problem/method/contribution, " +
+      "one_liner=plain English one-liner explaining what problem this paper solves or what method it proposes (20-40 words, no jargon stacking, like explaining to a product manager, do not start with 'This paper'/'This research'), " +
+      "core_recommendation=English explanation of how this paper relates to or inspires LLM/Agent research (LLM Algorithm/Agent Algorithm/Agent Architecture/Agent Memory/LLM Frontier) (30-80 chars), " +
+      "keywords=list of 3-5 English keywords, " +
+      "sub_topic=research field in English (e.g. LLM Algorithm/Agent Algorithm/Agent Architecture/Agent Memory/LLM Frontier), " +
+      "recommendation=one of [Highly Recommended/Recommended/Worth Reading/Moderately Recommended/Not Recommended] " +
+      `(Highly Recommended if related to ${highPriority} or from ${topInst}; ` +
+      "Recommended for strong innovation; Worth Reading for good quality; Moderately Recommended for routine; Not Recommended for unrelated). " +
+      `PAPER TITLE: ${titleSafe} | ABSTRACT: ${abstractSafe}`
+    );
   }
 
   return (
@@ -431,8 +448,9 @@ async function analyzeOne(
   idx: number,
   total: number,
 ): Promise<LlmAnalysisJson | null> {
-  const prompt = createAnalysisPrompt(paper.title, paper.abstract);
-  ctx.log(`[${idx}/${total}] 生成中文摘要: ${score.title.slice(0, 60)}...`);
+  const lang = ctx.language || "zh";
+  const prompt = createAnalysisPrompt(paper.title, paper.abstract, lang);
+  ctx.log(`[${idx}/${total}] ${lang === "en" ? "Generating" : "生成中文摘要"}: ${score.title.slice(0, 60)}...`);
   try {
     return await ctx.llm.chatJsonRetry<LlmAnalysisJson>(
       prompt,
@@ -604,10 +622,16 @@ function htmlLink(url: string, label: string): string {
   return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
 }
 
-export function papersToHtml(dateStr: string, papers: RenderPaper[]): string {
+export function papersToHtml(dateStr: string, papers: RenderPaper[], language: "zh" | "en" = "zh"): string {
   if (!papers.length) {
-    return '<p class="empty-state">今日无 arXiv 精选论文。</p>';
+    return language === "en"
+      ? '<p class="empty-state">No arXiv papers selected today.</p>'
+      : '<p class="empty-state">今日无 arXiv 精选论文。</p>';
   }
+
+  const L = language === "en"
+    ? { authors: "Authors:", oneLiner: "Summary:", summary: "Abstract", coreRec: "Core Recommendation:", generating: "Abstract generating..." }
+    : { authors: "作者：", oneLiner: "一句话总结：", summary: "中文摘要", coreRec: "核心推荐：", generating: "中文摘要生成中..." };
 
   const sections: string[] = [
     `<div class="report-list arxiv-list" data-date="${escapeHtml(dateStr)}">`,
@@ -635,30 +659,30 @@ export function papersToHtml(dateStr: string, papers: RenderPaper[]): string {
     sections.push('<article class="card paper-card">');
     sections.push(`<h3>${index}. ${escapeHtml(title)}</h3>`);
     if (authors.length) {
-      sections.push(`<p class="meta"><strong>作者：</strong>${escapeHtml(safeJoin(authors))}</p>`);
+      sections.push(`<p class="meta"><strong>${L.authors}</strong>${escapeHtml(safeJoin(authors))}</p>`);
     }
     if (keywordTags) {
       sections.push(`<div class="tags">${keywordTags}</div>`);
     }
     if (oneLiner) {
-      sections.push(`<p><strong>一句话总结：</strong>${escapeHtml(oneLiner)}</p>`);
+      sections.push(`<p><strong>${L.oneLiner}</strong>${escapeHtml(oneLiner)}</p>`);
     }
     if (links) {
       sections.push(`<p class="links">${links}</p>`);
     }
 
     sections.push('<section class="summary-block">');
-    sections.push("<h4>中文摘要</h4>");
+    sections.push(`<h4>${L.summary}</h4>`);
     if (translatedAbstract) {
       sections.push(`<p>${escapeHtml(translatedAbstract)}</p>`);
     } else {
-      sections.push('<p class="muted">中文摘要生成中...</p>');
+      sections.push(`<p class="muted">${L.generating}</p>`);
     }
     sections.push("</section>");
 
     if (coreRecommendation) {
       sections.push(
-        `<p class="recommendation"><strong>核心推荐：</strong>${escapeHtml(coreRecommendation)}</p>`,
+        `<p class="recommendation"><strong>${L.coreRec}</strong>${escapeHtml(coreRecommendation)}</p>`,
       );
     }
     sections.push("</article>");
@@ -668,10 +692,14 @@ export function papersToHtml(dateStr: string, papers: RenderPaper[]): string {
   return sections.join("\n");
 }
 
-export function papersToMd(_dateStr: string, papers: RenderPaper[]): string {
+export function papersToMd(_dateStr: string, papers: RenderPaper[], language: "zh" | "en" = "zh"): string {
   if (!papers.length) {
-    return "_今日无 arXiv 精选论文。_";
+    return language === "en" ? "_No arXiv papers selected today._" : "_今日无 arXiv 精选论文。_";
   }
+
+  const L = language === "en"
+    ? { authors: "Authors:", keywords: "Keywords:", oneLiner: "Summary:", links: "Links:", generating: "Abstract generating..." }
+    : { authors: "作者：", keywords: "关键词：", oneLiner: "一句话总结：", links: "链接：", generating: "中文摘要生成中..." };
 
   const lines: string[] = [];
   papers.forEach((paper, i) => {
@@ -688,32 +716,32 @@ export function papersToMd(_dateStr: string, papers: RenderPaper[]): string {
     lines.push(`### ${index}. ${title}`);
     lines.push("");
     if (authors.length) {
-      lines.push(`**作者：** ${safeJoin(authors)}`);
+      lines.push(`**${L.authors}** ${safeJoin(authors)}`);
     }
     if (keywords.length) {
-      lines.push(`**关键词：** ${keywords.filter(Boolean).map((k) => `\`${k}\``).join(" ")}`);
+      lines.push(`**${L.keywords}** ${keywords.filter(Boolean).map((k) => `\`${k}\``).join(" ")}`);
     }
     if (oneLiner) {
-      lines.push(`**一句话总结：** ${oneLiner}`);
+      lines.push(`**${L.oneLiner}** ${oneLiner}`);
     }
 
     const linkParts: string[] = [];
     if (absUrl) linkParts.push(`[Abstract](${absUrl})`);
     if (pdfUrl) linkParts.push(`[PDF](${pdfUrl})`);
     if (linkParts.length) {
-      lines.push(`**链接：** ${linkParts.join(" · ")}`);
+      lines.push(`**${L.links}** ${linkParts.join(" · ")}`);
     }
 
     lines.push("");
     if (transAbs) {
       lines.push(`> ${transAbs}`);
     } else {
-      lines.push("> _中文摘要生成中..._");
+      lines.push(`> _${L.generating}_`);
     }
 
     if (coreRec) {
       lines.push("");
-      lines.push(`> **核心推荐：** ${coreRec}`);
+      lines.push(`> **${language === "en" ? "Core Recommendation:" : "核心推荐："}** ${coreRec}`);
     }
 
     lines.push("");
@@ -730,6 +758,7 @@ async function generateReport(
   selectedIds: string[],
 ): Promise<{ html: string; md: string; count: number }> {
   const { log } = ctx;
+  const lang = ctx.language || "zh";
   const rows = selectedIds.length
     ? await db
         .select()
@@ -743,7 +772,7 @@ async function generateReport(
 
   if (!rows.length) {
     log("没有论文数据可生成报告");
-    return { html: papersToHtml(dataDate, []), md: papersToMd(dataDate, []), count: 0 };
+    return { html: papersToHtml(dataDate, [], lang), md: papersToMd(dataDate, [], lang), count: 0 };
   }
 
   if (selectedIds.length) {
@@ -767,8 +796,8 @@ async function generateReport(
       (RECOMMENDATION_ORDER[a.recommendation] || 0),
   );
 
-  const html = papersToHtml(dataDate, papers);
-  const md = papersToMd(dataDate, papers);
+  const html = papersToHtml(dataDate, papers, lang);
+  const md = papersToMd(dataDate, papers, lang);
   log("arXiv HTML + MD 片段已生成，等待统一日报合并");
   return { html, md, count: papers.length };
 }

@@ -10,11 +10,12 @@ import { join } from "path";
 import { ASCAN_DOCS, ASCAN_LOGS, getConfig } from "../config.js";
 import { PipelineLLM } from "./llm.js";
 import { buildUnifiedHtml, buildUnifiedMd } from "./report.js";
-import { MODULE_LABELS, type AscanModuleName, type ModuleContext, type ModuleRunner, type AscanPreferences } from "./types.js";
+import { MODULE_LABELS, getModuleLabels, type AscanModuleName, type ModuleContext, type ModuleRunner, type AscanPreferences } from "./types.js";
 import type { LLMConfig } from "../../llm.js";
 import { db } from "../../../db/client.js";
 import { users } from "../../../db/schema.js";
 import { eq } from "drizzle-orm";
+import { getUserLanguage } from "../../user-config.js";
 
 const FRAGMENT_DIR = () => join(ASCAN_LOGS, "fragments");
 
@@ -49,7 +50,13 @@ export function todayCompact(): string {
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
 }
 
-async function buildContext(dateCompact: string, llmOverride?: LLMConfig, sharedLlm?: PipelineLLM, preferences?: AscanPreferences): Promise<ModuleContext> {
+async function buildContext(
+  dateCompact: string,
+  llmOverride?: LLMConfig,
+  sharedLlm?: PipelineLLM,
+  preferences?: AscanPreferences,
+  language: "zh" | "en" = "zh",
+): Promise<ModuleContext> {
   const config = await getConfig();
   const llm = sharedLlm ?? new PipelineLLM({
     apiKey: llmOverride?.apiKey || config.llm_api_key,
@@ -64,6 +71,7 @@ async function buildContext(dateCompact: string, llmOverride?: LLMConfig, shared
     llm,
     log: (msg: string) => console.log(`[ascan] ${msg}`),
     preferences,
+    language,
   };
 }
 
@@ -111,8 +119,11 @@ export async function runPipelineModule(
   const moduleName = name as AscanModuleName;
   console.log(`[ascan] [${name}] run_module start (date=${dateCompact})`);
   try {
-    const preferences = await readUserPreferences(userId);
-    const ctx = await buildContext(dateCompact, llmOverride, sharedLlm, preferences);
+    const [preferences, language] = await Promise.all([
+      readUserPreferences(userId),
+      userId ? getUserLanguage(userId) : Promise.resolve<"zh" | "en">("zh"),
+    ]);
+    const ctx = await buildContext(dateCompact, llmOverride, sharedLlm, preferences, language);
     const { run } = await MODULE_REGISTRY[moduleName]();
     const result = await run(ctx);
     const chars = await persistFragment(dateCompact, name, result.html, result.md);
@@ -132,7 +143,11 @@ export interface MergeResult {
 }
 
 /** Read persisted fragments for the date, build unified HTML+MD, write into docs/. */
-export async function mergePipelineReport(dateCompact: string, moduleOrder?: AscanModuleName[]): Promise<MergeResult> {
+export async function mergePipelineReport(
+  dateCompact: string,
+  moduleOrder?: AscanModuleName[],
+  language: "zh" | "en" = "zh",
+): Promise<MergeResult> {
   const names = moduleOrder?.length ? moduleOrder : moduleNames();
   const loaded = await Promise.all(names.map((name) => loadFragment(dateCompact, name)));
   const fragments = Object.fromEntries(names.map((name, i) => [name, loaded[i]])) as Record<AscanModuleName, { html: string; md: string }>;
@@ -144,7 +159,7 @@ export async function mergePipelineReport(dateCompact: string, moduleOrder?: Asc
     blog: fragments.blog?.html ?? "",
     conference: fragments.conference?.html ?? "",
     wechat: fragments.wechat?.html ?? "",
-  }, moduleOrder);
+  }, moduleOrder, language);
   const unifiedMd = buildUnifiedMd(dateCompact, {
     arxiv: fragments.arxiv?.md ?? "",
     github: fragments.github?.md ?? "",
@@ -152,7 +167,7 @@ export async function mergePipelineReport(dateCompact: string, moduleOrder?: Asc
     blog: fragments.blog?.md ?? "",
     conference: fragments.conference?.md ?? "",
     wechat: fragments.wechat?.md ?? "",
-  }, moduleOrder);
+  }, moduleOrder, language);
 
   await mkdir(ASCAN_DOCS, { recursive: true });
   const htmlPath = join(ASCAN_DOCS, `Ascan-${dateCompact}.html`);
@@ -163,4 +178,4 @@ export async function mergePipelineReport(dateCompact: string, moduleOrder?: Asc
   return { ok: true, date: dateCompact, html_path: htmlPath, md_path: mdPath };
 }
 
-export { MODULE_LABELS };
+export { MODULE_LABELS, getModuleLabels };

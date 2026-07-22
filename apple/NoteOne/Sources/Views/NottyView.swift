@@ -14,10 +14,10 @@ struct NottyView: View {
     var onClose: (() -> Void)? = nil
 
     private let promptSuggestions: [String] = [
-        "帮我补充今日新知",
-        "每天 8 点自动补充新知",
-        "搜索本地文件里的 TODO",
-        "列出桌面上的文件",
+        L("帮我补充今日新知", "Help me supplement today's NewSee"),
+        L("每天 8 点自动补充新知", "Auto-supplement NewSee every day at 8 AM"),
+        L("搜索本地文件里的 TODO", "Search for TODOs in local files"),
+        L("列出桌面上的文件", "List files on the Desktop"),
     ]
 
     var body: some View {
@@ -27,7 +27,7 @@ struct NottyView: View {
                     .resizable()
                     .frame(width: 28, height: 28)
                     .clipShape(Circle())
-                Text("闹闹")
+                Text(L("闹闹", "Notty"))
                     .font(.headline)
 
                 Spacer()
@@ -76,7 +76,7 @@ struct NottyView: View {
                             HStack(spacing: 6) {
                                 ProgressView()
                                     .controlSize(.small)
-                                Text("Notty 思考中...")
+                                Text(L("Notty 思考中...", "Notty is thinking..."))
                                     .font(.caption)
                                     .foregroundStyle(Color.inkTertiary)
                             }
@@ -128,7 +128,7 @@ struct NottyView: View {
             }
 
             HStack(spacing: 8) {
-                TextField("问 Notty 关于你的笔记...", text: $input)
+                TextField(L("问 Notty 关于你的笔记...", "Ask Notty about your notes..."), text: $input)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { send() }
                     .disabled(isLoading)
@@ -174,7 +174,7 @@ struct NottyView: View {
         if messages.isEmpty {
             messages.append(ChatMessage(
                 role: "assistant",
-                content: "你好！我是 Notty，你的笔记助手\n\n我可以帮你检索、总结和分析你的所有笔记。试试问我：\"最近有哪些关于 AI 的笔记？\""
+                content: L("你好！我是 Notty，你的笔记助手\n\n我可以帮你检索、总结和分析你的所有笔记。试试问我：\"最近有哪些关于 AI 的笔记？\"", "Hi! I'm Notty, your note assistant.\n\nI can help you search, summarize, and analyze all your notes. Try asking: \"What recent notes do I have about AI?\"")
             ))
         }
     }
@@ -189,7 +189,7 @@ struct NottyView: View {
                 await MainActor.run {
                     messages = detail.messages.map { ChatMessage(role: $0.role, content: $0.content) }
                     if messages.isEmpty {
-                        messages.append(ChatMessage(role: "assistant", content: "你好！我是 Notty，你的笔记助手"))
+                        messages.append(ChatMessage(role: "assistant", content: L("你好！我是 Notty，你的笔记助手", "Hi! I'm Notty, your note assistant.")))
                     }
                 }
             } catch {
@@ -203,7 +203,7 @@ struct NottyView: View {
         sessionId = nil
         messages = [ChatMessage(
             role: "assistant",
-            content: "你好！我是 Notty，你的笔记助手\n\n我可以帮你检索、总结和分析你的所有笔记。试试问我：\"最近有哪些关于 AI 的笔记？\""
+            content: L("你好！我是 Notty，你的笔记助手\n\n我可以帮你检索、总结和分析你的所有笔记。试试问我：\"最近有哪些关于 AI 的笔记？\"", "Hi! I'm Notty, your note assistant.\n\nI can help you search, summarize, and analyze all your notes. Try asking: \"What recent notes do I have about AI?\"")
         )]
     }
 
@@ -246,7 +246,7 @@ struct NottyView: View {
                 }
             } catch {
                 await MainActor.run {
-                    messages.append(ChatMessage(role: "assistant", content: "抱歉，出了点问题：\(error.localizedDescription)"))
+                    messages.append(ChatMessage(role: "assistant", content: L("抱歉，出了点问题：", "Sorry, something went wrong: ") + error.localizedDescription))
                     isLoading = false
                 }
             }
@@ -271,23 +271,23 @@ struct NottyView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 if supp.isRunning {
-                    Text("新知补充 · \(supp.currentLabel)")
+                    Text(L("新知补充", "NewSee Update") + " · \(supp.currentLabel)")
                         .font(.caption)
                         .foregroundStyle(Color.ink)
                     Text("\(supp.doneCount)/\(supp.modules.count)")
                         .font(.caption2)
                         .foregroundStyle(Color.inkTertiary)
                 } else if supp.phase == "done" {
-                    Text("新知补充完成")
+                    Text(L("新知补充完成", "NewSee Update Complete"))
                         .font(.caption)
                         .foregroundStyle(Color.success)
                     if !supp.failedModules.isEmpty {
-                        Text("\(supp.failedModules.count) 个模块失败（已跳过）")
+                        Text(L("\(supp.failedModules.count) 个模块失败（已跳过）", "\(supp.failedModules.count) module(s) failed (skipped)"))
                             .font(.caption2)
                             .foregroundStyle(Color.inkTertiary)
                     }
                 } else {
-                    Text("新知补充出错")
+                    Text(L("新知补充出错", "NewSee Update Error"))
                         .font(.caption)
                         .foregroundStyle(Color.danger)
                     if let err = supp.error {
@@ -310,7 +310,7 @@ struct NottyView: View {
                         .foregroundStyle(Color.inkTertiary)
                 }
                 .buttonStyle(.plain)
-                .help("打断")
+                .help(L("打断", "Abort"))
             }
         }
         .padding(.horizontal)
@@ -360,7 +360,7 @@ private struct SessionListPopover: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button(action: onNew) {
-                Label("新对话", systemImage: "plus")
+                Label(L("新对话", "New Chat"), systemImage: "plus")
             }
             .buttonStyle(.plain)
             .padding(10)
@@ -368,7 +368,7 @@ private struct SessionListPopover: View {
             Divider()
 
             if sessions.isEmpty {
-                Text("暂无历史对话")
+                Text(L("暂无历史对话", "No chat history"))
                     .font(.caption)
                     .foregroundStyle(Color.inkTertiary)
                     .padding()
@@ -378,7 +378,7 @@ private struct SessionListPopover: View {
                         ForEach(sessions) { session in
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(session.title ?? "未命名对话")
+                                    Text(session.title ?? L("未命名对话", "Untitled Chat"))
                                         .font(.subheadline)
                                         .lineLimit(1)
                                     Text(session.updatedAt, style: .relative)
@@ -434,7 +434,7 @@ private struct ChatBubble: View {
                             .resizable()
                             .frame(width: 16, height: 16)
                             .clipShape(Circle())
-                        Text("闹闹")
+                        Text(L("闹闹", "Notty"))
                             .font(.caption2)
                     }
                     .foregroundStyle(Color.inkTertiary)

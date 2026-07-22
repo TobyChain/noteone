@@ -21,6 +21,8 @@ export interface ModuleContext {
   log: (msg: string) => void;
   /** User's daily mining preferences (focus topics, display order, etc.) */
   preferences?: AscanPreferences;
+  /** UI language preference — controls LLM prompt language and report labels */
+  language: "zh" | "en";
 }
 
 export interface AscanPreferences {
@@ -36,7 +38,7 @@ export type ModuleRunner = (ctx: ModuleContext) => Promise<ModuleResult>;
 
 export type AscanModuleName = "arxiv" | "github" | "official" | "blog" | "conference" | "wechat";
 
-export const MODULE_LABELS: Record<AscanModuleName, string> = {
+export const MODULE_LABELS_ZH: Record<AscanModuleName, string> = {
   official: "官方动态跟踪",
   blog: "独立博客订阅",
   github: "GitHub 项目挖掘",
@@ -44,3 +46,20 @@ export const MODULE_LABELS: Record<AscanModuleName, string> = {
   conference: "会议论文追踪",
   wechat: "微信公众号",
 };
+
+export const MODULE_LABELS_EN: Record<AscanModuleName, string> = {
+  official: "Official Updates",
+  blog: "Independent Blogs",
+  github: "GitHub Projects",
+  arxiv: "arXiv Papers",
+  conference: "Conference Papers",
+  wechat: "WeChat Articles",
+};
+
+/** Default (Chinese) module labels — kept for backward compatibility. */
+export const MODULE_LABELS = MODULE_LABELS_ZH;
+
+/** Return the label map for the given language. */
+export function getModuleLabels(language: "zh" | "en"): Record<AscanModuleName, string> {
+  return language === "en" ? MODULE_LABELS_EN : MODULE_LABELS_ZH;
+}

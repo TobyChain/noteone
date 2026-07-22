@@ -419,10 +419,31 @@ async function saveAnalysis(fullName: string, analysis: RepoAnalysis): Promise<v
 // ── analyzer (analyzer.py) ────────────────────────────────────────────────
 
 /** Build a compact JSON prompt for repo analysis (verbatim port of _build_repo_prompt). */
-function buildRepoPrompt(repo: RepoInfo): string {
+function buildRepoPrompt(repo: RepoInfo, language: "zh" | "en"): string {
   const readme = (repo.readme_summary || "").slice(0, 800).replace(/\n/g, " ").replace(/"/g, "'");
   const filesStr = repo.top_files.length ? repo.top_files.slice(0, 15).join(", ") : "unknown";
   const desc = (repo.description || "no description").replace(/"/g, "'");
+
+  if (language === "en") {
+    return (
+      `Analyze this GitHub repository and reply ONLY with a JSON object, no other text, no markdown code blocks. ` +
+      `Repo: ${repo.full_name} | ` +
+      `Description: ${desc} | ` +
+      `Stars: ${repo.stars} | ` +
+      `Language: ${repo.language || "unknown"} | ` +
+      `Topics: ${repo.topics.length ? repo.topics.slice(0, 8).join(", ") : "none"} | ` +
+      `Key files: ${filesStr} | ` +
+      `README summary: ${readme} | ` +
+      `Return a JSON object with the following fields: ` +
+      `one_liner(plain English one-liner explaining what this project does, max 30 words, do not start with "XX is", no jargon stacking, like explaining to a product manager), ` +
+      `positioning(project positioning: what problem it solves, target users, English 2-3 sentences), ` +
+      `core_tech(core technical highlights or architecture, English 2-3 sentences), ` +
+      `use_cases(typical use cases, English 1-2 sentences), ` +
+      `comparison(comparison with AutoGen/LangGraph/CrewAI etc., write "N/A" if no comparable projects, English 1-2 sentences), ` +
+      `watch_reason(why it's worth watching and star growth reasons, English 1-2 sentences), ` +
+      `relevance(relevance to LLM and Agent direction (LLM Algorithm/Agent Algorithm/Agent Architecture/Agent Memory/LLM Frontier), must be one of: Highly Relevant/Relevant/Moderate/Low)`
+    );
+  }
 
   return (
     `分析这个GitHub仓库并仅以JSON格式回复，不要有其他文字，不要markdown代码块。` +
@@ -448,7 +469,8 @@ const ANALYSIS_FIELDS = ["one_liner", "positioning", "core_tech", "use_cases", "
 
 /** Call LLM to analyze a single repo (3 attempts). Returns RepoAnalysis or null on failure. */
 async function analyzeRepo(ctx: ModuleContext, repo: RepoInfo): Promise<RepoAnalysis | null> {
-  const prompt = buildRepoPrompt(repo);
+  const lang = ctx.language || "zh";
+  const prompt = buildRepoPrompt(repo, lang);
 
   let data: any;
   try {
@@ -464,12 +486,20 @@ async function analyzeRepo(ctx: ModuleContext, repo: RepoInfo): Promise<RepoAnal
   }
 
   // Normalize relevance field to allowed values
-  let relevance: string = typeof data.relevance === "string" ? data.relevance : "一般";
-  const allowed = new Set(["高度相关", "相关", "一般", "较低"]);
-  if (!allowed.has(relevance)) {
-    // Try partial match
-    const partial = ["高度相关", "相关", "较低"].find((val) => relevance.includes(val));
-    relevance = partial ?? "一般";
+  let relevance: string = typeof data.relevance === "string" ? data.relevance : lang === "en" ? "Moderate" : "一般";
+  if (lang === "en") {
+    const allowedEn = new Set(["Highly Relevant", "Relevant", "Moderate", "Low"]);
+    if (!allowedEn.has(relevance)) {
+      const partialEn = ["Highly Relevant", "Relevant", "Low"].find((val) => relevance.includes(val));
+      relevance = partialEn ?? "Moderate";
+    }
+  } else {
+    const allowed = new Set(["高度相关", "相关", "一般", "较低"]);
+    if (!allowed.has(relevance)) {
+      // Try partial match
+      const partial = ["高度相关", "相关", "较低"].find((val) => relevance.includes(val));
+      relevance = partial ?? "一般";
+    }
   }
 
   const analysis: RepoAnalysis = {
@@ -487,7 +517,12 @@ async function analyzeRepo(ctx: ModuleContext, repo: RepoInfo): Promise<RepoAnal
 
 // ── report (report.py + tools/report_md.py) ───────────────────────────────
 
-const RELEVANCE_ORDER: Record<string, number> = { 高度相关: 0, 相关: 1, 一般: 2, 较低: 3 };
+const RELEVANCE_ORDER: Record<string, number> = {
+  高度相关: 0, "Highly Relevant": 0,
+  相关: 1, "Relevant": 1,
+  一般: 2, "Moderate": 2,
+  较低: 3, "Low": 3,
+};
 
 function starsBadge(stars: number): string {
   if (stars >= 10000) return `⭐${Math.floor(stars / 1000)}k`;
@@ -495,9 +530,9 @@ function starsBadge(stars: number): string {
   return `⭐${stars}`;
 }
 
-function todayBadge(starsToday: number | null): string {
+function todayBadge(starsToday: number | null, language: "zh" | "en" = "zh"): string {
   if (starsToday === null) return "";
-  return ` (+${starsToday} 今日)`;
+  return language === "en" ? ` (+${starsToday} today)` : ` (+${starsToday} 今日)`;
 }
 
 function repoLink(repo: RepoInfo): string {
@@ -512,28 +547,63 @@ function reposToDailyHtml(
   repos: RepoInfo[],
   analyses: Map<string, RepoAnalysis | null>,
   reportDate: string,
+  language: "zh" | "en" = "zh",
 ): string {
-  if (!repos.length) return '<p class="empty-state">今日无 GitHub 项目数据。</p>';
+  const L = language === "en"
+    ? {
+        empty: "No GitHub project data today.",
+        note: "Focusing on LLM and Agent related projects (LLM Algorithm/Agent Algorithm/Agent Architecture/Agent Memory/LLM Frontier)",
+        found: (n: number) => `found ${n} repositories.`,
+        featured: (n: number) => `Today's Picks (Highly Relevant, ${n} total)`,
+        emptyFeatured: "No highly relevant repositories today.",
+        deepAnalysis: "Featured Project Deep Analysis",
+        watchReason: "Worth Watching:",
+        relevance: "Relevance:",
+        stars: "Stars:",
+        lang: "Language:",
+        otherRepos: "Other Repositories",
+        readOriginal: "Read Original",
+      }
+    : {
+        empty: "今日无 GitHub 项目数据。",
+        note: "聚焦大模型与智能体相关项目（大模型算法/Agent算法/智能体架构/智能体记忆/大模型前沿）",
+        found: (n: number) => `共发现 ${n} 个仓库。`,
+        featured: (n: number) => `今日精选（高度相关，共 ${n} 个）`,
+        emptyFeatured: "今日暂无高度相关仓库。",
+        deepAnalysis: "精选项目深度解析",
+        watchReason: "值得关注：",
+        relevance: "相关性：",
+        stars: "Stars：",
+        lang: "语言：",
+        otherRepos: "其他仓库",
+        readOriginal: "阅读原文",
+      };
+
+  if (!repos.length) return `<p class="empty-state">${L.empty}</p>`;
 
   const repoMap = new Map(repos.map((repo) => [repo.full_name, repo]));
   const starsOf = (name: string) => repoMap.get(name)?.stars ?? 0;
 
+  const highRelevanceKey = language === "en" ? "Highly Relevant" : "高度相关";
   const highRelevance = [...analyses.entries()].filter(
-    ([, analysis]) => analysis !== null && analysis.relevance === "高度相关",
+    ([, analysis]) => analysis !== null && analysis.relevance === highRelevanceKey,
   ) as Array<[string, RepoAnalysis]>;
   highRelevance.sort((a, b) => starsOf(b[0]) - starsOf(a[0]));
   const tableRows = highRelevance.slice(0, 15);
 
   const sections: string[] = [`<div class="report-list github-list" data-date="${escapeHtml(reportDate)}">`];
   sections.push(
-    '<p class="section-note">聚焦大模型与智能体相关项目（大模型算法/Agent算法/智能体架构/智能体记忆/大模型前沿）' +
-    `，共发现 ${repos.length} 个仓库。</p>`,
+    `<p class="section-note">${L.note}` +
+    `${L.found(repos.length)}</p>`,
   );
 
-  sections.push(`<h3>今日精选（高度相关，共 ${tableRows.length} 个）</h3>`);
+  sections.push(`<h3>${L.featured(tableRows.length)}</h3>`);
   if (tableRows.length) {
     sections.push('<div class="table-wrapper"><table>');
-    sections.push("<thead><tr><th>项目</th><th>描述</th><th>语言</th><th>Stars</th><th>链接</th></tr></thead>");
+    const headers = language === "en"
+      ? ["Project", "Description", "Language", "Stars", "Link"]
+      : ["项目", "描述", "语言", "Stars", "链接"];
+    sections.push(`<thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>`);
     sections.push("<tbody>");
     for (const [fullName, analysis] of tableRows) {
       const repo = repoMap.get(fullName);
@@ -545,18 +615,18 @@ function reposToDailyHtml(
         `<td>${desc}</td>` +
         `<td>${escapeHtml(repo.language || "—")}</td>` +
         `<td>${escapeHtml(starsBadge(repo.stars))}</td>` +
-        `<td><a href="${escapeHtml(repo.url)}" target="_blank" rel="noopener noreferrer">阅读原文</a></td>` +
+        `<td><a href="${escapeHtml(repo.url)}" target="_blank" rel="noopener noreferrer">${L.readOriginal}</a></td>` +
         "</tr>",
       );
     }
     sections.push("</tbody></table></div>");
   } else {
-    sections.push('<p class="empty-state">今日暂无高度相关仓库。</p>');
+    sections.push(`<p class="empty-state">${L.emptyFeatured}</p>`);
   }
 
   const analyzed = [...analyses.entries()].filter(([, a]) => a !== null) as Array<[string, RepoAnalysis]>;
   if (analyzed.length) {
-    sections.push("<h3>精选项目深度解析</h3>");
+    sections.push(`<h3>${L.deepAnalysis}</h3>`);
     analyzed.sort((a, b) =>
       (RELEVANCE_ORDER[a[1].relevance] ?? 9) - (RELEVANCE_ORDER[b[1].relevance] ?? 9) ||
       starsOf(b[0]) - starsOf(a[0]),
@@ -570,15 +640,15 @@ function reposToDailyHtml(
         sections.push(`<p class="meta">${escapeHtml(repo.description)}</p>`);
       }
       sections.push('<ul class="meta-list">');
-      sections.push(`<li><strong>Stars：</strong>${escapeHtml(starsBadge(repo.stars) + todayBadge(repo.stars_today))}</li>`);
-      sections.push(`<li><strong>语言：</strong>${escapeHtml(repo.language || "—")}</li>`);
-      sections.push(`<li><strong>相关性：</strong>${escapeHtml(analysis.relevance)}</li>`);
+      sections.push(`<li><strong>${L.stars}</strong>${escapeHtml(starsBadge(repo.stars) + todayBadge(repo.stars_today, language))}</li>`);
+      sections.push(`<li><strong>${L.lang}</strong>${escapeHtml(repo.language || "—")}</li>`);
+      sections.push(`<li><strong>${L.relevance}</strong>${escapeHtml(analysis.relevance)}</li>`);
       sections.push("</ul>");
       sections.push(`<p class="lead">${escapeHtml(analysis.one_liner)}</p>`);
       if (analysis.watch_reason) {
-        sections.push(`<p><strong>值得关注：</strong>${escapeHtml(analysis.watch_reason)}</p>`);
+        sections.push(`<p><strong>${L.watchReason}</strong>${escapeHtml(analysis.watch_reason)}</p>`);
       }
-      sections.push(`<p class="links"><a href="${escapeHtml(repo.url)}" target="_blank" rel="noopener noreferrer">阅读原文</a></p>`);
+      sections.push(`<p class="links"><a href="${escapeHtml(repo.url)}" target="_blank" rel="noopener noreferrer">${L.readOriginal}</a></p>`);
       sections.push("</article>");
     }
   }
@@ -587,7 +657,7 @@ function reposToDailyHtml(
   const allAnalyzedNames = new Set(analyses.keys());
   const unanalyzed = repos.filter((r) => !allAnalyzedNames.has(r.full_name));
   if (unanalyzed.length) {
-    sections.push("<h3>其他仓库</h3>");
+    sections.push(`<h3>${L.otherRepos}</h3>`);
     sections.push('<ul class="meta-list">');
     for (const repo of unanalyzed) {
       const desc = repo.description ? ` — ${escapeHtml(repo.description.slice(0, 80))}` : "";
@@ -595,7 +665,7 @@ function reposToDailyHtml(
         `<li>${repoLink(repo)}${desc} ` +
         `<span class="repo-meta">${starsBadge(repo.stars)}</span> ` +
         `<span class="repo-lang">${escapeHtml(repo.language || "")}</span> ` +
-        `<a href="${escapeHtml(repo.url)}" target="_blank" rel="noopener noreferrer">阅读原文</a></li>`,
+        `<a href="${escapeHtml(repo.url)}" target="_blank" rel="noopener noreferrer">${L.readOriginal}</a></li>`,
       );
     }
     sections.push("</ul>");
@@ -610,37 +680,72 @@ function reposToDailyMd(
   repos: RepoInfo[],
   analyses: Map<string, RepoAnalysis | null>,
   _reportDate: string,
+  language: "zh" | "en" = "zh",
 ): string {
-  if (!repos.length) return "_今日无 GitHub 项目数据。_";
+  if (!repos.length) return language === "en" ? "_No GitHub project data today._" : "_今日无 GitHub 项目数据。_";
+
+  const L = language === "en"
+    ? {
+        note: (n: number) => `Found ${n} repositories, focusing on LLM and Agent related projects.`,
+        featured: (n: number) => `Today's Picks (Highly Relevant, ${n} total)`,
+        emptyFeatured: "No highly relevant repositories today.",
+        deepAnalysis: "Featured Project Deep Analysis",
+        stars: "Stars:",
+        lang: "Language:",
+        relevance: "Relevance:",
+        watchReason: "Worth Watching:",
+        link: "Link:",
+        readOriginal: "Read Original",
+        otherRepos: "Other Repositories",
+      }
+    : {
+        note: (n: number) => `共发现 ${n} 个仓库，聚焦大模型与智能体相关项目。`,
+        featured: (n: number) => `今日精选（高度相关，共 ${n} 个）`,
+        emptyFeatured: "今日暂无高度相关仓库。",
+        deepAnalysis: "精选项目深度解析",
+        stars: "Stars：",
+        lang: "语言：",
+        relevance: "相关性：",
+        watchReason: "值得关注：",
+        link: "链接：",
+        readOriginal: "阅读原文",
+        otherRepos: "其他仓库",
+      };
 
   const repoMap = new Map(repos.map((repo) => [repo.full_name, repo]));
   const starsOf = (name: string) => repoMap.get(name)?.stars ?? 0;
   const mdStars = (stars: number) => (stars >= 1000 ? `⭐${Math.floor(stars / 1000)}k` : `⭐${stars}`);
 
+  const highRelevanceKey = language === "en" ? "Highly Relevant" : "高度相关";
   const highRelevance = [...analyses.entries()].filter(
-    ([, a]) => a !== null && a.relevance === "高度相关",
+    ([, a]) => a !== null && a.relevance === highRelevanceKey,
   ) as Array<[string, RepoAnalysis]>;
   highRelevance.sort((a, b) => starsOf(b[0]) - starsOf(a[0]));
   const tableRows = highRelevance.slice(0, 15);
 
   const lines: string[] = [];
-  lines.push(`共发现 ${repos.length} 个仓库，聚焦大模型与智能体相关项目。`);
+  lines.push(L.note(repos.length));
   lines.push("");
 
-  lines.push(`#### 今日精选（高度相关，共 ${tableRows.length} 个）`);
+  lines.push(`#### ${L.featured(tableRows.length)}`);
   lines.push("");
   if (tableRows.length) {
-    lines.push("| 项目 | 描述 | 语言 | Stars | 链接 |");
-    lines.push("|------|------|------|-------|------|");
+    if (language === "en") {
+      lines.push("| Project | Description | Language | Stars | Link |");
+      lines.push("|---------|-------------|----------|-------|------|");
+    } else {
+      lines.push("| 项目 | 描述 | 语言 | Stars | 链接 |");
+      lines.push("|------|------|------|-------|------|");
+    }
     for (const [name, analysis] of tableRows) {
       const repo = repoMap.get(name);
       if (!repo) continue;
       const desc = (repo.description || "—").slice(0, 80).replace(/\|/g, "\\|");
-      lines.push(`| [${repo.full_name}](${repo.url}) | ${desc} | ${repo.language || "—"} | ${mdStars(repo.stars)} | [阅读原文](${repo.url}) |`);
+      lines.push(`| [${repo.full_name}](${repo.url}) | ${desc} | ${repo.language || "—"} | ${mdStars(repo.stars)} | [${L.readOriginal}](${repo.url}) |`);
     }
     lines.push("");
   } else {
-    lines.push("_今日暂无高度相关仓库。_");
+    lines.push(`_${L.emptyFeatured}_`);
     lines.push("");
   }
 
@@ -651,7 +756,7 @@ function reposToDailyMd(
   );
 
   if (analyzed.length) {
-    lines.push("#### 精选项目深度解析");
+    lines.push(`#### ${L.deepAnalysis}`);
     lines.push("");
     for (const [name, analysis] of analyzed) {
       const repo = repoMap.get(name);
@@ -665,13 +770,13 @@ function reposToDailyMd(
       }
       lines.push(`**${analysis.one_liner}**`);
       lines.push("");
-      lines.push(`- **Stars：** ${mdStars(repo.stars)}`);
-      lines.push(`- **语言：** ${repo.language || "—"}`);
-      lines.push(`- **相关性：** ${analysis.relevance}`);
+      lines.push(`- **${L.stars}** ${mdStars(repo.stars)}`);
+      lines.push(`- **${L.lang}** ${repo.language || "—"}`);
+      lines.push(`- **${L.relevance}** ${analysis.relevance}`);
       if (analysis.watch_reason) {
-        lines.push(`- **值得关注：** ${analysis.watch_reason}`);
+        lines.push(`- **${L.watchReason}** ${analysis.watch_reason}`);
       }
-      lines.push(`- **链接：** [阅读原文](${repo.url})`);
+      lines.push(`- **${L.link}** [${L.readOriginal}](${repo.url})`);
       lines.push("");
       lines.push("---");
       lines.push("");
@@ -682,11 +787,11 @@ function reposToDailyMd(
   const analyzedNames = new Set(analyses.keys());
   const unanalyzed = repos.filter((r) => !analyzedNames.has(r.full_name));
   if (unanalyzed.length) {
-    lines.push("#### 其他仓库");
+    lines.push(`#### ${L.otherRepos}`);
     lines.push("");
     for (const repo of unanalyzed) {
       const desc = repo.description ? ` — ${repo.description.slice(0, 80)}` : "";
-      lines.push(`- [${repo.full_name}](${repo.url})${desc} ${mdStars(repo.stars)} ${repo.language || ""} [阅读原文](${repo.url})`);
+      lines.push(`- [${repo.full_name}](${repo.url})${desc} ${mdStars(repo.stars)} ${repo.language || ""} [${L.readOriginal}](${repo.url})`);
     }
     lines.push("");
   }
@@ -756,9 +861,10 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
   await upsertRepos(repos, dateCompact);
 
   if (!repos.length) {
+    const lang0 = ctx.language || "zh";
     return {
-      html: reposToDailyHtml([], new Map(), dateCompact),
-      md: reposToDailyMd([], new Map(), dateCompact),
+      html: reposToDailyHtml([], new Map(), dateCompact, lang0),
+      md: reposToDailyMd([], new Map(), dateCompact, lang0),
       count: 0,
     };
   }
@@ -833,8 +939,9 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
   log(`[github] Analysis done: ${successCount}/${topRepos.length} total (${cachedCount} from cache, ${toAnalyze.length} new LLM calls)`);
 
   // ── Stage 4: Render fragments ──
-  const html = reposToDailyHtml(repos, analyses, dateCompact);
-  const md = reposToDailyMd(repos, analyses, dateCompact);
+  const lang = ctx.language || "zh";
+  const html = reposToDailyHtml(repos, analyses, dateCompact, lang);
+  const md = reposToDailyMd(repos, analyses, dateCompact, lang);
   log("[github] GitHub HTML + MD 片段已生成，等待统一日报合并");
 
   return { html, md, count: repos.length };

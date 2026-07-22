@@ -65,7 +65,7 @@ apple/
 | 视图 | 说明 |
 |------|------|
 | `MainSplitView` | macOS 主壳：NavigationSplitView 三栏（sidebar + center + Notty drawer） |
-| `MainSidebar` | macOS 侧边栏：往事列表 + 新知日报分组 + 垃圾箱/设置入口 |
+| `MainSidebar` | macOS 侧边栏：往事（OldScene）列表 + 新知（NewSee）日报分组 + 垃圾箱/设置入口 |
 | `NoteListView` | iOS 笔记列表 + 工具栏"+"新建按钮 |
 | `NoteDetailView` | 笔记详情 + 编辑 + 元信息 |
 | `CaptureView` | "顺手记"捕获面板（macOS 悬浮窗 / iOS sheet） |

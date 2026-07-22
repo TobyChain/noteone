@@ -7,7 +7,7 @@ import { db } from "../../db/client.js";
 import { chatSessions, chatMessages } from "../../db/schema.js";
 import { eq, and, asc, desc, inArray } from "drizzle-orm";
 import { chatCompletion, type LLMConfig } from "../llm.js";
-import { getUserChatConfig } from "../user-config.js";
+import { getUserChatConfig, getUserLanguage } from "../user-config.js";
 import {
   trimToTokenBudget,
   needsCompaction,
@@ -50,17 +50,18 @@ export async function processSessionMessage(
     content: message,
   });
 
-  const [allMessages, noteIndex, chatConfig] = await Promise.all([
+  const [allMessages, noteIndex, chatConfig, language] = await Promise.all([
     db.query.chatMessages.findMany({
       where: eq(chatMessages.sessionId, session.id),
       orderBy: [asc(chatMessages.createdAt)],
     }),
     buildNoteIndex(userId),
     getUserChatConfig(userId),
+    getUserLanguage(userId),
   ]);
 
-  const systemPrompt = buildStableSystemPrompt();
-  const dynamicContext = buildDynamicContext(noteIndex);
+  const systemPrompt = buildStableSystemPrompt(language);
+  const dynamicContext = buildDynamicContext(noteIndex, language);
   const { tools, handlers } = buildNottyToolkit(userId, noteIndex.allNotes, noteIndex.version);
 
   const historyMessages: ContextMessage[] = allMessages.map((m) => ({

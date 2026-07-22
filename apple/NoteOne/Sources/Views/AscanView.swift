@@ -7,6 +7,12 @@ struct AscanView: View {
         case reports = "日报浏览"
         case config = "配置管理"
         var id: String { rawValue }
+        var localizedName: String {
+            switch self {
+            case .reports: return L("日报浏览", "Reports")
+            case .config: return L("配置管理", "Config")
+            }
+        }
     }
 
     var body: some View {
@@ -18,13 +24,13 @@ struct AscanView: View {
                 AscanConfigView()
             }
         }
-        .navigationTitle("新知")
+        .navigationTitle(L("新知", "NewSee"))
         #if os(iOS)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Picker("", selection: $subView) {
                     ForEach(AscanSubView.allCases) { sub in
-                        Text(sub.rawValue).tag(sub)
+                        Text(sub.localizedName).tag(sub)
                     }
                 }
                 .pickerStyle(.segmented)
