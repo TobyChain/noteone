@@ -122,7 +122,17 @@ struct MainSplitView: View {
                     if isRunning {
                         ProgressView()
                             .controlSize(.small)
-                        Text(ascanRunStatus?.recentLog ?? L("运行中…", "Running…"))
+
+                        let supplement = ascanRunStatus?.supplement
+                        let moduleLabel = moduleDisplayName(supplement?.currentLabel)
+                        let doneCount = supplement?.doneCount ?? 0
+                        let totalCount = supplement?.modules.count ?? 0
+                        let progressText = totalCount > 0
+                            ? L("正在运行 \(moduleLabel)… (\(doneCount)/\(totalCount))",
+                               "Running \(moduleLabel)… (\(doneCount)/\(totalCount))")
+                            : (ascanRunStatus?.recentLog ?? L("正在运行 \(moduleLabel)…", "Running \(moduleLabel)…"))
+
+                        Text(progressText)
                             .font(.caption)
                             .foregroundStyle(Color.inkSecondary)
                             .lineLimit(1)
@@ -154,6 +164,19 @@ struct MainSplitView: View {
                 .padding(.horizontal, DG.sp16)
                 .padding(.vertical, DG.sp8)
                 .background(ascanHadError ? Color.danger.opacity(0.05) : Color.canvasSecondary)
+
+                // Progress bar
+                if isRunning, let supplement = ascanRunStatus?.supplement, !supplement.modules.isEmpty {
+                    let doneCount = supplement.doneCount
+                    let totalCount = supplement.modules.count
+                    let progress = totalCount > 0 ? Double(doneCount) / Double(totalCount) : 0
+                    ProgressView(value: progress)
+                        .progressViewStyle(.linear)
+                        .tint(Color.accent)
+                        .padding(.horizontal, DG.sp16)
+                        .padding(.bottom, DG.sp4)
+                }
+
                 if isRunning, let logs = ascanRunStatus?.recentLogs, !logs.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: DG.sp12) {
@@ -171,6 +194,24 @@ struct MainSplitView: View {
                 }
                 Divider()
             }
+        }
+    }
+
+    /// Translates server-side Chinese module labels to English when needed.
+    private func moduleDisplayName(_ label: String?) -> String {
+        guard let label else { return L("准备中", "Preparing") }
+        let lang = UserDefaults.standard.string(forKey: "appLanguage") ?? "zh"
+        guard lang == "en" else { return label }
+        switch label {
+        case "合并日报": return "Merging Report"
+        case "准备中": return "Preparing"
+        case "ArXiv": return "ArXiv"
+        case "GitHub": return "GitHub"
+        case "博客": return "Blog"
+        case "会议论文": return "Conference Papers"
+        case "微信公众号": return "WeChat"
+        case "官方文档": return "Official Docs"
+        default: return label
         }
     }
 

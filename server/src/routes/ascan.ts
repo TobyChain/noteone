@@ -24,8 +24,11 @@ import {
 import { moduleNames } from "../services/ascan/pipeline/index.js";
 import { getUserChatConfig } from "../services/user-config.js";
 import { checkWechatHealth } from "../services/wechat/service.js";
+import { isLLMConfigured } from "../services/llm.js";
 
 export const ascanRouter = Router();
+
+const LLM_NOT_CONFIGURED_MSG = "AI 模型未配置，请先在设置中配置 API Key";
 
 function validDate(date: unknown): date is string {
   return typeof date === "string" && /^\d{8}$/.test(date);
@@ -101,6 +104,10 @@ ascanRouter.post("/trigger", async (req: AuthRequest, res) => {
   }
   try {
     const llmConfig = await getUserChatConfig(req.userId!);
+    if (!isLLMConfigured(llmConfig)) {
+      res.status(400).json({ error: LLM_NOT_CONFIGURED_MSG });
+      return;
+    }
     res.json(await triggerRun(date, llmConfig, req.userId!));
   } catch (err: any) {
     if (err?.message?.includes("已在运行中")) {
@@ -123,6 +130,10 @@ ascanRouter.post("/run-module", async (req: AuthRequest, res) => {
     return;
   }
   const llmConfig = await getUserChatConfig(req.userId!);
+  if (!isLLMConfigured(llmConfig)) {
+    res.status(400).json({ error: LLM_NOT_CONFIGURED_MSG });
+    return;
+  }
   res.json(await runModule(module, date, llmConfig, req.userId!));
 });
 

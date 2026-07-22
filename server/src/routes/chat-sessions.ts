@@ -5,8 +5,12 @@ import { eq, desc, asc } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { z } from "zod";
 import { findSession, processSessionMessage } from "../services/notty/session-service.js";
+import { getUserChatConfig } from "../services/user-config.js";
+import { isLLMConfigured } from "../services/llm.js";
 
 const router = Router();
+
+const LLM_NOT_CONFIGURED_MSG = "AI 模型未配置，请先在设置中配置 API Key";
 
 router.get("/", async (req: AuthRequest, res) => {
   const sessions = await db.query.chatSessions.findMany({
@@ -50,6 +54,12 @@ const sendSchema = z.object({
 router.post("/:id/messages", async (req: AuthRequest, res) => {
   const parsed = sendSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+
+  const chatConfig = await getUserChatConfig(req.userId!);
+  if (!isLLMConfigured(chatConfig)) {
+    res.status(400).json({ error: LLM_NOT_CONFIGURED_MSG });
+    return;
+  }
 
   const controller = new AbortController();
   req.on("close", () => controller.abort());

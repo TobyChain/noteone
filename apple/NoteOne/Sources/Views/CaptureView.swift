@@ -16,6 +16,8 @@ struct CaptureView: View {
     @State private var imageData: Data?
     @State private var isSaving = false
     @State private var showSuccess = false
+    @State private var showEmptyHint = false
+    @State private var captureError: String?
     @State private var isDropTargeted = false
     @Environment(\.dismiss) private var dismiss
     var initialContent: String?
@@ -24,8 +26,13 @@ struct CaptureView: View {
     var initialImageData: Data?
     var onDismiss: (() -> Void)?
 
+    private var isURLContent: Bool {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://")
+    }
+
     private var canSave: Bool {
-        !isSaving && (!content.isEmpty || imageData != nil)
+        !isSaving
     }
 
     var body: some View {
@@ -47,8 +54,10 @@ struct CaptureView: View {
         #if os(macOS)
         .frame(width: 460)
         .animation(.spring(response: 0.4, dampingFraction: 0.7), value: showSuccess)
+        .animation(.easeInOut(duration: 0.2), value: showEmptyHint)
         #else
         .animation(.spring(response: 0.4, dampingFraction: 0.7), value: showSuccess)
+        .animation(.easeInOut(duration: 0.2), value: showEmptyHint)
         #endif
     }
 
@@ -65,6 +74,52 @@ struct CaptureView: View {
             textEditorArea
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
+
+            if isURLContent && !isSaving {
+                HStack(spacing: 4) {
+                    ProgressView()
+                        .controlSize(.mini)
+                    Text(L("正在抓取...", "Fetching..."))
+                        .font(.caption)
+                        .foregroundStyle(Color.inkTertiary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+            }
+
+            if showEmptyHint {
+                HStack(spacing: 4) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(Color.warning)
+                    Text(L("请输入内容后再保存", "Please enter some content before saving"))
+                        .font(.caption)
+                        .foregroundStyle(Color.warning)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+                .transition(.opacity)
+            }
+
+            if let captureError = captureError {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(Color.danger)
+                    Text(captureError)
+                        .font(.caption)
+                        .foregroundStyle(Color.danger)
+                    Spacer()
+                    Button {
+                        self.captureError = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(Color.inkTertiary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+                .transition(.opacity)
+            }
 
             sourceUrlField
                 .padding(.horizontal, 16)
@@ -117,7 +172,7 @@ struct CaptureView: View {
     private var textEditorArea: some View {
         ZStack(alignment: .topLeading) {
             if content.isEmpty {
-                Text(L("记录你看到的内容…（也可拖入文本/链接/图片）", "Write what you saw… (you can also drag text/links/images)"))
+                Text(L("粘贴链接、输入文本或拖拽内容到这里...", "Paste a URL, type text, or drag content here..."))
                     .foregroundStyle(Color.inkTertiary)
                     .font(.body)
                     .padding(.top, 8)
@@ -313,7 +368,16 @@ struct CaptureView: View {
     }
 
     private func save() {
+        // Show hint when content is empty and no image is attached
+        if content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && imageData == nil {
+            withAnimation { showEmptyHint = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                withAnimation { showEmptyHint = false }
+            }
+            return
+        }
         isSaving = true
+        captureError = nil
         let caption = content
         let droppedImage = imageData
         let urlField = sourceUrl
@@ -348,16 +412,25 @@ struct CaptureView: View {
                         sourceUrl: urlField.isEmpty ? nil : urlField
                     )
                     await SyncQueue.shared.enqueue(request)
+                    await MainActor.run {
+                        captureError = L("网络不可用，已加入离线队列", "Network unavailable, queued for sync")
+                    }
+                } else {
+                    await MainActor.run {
+                        captureError = L("保存失败: ", "Save failed: ") + error.localizedDescription
+                    }
                 }
             }
             await MainActor.run {
                 isSaving = false
-                withAnimation { showSuccess = true }
-                content = ""
-                sourceUrl = ""
-                imageData = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                    onDismiss?()
+                if captureError == nil || (droppedImage == nil) {
+                    withAnimation { showSuccess = true }
+                    content = ""
+                    sourceUrl = ""
+                    imageData = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                        onDismiss?()
+                    }
                 }
             }
         }
