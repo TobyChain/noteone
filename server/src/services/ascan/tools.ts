@@ -94,7 +94,7 @@ export function makeAscanHandlers(userId: string): Record<string, (args: any) =>
     start_ascan_supplement: async ({ date }: any) => {
       try {
         const llmConfig = await getUserChatConfig(userId);
-        const r = await startAscanSupplement(date, llmConfig);
+        const r = await startAscanSupplement(date, llmConfig, userId);
         return `新知补充已启动（${r.date}），后台运行中。包含：${r.modules.join("、")}。进度会自动展示给用户，你可以继续与用户对话。`;
       } catch (err: any) {
         return `启动失败: ${err?.message || err}`;

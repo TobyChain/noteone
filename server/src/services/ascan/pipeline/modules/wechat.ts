@@ -458,11 +458,84 @@ function wechatArticlesToMd(
 
 // ── module entry (stages.py: Fetch + Analyze + BuildFragment) ─
 
+const MAX_ARTICLES_PER_MP = 3;
+const MAX_TOTAL_ARTICLES = 15;
+const LLM_FILTER_THRESHOLD = 6;
+
+/**
+ * Use the pipeline LLM to filter WeChat articles by tech relevance.
+ * Sends all article titles/summaries in a single prompt and asks the LLM
+ * to score each 1-10. Only articles scoring >= LLM_FILTER_THRESHOLD are kept.
+ * Falls back to the original list if LLM is unavailable or all articles
+ * are filtered out.
+ */
+async function llmFilterArticles(
+  articles: WeChatArticle[],
+  ctx: ModuleContext,
+): Promise<WeChatArticle[]> {
+  if (!articles.length) return articles;
+  if (!ctx.llm.isConfigured) {
+    ctx.log("WeChat LLM 过滤：LLM 未配置，跳过过滤");
+    return articles;
+  }
+
+  const articleListStr = articles
+    .map((a, i) => `[${i + 1}] 标题：${a.title} | 公众号：${a.mp_name} | 摘要：${(a.summary || "").slice(0, 200)}`)
+    .join("\n");
+
+  const prompt = `你是一位科技日报编辑。请为以下微信公众号文章评估技术相关性和阅读价值，打分1-10分。
+
+评分标准：
+- 9-10分：与大模型/Agent/智能体/AI前沿高度相关，极具阅读价值
+- 7-8分：技术内容扎实，与AI/科技有较强关联
+- 5-6分：有一定技术价值，但相关性一般
+- 3-4分：技术含量较低
+- 1-2分：与科技无关
+
+文章列表：
+${articleListStr}
+
+请严格输出JSON（不要包含markdown代码块标记）：
+{
+  "scores": [
+    {"index": 1, "score": 8},
+    {"index": 2, "score": 5}
+  ]
+}`;
+
+  try {
+    const data = await ctx.llm.chatJson<any>(prompt);
+    const scoreMap = new Map<number, number>();
+    if (Array.isArray(data.scores)) {
+      for (const item of data.scores) {
+        scoreMap.set(Number(item.index), Number(item.score));
+      }
+    }
+
+    const filtered = articles.filter((_, i) => {
+      const score = scoreMap.get(i + 1) ?? 0;
+      return score >= LLM_FILTER_THRESHOLD;
+    });
+
+    ctx.log(
+      `WeChat LLM 过滤: ${articles.length} → ${filtered.length} 篇（阈值≥${LLM_FILTER_THRESHOLD}）`,
+    );
+
+    // If all articles were filtered out, keep the originals rather than
+    // showing an empty report.
+    return filtered.length ? filtered : articles;
+  } catch (e) {
+    ctx.log(`WeChat LLM 过滤失败，保留全部文章: ${e}`);
+    return articles;
+  }
+}
+
 export async function run(ctx: ModuleContext): Promise<ModuleResult> {
   const { config, log, dateCompact } = ctx;
   const authKey = config.wechat_auth_key;
   const mpList = config.wechat_mp_ids || [];
-  const limit = config.wechat_limit_per_mp;
+  // Cap articles per MP to keep the report focused
+  const limit = Math.min(config.wechat_limit_per_mp, MAX_ARTICLES_PER_MP);
   const daysRecent = config.wechat_days_recent;
 
   // ── FetchWeChatStage ──
@@ -475,8 +548,14 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
     };
   }
 
-  log(`Fetching WeChat (in-process), ${mpList.length} MPs, days_recent=${daysRecent}`);
-  const allArticles = await fetchAllMps(authKey, mpList, limit, daysRecent, log);
+  log(`Fetching WeChat (in-process), ${mpList.length} MPs, days_recent=${daysRecent}, limit_per_mp=${limit}`);
+  let allArticles = await fetchAllMps(authKey, mpList, limit, daysRecent, log);
+
+  // Cap total articles across all MPs
+  if (allArticles.length > MAX_TOTAL_ARTICLES) {
+    log(`WeChat: 总文章数 ${allArticles.length} 超过上限 ${MAX_TOTAL_ARTICLES}，截取前 ${MAX_TOTAL_ARTICLES} 篇`);
+    allArticles = allArticles.slice(0, MAX_TOTAL_ARTICLES);
+  }
 
   const knownIds = await getAllKnownIds();
   const today = dateCompact;
@@ -532,15 +611,20 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
     log(`WeChat analysis done: ${success}/${newArticles.length}`);
   }
 
-  // ── BuildWeChatFragmentStage ──
-  const html = wechatArticlesToHtml(newArticles, analyses, dateCompact);
-  const md = wechatArticlesToMd(newArticles, analyses, dateCompact);
+  // ── LLM Filter Stage ──
+  // Before rendering, use the pipeline LLM to filter articles by tech
+  // relevance. Articles scoring below the threshold are dropped.
+  const filteredArticles = await llmFilterArticles(newArticles, ctx);
 
-  if (newArticles.length) {
-    log(`WeChat HTML+MD 片段已生成 (${html.length} chars, ${newArticles.length} 篇)`);
+  // ── BuildWeChatFragmentStage ──
+  const html = wechatArticlesToHtml(filteredArticles, analyses, dateCompact);
+  const md = wechatArticlesToMd(filteredArticles, analyses, dateCompact);
+
+  if (filteredArticles.length) {
+    log(`WeChat HTML+MD 片段已生成 (${html.length} chars, ${filteredArticles.length} 篇)`);
   } else {
     log("WeChat: 使用占位符");
   }
 
-  return { html, md, count: newArticles.length };
+  return { html, md, count: filteredArticles.length };
 }

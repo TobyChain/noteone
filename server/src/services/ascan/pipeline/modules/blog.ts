@@ -302,33 +302,39 @@ function groupBySourceLabel(posts: BlogPost[]): Map<string, BlogPost[]> {
 }
 
 function blogsToDailyHtml(posts: BlogPost[], analyses: Map<string, BlogAnalysis | null>): string {
-  const lines: string[] = [];
-  lines.push(`<p class="meta-note">共 ${posts.length} 篇新文章（30 天内）。</p>`);
+  if (!posts.length) return '<p class="empty-state">今日无独立博客更新。</p>';
+
+  const lines: string[] = [`<div class="report-list blog-list">`];
+  lines.push(`<p class="section-note">共 ${posts.length} 篇新文章（30 天内）。</p>`);
 
   for (const [sourceLabel, srcPosts] of groupBySourceLabel(posts)) {
-    lines.push(`<h3 class="source-heading">${escapeHtml(sourceLabel)}</h3>`);
-    lines.push('<ul class="blog-list">');
+    lines.push(`<h3>${escapeHtml(sourceLabel)}</h3>`);
     for (const post of srcPosts) {
-      const titleDisplay = (post.title || post.slug).slice(0, 80);
+      const titleDisplay = (post.title || post.slug).slice(0, 120);
       const dateStr = post.date || "";
       const summary = summaryLine(post, analyses.get(post.slug));
 
-      const head =
-        `<li><a href="${escapeHtml(post.url)}" target="_blank">${escapeHtml(titleDisplay)}</a> ` +
-        `<span class="blog-date">(${escapeHtml(dateStr)})</span>`;
+      lines.push('<article class="card">');
+      lines.push(`<h4><a href="${escapeHtml(post.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(titleDisplay)}</a></h4>`);
+      const metaParts: string[] = [];
+      metaParts.push(`<strong>来源：${escapeHtml(sourceLabel)}</strong>`);
+      if (dateStr) metaParts.push(`日期：${escapeHtml(dateStr)}`);
+      lines.push(`<p class="meta">${metaParts.join(" · ")}</p>`);
       if (summary) {
-        lines.push(`${head}<br><span class="blog-summary">${escapeHtml(summary)}</span></li>`);
-      } else {
-        lines.push(`${head}</li>`);
+        lines.push(`<p>${escapeHtml(summary)}</p>`);
       }
+      lines.push(`<p class="links"><a href="${escapeHtml(post.url)}" target="_blank" rel="noopener noreferrer">阅读原文</a></p>`);
+      lines.push("</article>");
     }
-    lines.push("</ul>");
   }
 
+  lines.push("</div>");
   return lines.join("\n");
 }
 
 function blogsToDailyMd(posts: BlogPost[], analyses: Map<string, BlogAnalysis | null>): string {
+  if (!posts.length) return "_今日无独立博客更新。_";
+
   const lines: string[] = [];
   lines.push(`共 ${posts.length} 篇新文章（30 天内）。`);
   lines.push("");
@@ -338,13 +344,20 @@ function blogsToDailyMd(posts: BlogPost[], analyses: Map<string, BlogAnalysis | 
     lines.push("");
     for (const post of srcPosts) {
       const dateStr = post.date || "";
-      const titleDisplay = (post.title || post.slug).slice(0, 80);
+      const titleDisplay = (post.title || post.slug).slice(0, 120);
       const summary = summaryLine(post, analyses.get(post.slug));
 
-      lines.push(`- [${titleDisplay}](${post.url}) (${dateStr})`);
-      if (summary) lines.push(`  > ${summary}`);
+      lines.push(`#### [${titleDisplay}](${post.url})`);
+      lines.push("");
+      const metaParts: string[] = [`**来源：** ${sourceLabel}`];
+      if (dateStr) metaParts.push(`**日期：** ${dateStr}`);
+      lines.push(metaParts.join(" · "));
+      if (summary) lines.push(`> ${summary}`);
+      lines.push(`**链接：** [阅读原文](${post.url})`);
+      lines.push("");
+      lines.push("---");
+      lines.push("");
     }
-    lines.push("");
   }
 
   return lines.join("\n");

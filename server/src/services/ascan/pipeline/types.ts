@@ -19,6 +19,17 @@ export interface ModuleContext {
   config: AscanConfig;
   llm: PipelineLLM;
   log: (msg: string) => void;
+  /** User's daily mining preferences (focus topics, display order, etc.) */
+  preferences?: AscanPreferences;
+}
+
+export interface AscanPreferences {
+  /** 今日挖取重点，如 "AI Agent, 多模态模型" */
+  focus?: string;
+  /** 长期兴趣主题，如 "LLM, Agent, Web3" */
+  topics?: string;
+  /** 模块显示顺序，默认 official→blog→github→arxiv→conference→wechat */
+  moduleOrder?: AscanModuleName[];
 }
 
 export type ModuleRunner = (ctx: ModuleContext) => Promise<ModuleResult>;
@@ -26,10 +37,10 @@ export type ModuleRunner = (ctx: ModuleContext) => Promise<ModuleResult>;
 export type AscanModuleName = "arxiv" | "github" | "official" | "blog" | "conference" | "wechat";
 
 export const MODULE_LABELS: Record<AscanModuleName, string> = {
-  arxiv: "arXiv 论文精选",
-  github: "GitHub 项目挖掘",
   official: "官方动态跟踪",
   blog: "独立博客订阅",
+  github: "GitHub 项目挖掘",
+  arxiv: "arXiv 论文精选",
   conference: "会议论文追踪",
   wechat: "微信公众号",
 };

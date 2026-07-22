@@ -15,6 +15,9 @@ import {
   runPipelineModule,
   todayCompact,
 } from "./pipeline/index.js";
+import { PipelineLLM } from "./pipeline/llm.js";
+import { getConfig } from "./config.js";
+import { readUserPreferences } from "./pipeline/index.js";
 
 export interface AscanRunStatus {
   isRunning: boolean;
@@ -78,45 +81,82 @@ export async function runModule(
   module: string,
   date?: string,
   llmConfig?: LLMOverride,
+  userId?: string,
 ): Promise<{ module: string; ok: boolean; chars: number; error: string }> {
   const dateStr = date || todayDateStr();
   console.log(`[ascan] runModule ${module} date=${dateStr} (in-process)`);
-  return runPipelineModule(module, dateStr, llmConfig);
+  return runPipelineModule(module, dateStr, llmConfig, undefined, userId);
 }
 
 export async function mergeReport(
   date?: string,
+  userId?: string,
 ): Promise<{ ok: boolean; date: string; html_path: string; md_path: string }> {
   const dateStr = date || todayDateStr();
   console.log(`[ascan] mergeReport date=${dateStr} (in-process)`);
-  return mergePipelineReport(dateStr);
+  const prefs = userId ? await readUserPreferences(userId) : undefined;
+  return mergePipelineReport(dateStr, prefs?.moduleOrder);
 }
 
 // ── Non-blocking supplement ────────────────────────────────────────────
 
-async function runSupplement(dateStr: string, llmConfig?: LLMOverride): Promise<void> {
-  for (const mod of ALL_MODULES) {
-    if (!supplementProgress?.isRunning) break; // aborted
-    const mp = supplementProgress!.modules.find((m) => m.name === mod)!;
-    mp.status = "running";
-    supplementProgress!.currentModule = mod;
-    try {
-      const r = await runModule(mod, dateStr, llmConfig);
-      mp.status = r.ok ? "done" : "failed";
-      mp.chars = r.chars;
-      mp.error = r.error || null;
-      console.log(`[ascan] supplement ${mod}: ${mp.status} (${mp.chars} chars)`);
-    } catch (err: any) {
-      mp.status = "failed";
-      mp.error = err?.message || String(err);
-      console.error(`[ascan] supplement ${mod} exception:`, err);
+let supplementAbort: AbortController | null = null;
+
+async function runSupplement(dateStr: string, llmConfig?: LLMOverride, userId?: string): Promise<void> {
+  const abort = new AbortController();
+  supplementAbort = abort;
+
+  // Shared PipelineLLM so all modules share one concurrency semaphore
+  const config = await getConfig();
+  const sharedLlm = new PipelineLLM({
+    apiKey: llmConfig?.apiKey || config.llm_api_key,
+    baseUrl: llmConfig?.baseUrl || config.llm_base_url,
+    model: llmConfig?.model || config.llm_model,
+    maxConcurrency: config.llm_max_concurrency,
+  });
+
+  // Read user preferences for module order and focus
+  const prefs = userId ? await readUserPreferences(userId) : undefined;
+
+  // Run all modules in parallel
+  const results = await Promise.allSettled(
+    ALL_MODULES.map(async (mod) => {
+      if (abort.signal.aborted) throw new Error("aborted");
+      const mp = supplementProgress!.modules.find((m) => m.name === mod)!;
+      mp.status = "running";
+      supplementProgress!.currentModule = mod;
+      try {
+        const r = await runPipelineModule(mod, dateStr, llmConfig, sharedLlm, userId);
+        mp.status = r.ok ? "done" : "failed";
+        mp.chars = r.chars;
+        mp.error = r.error || null;
+        console.log(`[ascan] supplement ${mod}: ${mp.status} (${mp.chars} chars)`);
+      } catch (err: any) {
+        mp.status = "failed";
+        mp.error = err?.message || String(err);
+        console.error(`[ascan] supplement ${mod} exception:`, err);
+      }
+    }),
+  );
+
+  // Log any unexpected rejections (individual module errors are already caught above)
+  for (const r of results) {
+    if (r.status === "rejected" && r.reason?.message !== "aborted") {
+      console.error("[ascan] supplement unexpected rejection:", r.reason);
     }
   }
+
+  if (abort.signal.aborted) {
+    supplementProgress!.isRunning = false;
+    supplementProgress!.currentModule = null;
+    return;
+  }
+
   // Merge
   supplementProgress!.phase = "merging";
   supplementProgress!.currentModule = "merge";
   try {
-    const r = await mergeReport(dateStr);
+    const r = await mergePipelineReport(dateStr, prefs?.moduleOrder);
     supplementProgress!.phase = r.ok ? "done" : "failed";
     supplementProgress!.error = r.ok ? null : r.md_path;
     if (r.ok) {
@@ -144,6 +184,7 @@ async function runSupplement(dateStr: string, llmConfig?: LLMOverride): Promise<
 export async function startAscanSupplement(
   date?: string,
   llmConfig?: LLMOverride,
+  userId?: string,
 ): Promise<{ started: boolean; date: string; modules: string[] }> {
   const dateStr = date || todayDateStr();
   if (supplementProgress?.isRunning || pipelineBusy) {
@@ -157,7 +198,7 @@ export async function startAscanSupplement(
   console.log(`[ascan] startAscanSupplement date=${dateStr} (background, in-process)`);
 
   // Run in background — do NOT await.
-  runSupplement(dateStr, llmConfig)
+  runSupplement(dateStr, llmConfig, userId)
     .catch((err) => {
       console.error("[ascan] supplement background error:", err);
       supplementProgress!.isRunning = false;
@@ -180,22 +221,22 @@ export function getSupplementProgress(): SupplementProgress | null {
 export async function triggerRun(
   date?: string,
   llmConfig?: LLMOverride,
+  userId?: string,
 ): Promise<{ pid: number; message: string }> {
   const dateStr = date || todayDateStr();
-  await startAscanSupplement(dateStr, llmConfig);
+  await startAscanSupplement(dateStr, llmConfig, userId);
   // pid is meaningless in-process; kept for API compatibility with old clients.
   return { pid: process.pid, message: `Ascan pipeline started (in-process, date: ${dateStr})` };
 }
 
 export async function abortRun(): Promise<{ killed: boolean; message: string }> {
-  // In-process abort: stop scheduling further modules. The module currently
-  // running finishes its in-flight work and then the loop exits.
   if (supplementProgress?.isRunning) {
+    supplementAbort?.abort();
     supplementProgress.isRunning = false;
     supplementProgress.phase = "failed";
     supplementProgress.error = "aborted by user";
-    console.log("[ascan] abort requested — stopping after current module");
-    return { killed: true, message: "Pipeline abort requested (stops after current module)" };
+    console.log("[ascan] abort requested — cancelling in-flight modules");
+    return { killed: true, message: "Pipeline abort requested" };
   }
   return { killed: false, message: "No pipeline running" };
 }

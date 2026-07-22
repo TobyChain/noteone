@@ -310,6 +310,7 @@ struct WebViewMac: NSViewRepresentable {
         config.defaultWebpagePreferences.allowsContentJavaScript = false
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
         return webView
     }
 
@@ -319,7 +320,7 @@ struct WebViewMac: NSViewRepresentable {
 }
 #endif
 
-class ExternalLinkCoordinator: NSObject, WKNavigationDelegate {
+class ExternalLinkCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url,
            url.scheme == "http" || url.scheme == "https" {
@@ -332,5 +333,16 @@ class ExternalLinkCoordinator: NSObject, WKNavigationDelegate {
             return
         }
         decisionHandler(.allow)
+    }
+
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        if let url = navigationAction.request.url, url.scheme == "http" || url.scheme == "https" {
+            #if os(macOS)
+            NSWorkspace.shared.open(url)
+            #else
+            UIApplication.shared.open(url)
+            #endif
+        }
+        return nil
     }
 }

@@ -478,72 +478,65 @@ export interface ModuleFragments {
  * Combine arXiv, GitHub, official tracker, blog, conference and WeChat
  * fragments into one standalone HTML daily report.
  */
-export function buildUnifiedHtml(dateCompact: string, fragments: ModuleFragments): string {
-  const arxivHtml = fragments.arxiv;
-  const githubHtml = fragments.github;
-  const officialHtml = fragments.official;
-  const blogHtml = fragments.blog;
-  const conferenceHtml = fragments.conference;
-  const wechatHtml = fragments.wechat;
+export function buildUnifiedHtml(dateCompact: string, fragments: ModuleFragments, moduleOrder?: string[]): string {
+  const DEFAULT_ORDER = ["official", "blog", "github", "arxiv", "conference", "wechat"];
+  const order = moduleOrder?.length ? moduleOrder : DEFAULT_ORDER;
 
-  const arxivBody =
-    arxivHtml && arxivHtml.trim() ? arxivHtml.trim() : '<p class="empty-state">今日无 arXiv 数据。</p>';
-  const githubBody =
-    githubHtml && githubHtml.trim() ? githubHtml.trim() : '<p class="empty-state">今日无 GitHub 数据。</p>';
+  const sectionConfigs: Record<string, { id: string; label: string; body: string }> = {
+    official: {
+      id: "official-tracker",
+      label: "官方动态跟踪",
+      body: fragments.official?.trim() || '<p class="empty-state">今日无 Anthropic Research 或 DeepMind 新文章。</p>',
+    },
+    blog: {
+      id: "blog-subs",
+      label: "独立博客订阅",
+      body: fragments.blog?.trim() || '<p class="empty-state">今日无独立博客更新。</p>',
+    },
+    github: {
+      id: "github-repos",
+      label: "GitHub 项目挖掘",
+      body: fragments.github?.trim() || '<p class="empty-state">今日无 GitHub 数据。</p>',
+    },
+    arxiv: {
+      id: "arxiv-papers",
+      label: "arXiv 论文精选",
+      body: fragments.arxiv?.trim() || '<p class="empty-state">今日无 arXiv 数据。</p>',
+    },
+    conference: {
+      id: "conference-papers",
+      label: "会议论文追踪",
+      body: (fragments.conference?.trim() && !fragments.conference.includes("empty-state"))
+        ? fragments.conference.trim()
+        : '<p class="empty-state">今日无会议论文数据。</p>',
+    },
+    wechat: {
+      id: "wechat-mp",
+      label: "微信公众号",
+      body: (fragments.wechat?.trim() && !fragments.wechat.includes("empty-state"))
+        ? fragments.wechat.trim()
+        : '<p class="empty-state">今日无微信公众号数据。</p>',
+    },
+  };
 
-  // Part 3: Official tracker
-  const officialBody =
-    officialHtml && officialHtml.trim()
-      ? officialHtml.trim()
-      : '<p class="empty-state">今日无 Anthropic Research 或 DeepMind 新文章。</p>';
-  const officialSection = `
-    <section class="report-section" id="official-tracker">
-      <h2>3 — 官方动态跟踪</h2>
-      ${officialBody}
-    </section>
-    `;
+  // Build sections in the specified order with dynamic numbering
+  const sectionsHtml = order.map((key, i) => {
+    const cfg = sectionConfigs[key];
+    if (!cfg) return "";
+    return `
+    <section class="report-section" id="${cfg.id}">
+      <h2>${i + 1} — ${cfg.label}</h2>
+      ${cfg.body}
+    </section>`;
+  }).join("\n");
 
-  // Part 4: Blog subscriptions
-  const blogBody =
-    blogHtml && blogHtml.trim() ? blogHtml.trim() : '<p class="empty-state">今日无独立博客更新。</p>';
-  const blogSection = `
-    <section class="report-section" id="blog-subs">
-      <h2>4 — 独立博客订阅</h2>
-      ${blogBody}
-    </section>
-    `;
-
-  // Part 5: Conference papers (always rendered; empty-state if no content)
-  const confBody =
-    conferenceHtml && conferenceHtml.trim() && !conferenceHtml.includes("empty-state")
-      ? conferenceHtml.trim()
-      : "";
-  const conferenceSection = `
-    <section class="report-section" id="conference-papers">
-      <h2>5 — 会议论文追踪</h2>
-      ${confBody || '<p class="empty-state">今日无会议论文数据。</p>'}
-    </section>
-    `;
-
-  // Part 6: WeChat public accounts (always rendered; empty-state if no content)
-  const wxBody =
-    wechatHtml && wechatHtml.trim() && !wechatHtml.includes("empty-state") ? wechatHtml.trim() : "";
-  const wechatSection = `
-    <section class="report-section" id="wechat-mp">
-      <h2>6 — 微信公众号</h2>
-      ${wxBody || '<p class="empty-state">今日无微信公众号数据。</p>'}
-    </section>
-    `;
-
-  // ── Build TOC entries ──────────────────────────────────────────────
-  const tocSections: Array<[string, string, string]> = [
-    ["arxiv-papers", "1", "arXiv 论文精选"],
-    ["github-repos", "2", "GitHub 项目挖掘"],
-    ["official-tracker", "3", "官方动态跟踪"],
-    ["blog-subs", "4", "独立博客订阅"],
-    ["conference-papers", "5", "会议论文追踪"],
-    ["wechat-mp", "6", "微信公众号"],
-  ];
+  // Build TOC entries from the same order
+  const tocSections: Array<[string, string, string]> = order
+    .map((key, i) => {
+      const cfg = sectionConfigs[key];
+      return cfg ? [cfg.id, String(i + 1), cfg.label] as [string, string, string] : null;
+    })
+    .filter((x): x is [string, string, string] => x !== null);
 
   // Build TOC outline card HTML
   const tocEntriesHtml = tocSections
@@ -594,23 +587,7 @@ ${tocDotsHtml}
 
     ${tocCardHtml}
 
-    <section class="report-section" id="arxiv-papers">
-      <h2>1 — arXiv 论文精选</h2>
-      ${arxivBody}
-    </section>
-
-    <section class="report-section" id="github-repos">
-      <h2>2 — GitHub 项目挖掘</h2>
-      ${githubBody}
-    </section>
-
-    ${officialSection}
-
-    ${blogSection}
-
-    ${conferenceSection}
-
-    ${wechatSection}
+    ${sectionsHtml}
 
   </main>
   ${REPORT_JS}
@@ -620,65 +597,34 @@ ${tocDotsHtml}
 }
 
 /** Combine module Markdown fragments into one unified Markdown daily report. */
-export function buildUnifiedMd(dateCompact: string, fragments: ModuleFragments): string {
-  const arxivMd = fragments.arxiv;
-  const githubMd = fragments.github;
-  const officialMd = fragments.official;
-  const blogMd = fragments.blog;
-  const conferenceMd = fragments.conference;
-  const wechatMd = fragments.wechat;
-
+export function buildUnifiedMd(dateCompact: string, fragments: ModuleFragments, moduleOrder?: string[]): string {
+  const DEFAULT_ORDER = ["official", "blog", "github", "arxiv", "conference", "wechat"];
+  const order = moduleOrder?.length ? moduleOrder : DEFAULT_ORDER;
   const dateDisplay = `${dateCompact.slice(0, 4)}-${dateCompact.slice(4, 6)}-${dateCompact.slice(6, 8)}`;
-  const arxivBody = arxivMd && arxivMd.trim() ? arxivMd.trim() : "_今日无 arXiv 数据。_";
-  const githubBody = githubMd && githubMd.trim() ? githubMd.trim() : "_今日无 GitHub 数据。_";
-  const officialBody =
-    officialMd && officialMd.trim() ? officialMd.trim() : "_今日无 Anthropic Research 或 OpenAI 新文章。_";
-  const blogBody = blogMd && blogMd.trim() ? blogMd.trim() : "_今日无独立博客更新。_";
 
-  const subtitleParts = ["arXiv 论文精选", "GitHub 项目挖掘", "官方动态跟踪", "独立博客"];
-  let confSection = "";
-  if (conferenceMd && conferenceMd.trim() && !conferenceMd.includes("无新会议论文")) {
-    subtitleParts.push("会议论文追踪");
-    confSection = `
-## Part 5 — 会议论文追踪
+  const bodies: Record<string, { body: string; label: string }> = {
+    official: { label: "官方动态跟踪", body: fragments.official?.trim() || "_今日无 Anthropic Research 或 OpenAI 新文章。_" },
+    blog: { label: "独立博客订阅", body: fragments.blog?.trim() || "_今日无独立博客更新。_" },
+    github: { label: "GitHub 项目挖掘", body: fragments.github?.trim() || "_今日无 GitHub 数据。_" },
+    arxiv: { label: "arXiv 论文精选", body: fragments.arxiv?.trim() || "_今日无 arXiv 数据。_" },
+    conference: { label: "会议论文追踪", body: fragments.conference?.trim() || "_今日无会议论文数据。_" },
+    wechat: { label: "微信公众号", body: fragments.wechat?.trim() || "_今日无微信公众号数据。_" },
+  };
 
-${conferenceMd.trim()}
-`;
-  }
-
-  let wxSection = "";
-  if (wechatMd && wechatMd.trim() && !wechatMd.includes("无微信公众号更新")) {
-    subtitleParts.push("微信公众号");
-    wxSection = `
-## Part 6 — 微信公众号
-
-${wechatMd.trim()}
-`;
-  }
-
+  const subtitleParts = order.filter((k) => bodies[k]).map((k) => bodies[k].label);
   const subtitle = subtitleParts.join(" + ");
+
+  const parts = order.map((key, i) => {
+    const cfg = bodies[key];
+    if (!cfg) return "";
+    return `## Part ${i + 1} — ${cfg.label}\n\n${cfg.body}`;
+  }).filter(Boolean).join("\n\n");
 
   return `# Ascan-${dateCompact}
 
 > 科技前沿日报 · ${dateDisplay} · ${subtitle}
 
-## Part 1 — arXiv 论文精选
-
-${arxivBody}
-
-## Part 2 — GitHub 项目挖掘
-
-${githubBody}
-
-## Part 3 — 官方动态跟踪
-
-${officialBody}
-
-## Part 4 — 独立博客订阅
-
-${blogBody}
-${confSection}
-${wxSection}
+${parts}
 ---
 `;
 }

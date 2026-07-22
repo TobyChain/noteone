@@ -5,6 +5,26 @@ import AppKit
 import UIKit
 #endif
 
+struct LLMPreset: Identifiable {
+    let id: String
+    let name: String
+    let baseUrl: String
+    let model: String
+}
+
+let llmPresets: [LLMPreset] = [
+    LLMPreset(id: "custom", name: "自定义", baseUrl: "", model: ""),
+    LLMPreset(id: "openai", name: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini"),
+    LLMPreset(id: "dashscope", name: "通义千问 (DashScope)", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-turbo"),
+    LLMPreset(id: "deepseek", name: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat"),
+    LLMPreset(id: "glm", name: "智谱 GLM", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash"),
+    LLMPreset(id: "moonshot", name: "Moonshot (Kimi)", baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k"),
+    LLMPreset(id: "gemini", name: "Google Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.0-flash"),
+    LLMPreset(id: "anthropic", name: "Anthropic Claude", baseUrl: "https://api.anthropic.com/v1", model: "claude-3-5-sonnet-20241022"),
+    LLMPreset(id: "volcengine", name: "火山引擎 (Doubao)", baseUrl: "https://ark.cn-beijing.volces.com/api/v3", model: "doubao-pro-32k"),
+    LLMPreset(id: "ollama", name: "Ollama (本地)", baseUrl: "http://localhost:11434/v1", model: "llama3.2"),
+]
+
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthService
     @AppStorage("appTheme") private var selectedTheme: String = AppTheme.system.rawValue
@@ -13,6 +33,7 @@ struct SettingsView: View {
     @State private var llmApiKey = ""
     @State private var llmBaseUrl = ""
     @State private var llmModel = ""
+    @State private var selectedPreset: String = "custom"
     @State private var llmHasApiKey = false
     @State private var llmSaving = false
     @State private var llmSaved = false
@@ -107,6 +128,11 @@ struct SettingsView: View {
                 llmBaseUrl = settings.llm.baseUrl ?? ""
                 llmModel = settings.llm.model ?? ""
                 llmHasApiKey = settings.llm.hasApiKey
+                if let match = llmPresets.first(where: { $0.baseUrl == llmBaseUrl }) {
+                    selectedPreset = match.id
+                } else {
+                    selectedPreset = "custom"
+                }
             } catch {}
             await probeWechatHealth()
             #if !os(macOS)
@@ -184,6 +210,20 @@ struct SettingsView: View {
 
     private var llmSection: some View {
         Section {
+            Picker("服务商", selection: $selectedPreset) {
+                ForEach(llmPresets) { preset in
+                    Text(preset.name).tag(preset.id)
+                }
+            }
+            .pickerStyle(.menu)
+            .onChange(of: selectedPreset) { _, newValue in
+                if newValue != "custom",
+                   let preset = llmPresets.first(where: { $0.id == newValue }) {
+                    llmBaseUrl = preset.baseUrl
+                    llmModel = preset.model
+                }
+            }
+
             SecureField(llmHasApiKey ? "API Key（已设置，输入可替换）" : "API Key", text: $llmApiKey)
             TextField("Base URL（如 https://api.openai.com/v1）", text: $llmBaseUrl)
             TextField("模型名", text: $llmModel)
@@ -203,7 +243,7 @@ struct SettingsView: View {
             Label("AI 模型（自带 API Key）", systemImage: "cpu")
                 .sectionHeaderStyle()
         } footer: {
-            Text("填写任一 OpenAI 兼容的 API（DashScope / OpenAI / 自部署 vLLM 等）启用 AI 功能。Base URL 填到版本号即可，系统会自动拼接 /chat/completions 和 /embeddings 端点（不要在 URL 末尾加 /chat/completions）。此 Key 同时用于闹闹聊天、自动打标、摘要和新知 pipeline，无需单独配置。")
+            Text("选择服务商可自动填充 Base URL 和模型名，也可手动修改。填写任一 OpenAI 兼容的 API（DashScope / OpenAI / 自部署 vLLM 等）启用 AI 功能。Base URL 填到版本号即可，系统会自动拼接 /chat/completions 和 /embeddings 端点（不要在 URL 末尾加 /chat/completions）。此 Key 同时用于闹闹聊天、自动打标、摘要和新知 pipeline，无需单独配置。")
         }
     }
 

@@ -6,7 +6,7 @@
 import { db } from "../../db/client.js";
 import { chatSessions, chatMessages } from "../../db/schema.js";
 import { eq, and, asc, desc, inArray } from "drizzle-orm";
-import { chatCompletion } from "../llm.js";
+import { chatCompletion, type LLMConfig } from "../llm.js";
 import { getUserChatConfig } from "../user-config.js";
 import {
   trimToTokenBudget,
@@ -16,7 +16,7 @@ import {
   type ContextMessage,
 } from "../context-manager.js";
 import { runAgentLoop } from "./agent-loop.js";
-import { buildNoteIndex, buildNottySystemPrompt } from "./prompt-builder.js";
+import { buildNoteIndex, buildStableSystemPrompt, buildDynamicContext } from "./prompt-builder.js";
 import { buildNottyToolkit } from "./tools.js";
 
 // Per-process lock so a flurry of /messages requests can't trigger overlapping compactions
@@ -38,6 +38,7 @@ export async function processSessionMessage(
   userId: string,
   sessionId: string,
   message: string,
+  signal?: AbortSignal,
 ): Promise<ProcessedMessage | null> {
   const start = Date.now();
   const session = await findSession(userId, sessionId);
@@ -58,8 +59,9 @@ export async function processSessionMessage(
     getUserChatConfig(userId),
   ]);
 
-  const systemPrompt = buildNottySystemPrompt(noteIndex);
-  const { tools, handlers } = buildNottyToolkit(userId, noteIndex.allNotes);
+  const systemPrompt = buildStableSystemPrompt();
+  const dynamicContext = buildDynamicContext(noteIndex);
+  const { tools, handlers } = buildNottyToolkit(userId, noteIndex.allNotes, noteIndex.version);
 
   const historyMessages: ContextMessage[] = allMessages.map((m) => ({
     role: m.role,
@@ -72,25 +74,31 @@ export async function processSessionMessage(
 
   const llmMessages = [
     { role: "system", content: systemPrompt },
+    { role: "system", content: dynamicContext },
     ...trimmedHistory,
   ];
 
   // Collect intermediate tool messages for persistence
   const intermediateMessages: Array<{ role: string; content: string | null; tool_calls?: any[]; tool_call_id?: string }> = [];
-  const reply = await runAgentLoop(llmMessages, tools, handlers, chatConfig, 5, (msg) => {
-    intermediateMessages.push(msg);
+  const reply = await runAgentLoop(llmMessages, tools, handlers, {
+    llmConfig: chatConfig,
+    maxIterations: 5,
+    signal,
+    onIntermediateMessage: (msg) => intermediateMessages.push(msg),
   });
 
   // Persist intermediate tool messages and final reply atomically
   const assistantId = await db.transaction(async (tx) => {
-    for (const msg of intermediateMessages) {
-      await tx.insert(chatMessages).values({
-        sessionId: session.id,
-        role: msg.role,
-        content: msg.content || "",
-        toolCalls: msg.tool_calls,
-        toolCallId: msg.tool_call_id,
-      });
+    if (intermediateMessages.length > 0) {
+      await tx.insert(chatMessages).values(
+        intermediateMessages.map((msg) => ({
+          sessionId: session.id,
+          role: msg.role,
+          content: msg.content || "",
+          toolCalls: msg.tool_calls,
+          toolCallId: msg.tool_call_id,
+        })),
+      );
     }
     const [assistant] = await tx.insert(chatMessages).values({
       sessionId: session.id,
@@ -105,7 +113,7 @@ export async function processSessionMessage(
     .where(eq(chatSessions.id, session.id));
 
   if (needsCompaction(allMessages.length + 2)) {
-    compactSession(session.id).catch(console.error);
+    compactSession(session.id, chatConfig).catch(console.error);
     console.log(`[chat] session=${session.id.slice(0, 8)} compaction=triggered msgCount=${allMessages.length + 2}`);
   }
 
@@ -113,7 +121,7 @@ export async function processSessionMessage(
   return { messageId: assistantId, reply };
 }
 
-export async function compactSession(sessionId: string) {
+export async function compactSession(sessionId: string, llmConfig?: LLMConfig) {
   if (compactingSessions.has(sessionId)) return;
   compactingSessions.add(sessionId);
   try {
@@ -140,7 +148,7 @@ export async function compactSession(sessionId: string) {
       isSummary: m.isSummary,
     }));
 
-    const summary = await chatCompletion(buildSummarizationPrompt(compactMessages, existingSummary));
+    const summary = await chatCompletion(buildSummarizationPrompt(compactMessages, existingSummary), llmConfig);
 
     const idsToDelete = compactable.map((m) => m.id);
 
