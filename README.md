@@ -63,9 +63,9 @@
   │  │  → 向量化            │  │  doom-loop 检测              │    │
   │  └─────────────────────┘  └──────────────────────────────┘    │
   │                                                                │
-  │  PostgreSQL 16 + pgvector          新知 Python Pipeline        │
-  │  notes · tags · chat · reports     arXiv · GitHub · 博客 ...   │
-  │  scheduled_tasks                                                  │
+  │  PGlite 内嵌 (WASM) / PostgreSQL 16   新知 TS Pipeline          │
+  │  notes · tags · chat · reports        arXiv · GitHub · 博客 ... │
+  │  scheduled_tasks · ascan_*                                      │
   └────────────────────────────────────────────────────────────────┘
                            │ stdio (MCP)
   ┌────────────────────────┴──────────────────────────────────────┐
@@ -79,6 +79,12 @@
 
 > 工欲善其事，必先利其器。
 > —— 《论语·卫灵公》
+
+#### macOS 客户端（推荐）
+
+从 [Releases](https://github.com/TobyChain/noteone/releases) 下载最新 `NoteOne.dmg`，拖入 Applications 双击即可。App 内嵌 Node 运行时与 PGlite 数据库，无需安装任何外部环境，首次启动自动建库迁移。
+
+> 首次打开若提示"无法验证开发者"，在「系统设置 → 隐私与安全性」中点击"仍要打开"（ad-hoc 签名，个人自用）。
 
 #### 后端 + 数据库（Docker 推荐）
 
