@@ -101,7 +101,7 @@ ascanRouter.post("/trigger", async (req: AuthRequest, res) => {
   }
   try {
     const llmConfig = await getUserChatConfig(req.userId!);
-    res.json(await triggerRun(date, llmConfig));
+    res.json(await triggerRun(date, llmConfig, req.userId!));
   } catch (err: any) {
     if (err?.message?.includes("已在运行中")) {
       res.status(409).json({ error: "A pipeline run is already in progress" });
@@ -123,7 +123,7 @@ ascanRouter.post("/run-module", async (req: AuthRequest, res) => {
     return;
   }
   const llmConfig = await getUserChatConfig(req.userId!);
-  res.json(await runModule(module, date, llmConfig));
+  res.json(await runModule(module, date, llmConfig, req.userId!));
 });
 
 ascanRouter.post("/merge", async (req: AuthRequest, res) => {
@@ -132,7 +132,7 @@ ascanRouter.post("/merge", async (req: AuthRequest, res) => {
     res.status(400).json({ error: "Invalid date format. Use YYYYMMDD." });
     return;
   }
-  res.json(await mergeReport(date));
+  res.json(await mergeReport(date, req.userId!));
 });
 
 ascanRouter.get("/status", async (_req: AuthRequest, res) => {

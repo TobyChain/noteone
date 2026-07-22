@@ -2,11 +2,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import "dotenv/config";
-import { db, rowsOf } from "./db/client.js";
+import { db } from "./db/client.js";
 import { notes, noteTags, tags } from "./db/schema.js";
-import { eq, and, desc, inArray, ne, sql } from "drizzle-orm";
+import { eq, and, desc, inArray, ne } from "drizzle-orm";
 import { processNote } from "./services/pipeline.js";
-import { generateEmbedding } from "./services/llm.js";
+import { searchNotesByEmbedding } from "./services/note-search.js";
 import { attachPromptTags } from "./services/prompt-tagging.js";
 import { listReports, getReport, deleteReport } from "./services/ascan/reports.js";
 import { getRunStatus, runModule, mergeReport } from "./services/ascan/runner.js";
@@ -199,24 +199,8 @@ server.tool(
   "语义搜索笔记（基于向量相似度）",
   { query: z.string(), limit: z.number().optional() },
   async ({ query, limit = 10 }) => {
-    const embedding = await generateEmbedding(query);
-    const vectorStr = `[${embedding.join(",")}]`;
-    const safeLimit = Math.min(Math.max(limit, 1), 50);
-
-    // Parameterized via the sql template — never string-concatenate user/env values into SQL.
-    const result = await db.execute<any>(sql`
-      SELECT id, title, ai_summary, content, source_url,
-             1 - (embedding <=> ${vectorStr}::vector) AS similarity
-      FROM notes
-      WHERE user_id = ${USER_ID}
-        AND status != 'trashed'
-        AND embedding IS NOT NULL
-      ORDER BY embedding <=> ${vectorStr}::vector
-      LIMIT ${safeLimit}
-    `);
-
-    const rows = rowsOf(result);
-    const text = rows.map((r: any, i: number) =>
+    const rows = await searchNotesByEmbedding(USER_ID, query, { limit: Math.min(limit, 50) });
+    const text = rows.map((r, i) =>
       `${i + 1}. [${r.id}] ${r.title || "无标题"} (相似度: ${(r.similarity * 100).toFixed(1)}%)\n   ${r.ai_summary || r.content?.slice(0, 80)}`
     ).join("\n\n");
     return { content: [{ type: "text" as const, text: text || "未找到相关笔记" }] };
@@ -320,7 +304,7 @@ server.tool(
   },
   async ({ module, date }) => {
     const llmConfig = await getUserChatConfig(USER_ID);
-    const r = await runModule(module, date, llmConfig);
+    const r = await runModule(module, date, llmConfig, USER_ID);
     return {
       content: [{
         type: "text" as const,
@@ -335,7 +319,7 @@ server.tool(
   "合并已运行模块的片段为新知日报（阻塞，数秒）。在 run_ascan_module 跑完所需模块后调用。",
   { date: z.string().optional().describe("报告日期 YYYYMMDD，默认今天") },
   async ({ date }) => {
-    const r = await mergeReport(date);
+    const r = await mergeReport(date, USER_ID);
     return {
       content: [{
         type: "text" as const,

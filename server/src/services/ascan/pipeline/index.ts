@@ -10,17 +10,20 @@ import { join } from "path";
 import { ASCAN_DOCS, ASCAN_LOGS, getConfig } from "../config.js";
 import { PipelineLLM } from "./llm.js";
 import { buildUnifiedHtml, buildUnifiedMd } from "./report.js";
-import { MODULE_LABELS, type AscanModuleName, type ModuleContext, type ModuleRunner } from "./types.js";
+import { MODULE_LABELS, type AscanModuleName, type ModuleContext, type ModuleRunner, type AscanPreferences } from "./types.js";
 import type { LLMConfig } from "../../llm.js";
+import { db } from "../../../db/client.js";
+import { users } from "../../../db/schema.js";
+import { eq } from "drizzle-orm";
 
 const FRAGMENT_DIR = () => join(ASCAN_LOGS, "fragments");
 
 // Lazy imports so one broken module can't take down the orchestrator.
 const MODULE_REGISTRY: Record<AscanModuleName, () => Promise<{ run: ModuleRunner }>> = {
-  arxiv: () => import("./modules/arxiv.js"),
-  github: () => import("./modules/github.js"),
   official: () => import("./modules/official.js"),
   blog: () => import("./modules/blog.js"),
+  github: () => import("./modules/github.js"),
+  arxiv: () => import("./modules/arxiv.js"),
   conference: () => import("./modules/conference.js"),
   wechat: () => import("./modules/wechat.js"),
 };
@@ -46,9 +49,9 @@ export function todayCompact(): string {
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
 }
 
-async function buildContext(dateCompact: string, llmOverride?: LLMConfig): Promise<ModuleContext> {
+async function buildContext(dateCompact: string, llmOverride?: LLMConfig, sharedLlm?: PipelineLLM, preferences?: AscanPreferences): Promise<ModuleContext> {
   const config = await getConfig();
-  const llm = new PipelineLLM({
+  const llm = sharedLlm ?? new PipelineLLM({
     apiKey: llmOverride?.apiKey || config.llm_api_key,
     baseUrl: llmOverride?.baseUrl || config.llm_base_url,
     model: llmOverride?.model || config.llm_model,
@@ -60,7 +63,18 @@ async function buildContext(dateCompact: string, llmOverride?: LLMConfig): Promi
     config,
     llm,
     log: (msg: string) => console.log(`[ascan] ${msg}`),
+    preferences,
   };
+}
+
+export async function readUserPreferences(userId?: string): Promise<AscanPreferences | undefined> {
+  if (!userId) return undefined;
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { settings: true },
+  });
+  const prefs = (user?.settings as any)?.ascanPreferences;
+  return prefs && typeof prefs === "object" ? prefs : undefined;
 }
 
 function fragmentPaths(dateCompact: string, module: string): { html: string; md: string } {
@@ -88,6 +102,8 @@ export async function runPipelineModule(
   name: string,
   dateCompact: string,
   llmOverride?: LLMConfig,
+  sharedLlm?: PipelineLLM,
+  userId?: string,
 ): Promise<ModuleRunResult> {
   if (!(name in MODULE_REGISTRY)) {
     return { module: name, ok: false, chars: 0, error: `unknown module: ${name}` };
@@ -95,7 +111,8 @@ export async function runPipelineModule(
   const moduleName = name as AscanModuleName;
   console.log(`[ascan] [${name}] run_module start (date=${dateCompact})`);
   try {
-    const ctx = await buildContext(dateCompact, llmOverride);
+    const preferences = await readUserPreferences(userId);
+    const ctx = await buildContext(dateCompact, llmOverride, sharedLlm, preferences);
     const { run } = await MODULE_REGISTRY[moduleName]();
     const result = await run(ctx);
     const chars = await persistFragment(dateCompact, name, result.html, result.md);
@@ -115,28 +132,27 @@ export interface MergeResult {
 }
 
 /** Read persisted fragments for the date, build unified HTML+MD, write into docs/. */
-export async function mergePipelineReport(dateCompact: string): Promise<MergeResult> {
-  const fragments: Record<AscanModuleName, { html: string; md: string }> = {} as any;
-  for (const name of moduleNames()) {
-    fragments[name] = await loadFragment(dateCompact, name);
-  }
+export async function mergePipelineReport(dateCompact: string, moduleOrder?: AscanModuleName[]): Promise<MergeResult> {
+  const names = moduleOrder?.length ? moduleOrder : moduleNames();
+  const loaded = await Promise.all(names.map((name) => loadFragment(dateCompact, name)));
+  const fragments = Object.fromEntries(names.map((name, i) => [name, loaded[i]])) as Record<AscanModuleName, { html: string; md: string }>;
 
   const unifiedHtml = buildUnifiedHtml(dateCompact, {
-    arxiv: fragments.arxiv.html,
-    github: fragments.github.html,
-    official: fragments.official.html,
-    blog: fragments.blog.html,
-    conference: fragments.conference.html,
-    wechat: fragments.wechat.html,
-  });
+    arxiv: fragments.arxiv?.html ?? "",
+    github: fragments.github?.html ?? "",
+    official: fragments.official?.html ?? "",
+    blog: fragments.blog?.html ?? "",
+    conference: fragments.conference?.html ?? "",
+    wechat: fragments.wechat?.html ?? "",
+  }, moduleOrder);
   const unifiedMd = buildUnifiedMd(dateCompact, {
-    arxiv: fragments.arxiv.md,
-    github: fragments.github.md,
-    official: fragments.official.md,
-    blog: fragments.blog.md,
-    conference: fragments.conference.md,
-    wechat: fragments.wechat.md,
-  });
+    arxiv: fragments.arxiv?.md ?? "",
+    github: fragments.github?.md ?? "",
+    official: fragments.official?.md ?? "",
+    blog: fragments.blog?.md ?? "",
+    conference: fragments.conference?.md ?? "",
+    wechat: fragments.wechat?.md ?? "",
+  }, moduleOrder);
 
   await mkdir(ASCAN_DOCS, { recursive: true });
   const htmlPath = join(ASCAN_DOCS, `Ascan-${dateCompact}.html`);

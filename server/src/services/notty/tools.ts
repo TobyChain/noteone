@@ -3,10 +3,10 @@
  * Note/web tools are defined here; ascan/local/schedule tools are contributed
  * by their own service modules and aggregated below.
  */
-import { db, rowsOf } from "../../db/client.js";
-import { notes, noteTags, tags } from "../../db/schema.js";
-import { eq, and, sql } from "drizzle-orm";
-import { generateEmbedding } from "../llm.js";
+import { db } from "../../db/client.js";
+import { notes, noteTags, tags, users } from "../../db/schema.js";
+import { eq, and } from "drizzle-orm";
+import { searchNotesByEmbedding } from "../note-search.js";
 import { fetchUrlContent } from "../web-fetch.js";
 import { searchWeb } from "../web-search.js";
 import { ascanToolDefinitions, makeAscanHandlers } from "../ascan/tools.js";
@@ -14,6 +14,7 @@ import { localToolDefinitions, makeLocalHandlers } from "../local-tools.js";
 import { scheduleToolDefinitions, makeScheduleHandlers } from "../schedule-tools.js";
 import type { ToolDefinition, ToolHandler } from "./agent-loop.js";
 import type { NoteIndexEntry } from "./prompt-builder.js";
+import type { AscanPreferences, AscanModuleName } from "../ascan/pipeline/types.js";
 
 export interface NottyToolkit {
   tools: ToolDefinition[];
@@ -25,12 +26,14 @@ const noteToolDefinitions: ToolDefinition[] = [
     type: "function",
     function: {
       name: "read_note",
-      description: "读取某条笔记的完整正文及来源/作者信息。可用索引序号(系统提示里 [N] 的数字)或笔记 id 定位。需要引用或分析笔记具体内容时必须先调用本工具。",
+      description: "读取某条笔记的正文及来源/作者信息。可用索引序号(系统提示里 [N] 的数字)或笔记 id 定位。大笔记可用 offset/limit 分段读取（按行）。需要引用或分析笔记具体内容时必须先调用本工具。",
       parameters: {
         type: "object",
         properties: {
           index: { type: "number", description: "笔记在索引列表中的序号([N] 里的数字)，从 1 开始" },
           id: { type: "string", description: "笔记的 id（与 index 二选一，优先使用 id）" },
+          offset: { type: "number", description: "起始行号（从 0 开始），用于分段读取大笔记" },
+          limit: { type: "number", description: "读取行数，默认 200" },
         },
       },
     },
@@ -81,8 +84,38 @@ const noteToolDefinitions: ToolDefinition[] = [
   },
 ];
 
+const preferenceToolDefinitions: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "get_ascan_preferences",
+      description: "获取用户的新知挖取偏好设置，包括每日重点、兴趣主题和模块显示顺序。",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_ascan_preferences",
+      description: "更新新知挖取偏好。focus 是今日重点（如'AI Agent, 多模态'）；topics 是长期兴趣；moduleOrder 是显示顺序（可选值: official, blog, github, arxiv, conference, wechat）。用户说'今天重点关注XX'或'调整日报顺序'时使用。",
+      parameters: {
+        type: "object",
+        properties: {
+          focus: { type: "string", description: "今日挖取重点，如'AI Agent, 多模态模型'" },
+          topics: { type: "string", description: "长期兴趣主题，如'LLM, Agent, Web3'" },
+          moduleOrder: {
+            type: "array",
+            items: { type: "string", enum: ["official", "blog", "github", "arxiv", "conference", "wechat"] },
+            description: "模块显示顺序，默认 official→blog→github→arxiv→conference→wechat",
+          },
+        },
+      },
+    },
+  },
+];
+
 // Resolve a note (scoped to the user) to a full, citable text block.
-async function renderNoteFull(userId: string, noteId: string): Promise<string | null> {
+async function renderNoteFull(userId: string, noteId: string, offset = 0, limit = 200): Promise<string | null> {
   const note = await db.query.notes.findFirst({
     where: and(eq(notes.id, noteId), eq(notes.userId, userId)),
   });
@@ -97,18 +130,29 @@ async function renderNoteFull(userId: string, noteId: string): Promise<string | 
     note.sourceUrl ? `链接: ${note.sourceUrl}` : null,
     `日期: ${note.createdAt.toISOString().slice(0, 10)}`,
   ].filter(Boolean).join(" | ");
+
+  const lines = (note.content || "").split("\n");
+  const totalLines = lines.length;
+  const sliced = lines.slice(offset, offset + limit).join("\n");
+  const remaining = totalLines - offset - limit;
+  const paginationHint = remaining > 0
+    ? `\n\n[... 省略 ${remaining} 行，共 ${totalLines} 行。使用 offset=${offset + limit} 继续读取 ...]`
+    : offset > 0
+      ? `\n\n[已显示第 ${offset + 1}-${Math.min(offset + limit, totalLines)} 行，共 ${totalLines} 行]`
+      : "";
+
   return `标题: ${note.title || "无标题"}
 摘要: ${note.aiSummary || "无"}
 标签: ${tagStr || "无"}
 引用信息: ${citation}
 
 ---
-${note.content}`;
+${sliced}${paginationHint}`;
 }
 
 function makeNoteHandlers(userId: string, allNotes: NoteIndexEntry[]): Record<string, ToolHandler> {
   return {
-    read_note: async ({ index, id }: { index?: number; id?: string }) => {
+    read_note: async ({ index, id, offset, limit }: { index?: number; id?: string; offset?: number; limit?: number }) => {
       let noteId = typeof id === "string" && id.length > 0 ? id : undefined;
       if (!noteId && typeof index === "number") {
         const target = allNotes[index - 1];
@@ -116,28 +160,15 @@ function makeNoteHandlers(userId: string, allNotes: NoteIndexEntry[]): Record<st
         noteId = target.id;
       }
       if (!noteId) return "请提供 index 或 id";
-      const text = await renderNoteFull(userId, noteId);
+      const text = await renderNoteFull(userId, noteId, offset ?? 0, limit ?? 200);
       return text ?? "笔记不存在";
     },
     search_notes: async (args: Record<string, any>) => {
       const query = args.query as string;
       const limit = (args.limit as number) || 5;
-      const embedding = await generateEmbedding(query);
-      const vectorStr = `[${embedding.join(",")}]`;
-      const safeLimit = Math.min(Math.max(limit, 1), 20);
-      const result = await db.execute<any>(sql`
-        SELECT id, title, ai_summary, content,
-               1 - (embedding <=> ${vectorStr}::vector) AS similarity
-        FROM notes
-        WHERE user_id = ${userId}
-          AND status != 'trashed'
-          AND embedding IS NOT NULL
-        ORDER BY embedding <=> ${vectorStr}::vector
-        LIMIT ${safeLimit}
-      `);
-      const rows = rowsOf(result);
+      const rows = await searchNotesByEmbedding(userId, query, { limit: Math.min(limit, 20) });
       if (rows.length === 0) return "未找到相关笔记";
-      return rows.map((r: any, i: number) =>
+      return rows.map((r, i) =>
         `${i + 1}. id=${r.id} | ${r.title || "无标题"} (相似度 ${(r.similarity * 100).toFixed(1)}%)\n   ${r.ai_summary || (r.content ? r.content.slice(0, 100) : "")}`
       ).join("\n\n");
     },
@@ -161,20 +192,76 @@ const webHandlers: Record<string, ToolHandler> = {
   },
 };
 
-export function buildNottyToolkit(userId: string, allNotes: NoteIndexEntry[]): NottyToolkit {
+function makePreferenceHandlers(userId: string): Record<string, ToolHandler> {
   return {
-    tools: [
+    get_ascan_preferences: async () => {
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId),
+        columns: { settings: true },
+      });
+      const prefs = ((user?.settings as any)?.ascanPreferences ?? {}) as AscanPreferences;
+      const parts: string[] = [];
+      if (prefs.focus) parts.push(`今日重点: ${prefs.focus}`);
+      if (prefs.topics) parts.push(`兴趣主题: ${prefs.topics}`);
+      if (prefs.moduleOrder?.length) parts.push(`显示顺序: ${prefs.moduleOrder.join(" → ")}`);
+      return parts.length > 0 ? parts.join("\n") : "尚未设置新知挖取偏好（使用默认配置）。";
+    },
+    update_ascan_preferences: async (args: Record<string, any>) => {
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId),
+        columns: { settings: true },
+      });
+      const current = (user?.settings ?? {}) as any;
+      const prefs: AscanPreferences = { ...(current.ascanPreferences ?? {}) };
+      if (typeof args.focus === "string") prefs.focus = args.focus || undefined;
+      if (typeof args.topics === "string") prefs.topics = args.topics || undefined;
+      if (Array.isArray(args.moduleOrder)) {
+        const valid = ["official", "blog", "github", "arxiv", "conference", "wechat"] as const;
+        prefs.moduleOrder = args.moduleOrder.filter((m: string) => valid.includes(m as any)) as AscanModuleName[];
+      }
+      await db.update(users)
+        .set({ settings: { ...current, ascanPreferences: prefs }, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+      const parts: string[] = ["已更新新知挖取偏好："];
+      if (prefs.focus) parts.push(`  今日重点: ${prefs.focus}`);
+      if (prefs.topics) parts.push(`  兴趣主题: ${prefs.topics}`);
+      if (prefs.moduleOrder?.length) parts.push(`  显示顺序: ${prefs.moduleOrder.join(" → ")}`);
+      return parts.join("\n");
+    },
+  };
+}
+
+// Static tool definitions — assembled once.
+let cachedTools: ToolDefinition[] | null = null;
+
+// Per-user handler cache: only rebuilt when note index version changes.
+const handlerCache = new Map<string, { noteVersion: string; handlers: Record<string, ToolHandler> }>();
+
+export function buildNottyToolkit(userId: string, allNotes: NoteIndexEntry[], noteVersion: string): NottyToolkit {
+  if (!cachedTools) {
+    cachedTools = [
       ...noteToolDefinitions,
+      ...preferenceToolDefinitions,
       ...ascanToolDefinitions,
       ...localToolDefinitions,
       ...scheduleToolDefinitions,
-    ],
-    handlers: {
-      ...makeNoteHandlers(userId, allNotes),
-      ...webHandlers,
-      ...makeAscanHandlers(userId),
-      ...makeLocalHandlers(),
-      ...makeScheduleHandlers(userId),
-    },
+    ];
+  }
+
+  const cached = handlerCache.get(userId);
+  if (cached && cached.noteVersion === noteVersion) {
+    return { tools: cachedTools, handlers: cached.handlers };
+  }
+
+  const handlers: Record<string, ToolHandler> = {
+    ...makeNoteHandlers(userId, allNotes),
+    ...webHandlers,
+    ...makePreferenceHandlers(userId),
+    ...makeAscanHandlers(userId),
+    ...makeLocalHandlers(),
+    ...makeScheduleHandlers(userId),
   };
+
+  handlerCache.set(userId, { noteVersion, handlers });
+  return { tools: cachedTools, handlers };
 }

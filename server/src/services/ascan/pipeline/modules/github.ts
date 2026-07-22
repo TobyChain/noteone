@@ -533,17 +533,19 @@ function reposToDailyHtml(
   sections.push(`<h3>今日精选（高度相关，共 ${tableRows.length} 个）</h3>`);
   if (tableRows.length) {
     sections.push('<div class="table-wrapper"><table>');
-    sections.push("<thead><tr><th>项目</th><th>语言</th><th>Stars</th><th>一句话描述</th></tr></thead>");
+    sections.push("<thead><tr><th>项目</th><th>描述</th><th>语言</th><th>Stars</th><th>链接</th></tr></thead>");
     sections.push("<tbody>");
     for (const [fullName, analysis] of tableRows) {
       const repo = repoMap.get(fullName);
       if (!repo) continue;
+      const desc = repo.description ? escapeHtml(repo.description.slice(0, 100)) : "—";
       sections.push(
         "<tr>" +
         `<td>${repoLink(repo)}</td>` +
+        `<td>${desc}</td>` +
         `<td>${escapeHtml(repo.language || "—")}</td>` +
         `<td>${escapeHtml(starsBadge(repo.stars))}</td>` +
-        `<td>${escapeHtml(analysis.one_liner)}</td>` +
+        `<td><a href="${escapeHtml(repo.url)}" target="_blank" rel="noopener noreferrer">阅读原文</a></td>` +
         "</tr>",
       );
     }
@@ -562,24 +564,21 @@ function reposToDailyHtml(
     for (const [fullName, analysis] of analyzed) {
       const repo = repoMap.get(fullName);
       if (!repo) continue;
-      const topicTags = repo.topics
-        .slice(0, 6)
-        .map((topic) => `<span class="tag">${escapeHtml(topic)}</span>`)
-        .join("");
       sections.push('<article class="card repo-card">');
       sections.push(`<h4>${repoLink(repo)}</h4>`);
-      sections.push(`<p class="lead">${escapeHtml(analysis.one_liner)}</p>`);
+      if (repo.description) {
+        sections.push(`<p class="meta">${escapeHtml(repo.description)}</p>`);
+      }
       sections.push('<ul class="meta-list">');
-      sections.push(`<li><strong>相关性：</strong>${escapeHtml(analysis.relevance)}</li>`);
       sections.push(`<li><strong>Stars：</strong>${escapeHtml(starsBadge(repo.stars) + todayBadge(repo.stars_today))}</li>`);
       sections.push(`<li><strong>语言：</strong>${escapeHtml(repo.language || "—")}</li>`);
+      sections.push(`<li><strong>相关性：</strong>${escapeHtml(analysis.relevance)}</li>`);
       sections.push("</ul>");
-      if (topicTags) sections.push(`<div class="tags">${topicTags}</div>`);
-      sections.push(`<p><strong>定位：</strong>${escapeHtml(analysis.positioning)}</p>`);
-      sections.push(`<p><strong>核心技术：</strong>${escapeHtml(analysis.core_tech)}</p>`);
-      sections.push(`<p><strong>使用场景：</strong>${escapeHtml(analysis.use_cases)}</p>`);
-      sections.push(`<p><strong>对比同类：</strong>${escapeHtml(analysis.comparison)}</p>`);
-      sections.push(`<p><strong>值得关注：</strong>${escapeHtml(analysis.watch_reason)}</p>`);
+      sections.push(`<p class="lead">${escapeHtml(analysis.one_liner)}</p>`);
+      if (analysis.watch_reason) {
+        sections.push(`<p><strong>值得关注：</strong>${escapeHtml(analysis.watch_reason)}</p>`);
+      }
+      sections.push(`<p class="links"><a href="${escapeHtml(repo.url)}" target="_blank" rel="noopener noreferrer">阅读原文</a></p>`);
       sections.push("</article>");
     }
   }
@@ -589,12 +588,14 @@ function reposToDailyHtml(
   const unanalyzed = repos.filter((r) => !allAnalyzedNames.has(r.full_name));
   if (unanalyzed.length) {
     sections.push("<h3>其他仓库</h3>");
-    sections.push('<ul class="repo-link-list">');
+    sections.push('<ul class="meta-list">');
     for (const repo of unanalyzed) {
+      const desc = repo.description ? ` — ${escapeHtml(repo.description.slice(0, 80))}` : "";
       sections.push(
-        `<li>${repoLink(repo)} ` +
+        `<li>${repoLink(repo)}${desc} ` +
         `<span class="repo-meta">${starsBadge(repo.stars)}</span> ` +
-        `<span class="repo-lang">${escapeHtml(repo.language || "")}</span></li>`,
+        `<span class="repo-lang">${escapeHtml(repo.language || "")}</span> ` +
+        `<a href="${escapeHtml(repo.url)}" target="_blank" rel="noopener noreferrer">阅读原文</a></li>`,
       );
     }
     sections.push("</ul>");
@@ -629,12 +630,13 @@ function reposToDailyMd(
   lines.push(`#### 今日精选（高度相关，共 ${tableRows.length} 个）`);
   lines.push("");
   if (tableRows.length) {
-    lines.push("| 项目 | 语言 | Stars | 一句话描述 |");
-    lines.push("|------|------|-------|-----------|");
+    lines.push("| 项目 | 描述 | 语言 | Stars | 链接 |");
+    lines.push("|------|------|------|-------|------|");
     for (const [name, analysis] of tableRows) {
       const repo = repoMap.get(name);
       if (!repo) continue;
-      lines.push(`| [${repo.full_name}](${repo.url}) | ${repo.language || "—"} | ${mdStars(repo.stars)} | ${analysis.one_liner} |`);
+      const desc = (repo.description || "—").slice(0, 80).replace(/\|/g, "\\|");
+      lines.push(`| [${repo.full_name}](${repo.url}) | ${desc} | ${repo.language || "—"} | ${mdStars(repo.stars)} | [阅读原文](${repo.url}) |`);
     }
     lines.push("");
   } else {
@@ -654,21 +656,22 @@ function reposToDailyMd(
     for (const [name, analysis] of analyzed) {
       const repo = repoMap.get(name);
       if (!repo) continue;
-      const topics = repo.topics.length ? repo.topics.slice(0, 6).map((t) => `\`${t}\``).join(" ") : "";
 
       lines.push(`##### [${repo.full_name}](${repo.url})`);
       lines.push("");
+      if (repo.description) {
+        lines.push(`> ${repo.description}`);
+        lines.push("");
+      }
       lines.push(`**${analysis.one_liner}**`);
       lines.push("");
-      lines.push(`- **相关性：** ${analysis.relevance}`);
       lines.push(`- **Stars：** ${mdStars(repo.stars)}`);
       lines.push(`- **语言：** ${repo.language || "—"}`);
-      if (topics) lines.push(`- **标签：** ${topics}`);
-      lines.push(`- **定位：** ${analysis.positioning}`);
-      lines.push(`- **核心技术：** ${analysis.core_tech}`);
-      lines.push(`- **使用场景：** ${analysis.use_cases}`);
-      lines.push(`- **对比同类：** ${analysis.comparison}`);
-      lines.push(`- **值得关注：** ${analysis.watch_reason}`);
+      lines.push(`- **相关性：** ${analysis.relevance}`);
+      if (analysis.watch_reason) {
+        lines.push(`- **值得关注：** ${analysis.watch_reason}`);
+      }
+      lines.push(`- **链接：** [阅读原文](${repo.url})`);
       lines.push("");
       lines.push("---");
       lines.push("");
@@ -682,7 +685,8 @@ function reposToDailyMd(
     lines.push("#### 其他仓库");
     lines.push("");
     for (const repo of unanalyzed) {
-      lines.push(`- [${repo.full_name}](${repo.url}) ${mdStars(repo.stars)} ${repo.language || ""}`);
+      const desc = repo.description ? ` — ${repo.description.slice(0, 80)}` : "";
+      lines.push(`- [${repo.full_name}](${repo.url})${desc} ${mdStars(repo.stars)} ${repo.language || ""} [阅读原文](${repo.url})`);
     }
     lines.push("");
   }

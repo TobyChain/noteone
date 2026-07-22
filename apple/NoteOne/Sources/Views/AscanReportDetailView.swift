@@ -169,6 +169,7 @@ struct AscanWebView: UIViewRepresentable {
         webView.backgroundColor = .systemBackground
         webView.scrollView.backgroundColor = .systemBackground
         webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
         onWebViewReady?(webView)
         return webView
     }
@@ -179,7 +180,7 @@ struct AscanWebView: UIViewRepresentable {
         webView.loadHTMLString(htmlContent, baseURL: nil)
     }
 
-    class Coordinator: NSObject, WKNavigationDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         var currentHTML: String?
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -190,6 +191,13 @@ struct AscanWebView: UIViewRepresentable {
                 return
             }
             decisionHandler(.allow)
+        }
+
+        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+            if let url = navigationAction.request.url, url.scheme == "http" || url.scheme == "https" {
+                UIApplication.shared.open(url)
+            }
+            return nil
         }
     }
 }
@@ -208,6 +216,7 @@ struct AscanWebView: NSViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.setValue(false, forKey: "drawsBackground")
         webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
         onWebViewReady?(webView)
         return webView
     }
@@ -218,7 +227,7 @@ struct AscanWebView: NSViewRepresentable {
         webView.loadHTMLString(htmlContent, baseURL: nil)
     }
 
-    class Coordinator: NSObject, WKNavigationDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         var currentHTML: String?
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -229,6 +238,13 @@ struct AscanWebView: NSViewRepresentable {
                 return
             }
             decisionHandler(.allow)
+        }
+
+        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+            if let url = navigationAction.request.url, url.scheme == "http" || url.scheme == "https" {
+                NSWorkspace.shared.open(url)
+            }
+            return nil
         }
     }
 }

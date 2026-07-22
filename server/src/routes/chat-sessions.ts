@@ -51,7 +51,34 @@ router.post("/:id/messages", async (req: AuthRequest, res) => {
   const parsed = sendSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
-  const result = await processSessionMessage(req.userId!, req.params.id as string, parsed.data.message);
+  const controller = new AbortController();
+  req.on("close", () => controller.abort());
+
+  const wantsSSE = (req.headers.accept || "").includes("text/event-stream");
+
+  if (wantsSSE) {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+
+    const result = await processSessionMessage(
+      req.userId!, req.params.id as string, parsed.data.message, controller.signal,
+    );
+    if (!result) {
+      res.write(`event: error\ndata: ${JSON.stringify({ error: "Not found" })}\n\n`);
+      res.end();
+      return;
+    }
+    res.write(`event: message\ndata: ${JSON.stringify({ id: result.messageId, role: "assistant", content: result.reply })}\n\n`);
+    res.end();
+    return;
+  }
+
+  const result = await processSessionMessage(
+    req.userId!, req.params.id as string, parsed.data.message, controller.signal,
+  );
   if (!result) { res.status(404).json({ error: "Not found" }); return; }
 
   res.json({ message: { id: result.messageId, role: "assistant", content: result.reply } });
