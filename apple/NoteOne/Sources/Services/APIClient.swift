@@ -32,19 +32,36 @@ enum APIError: Error, LocalizedError {
     case unauthorized
     case notFound
     case serverError(Int)
+    case serverMessage(statusCode: Int, message: String)
     case decodingError(Error)
     case networkError(Error)
 
     var errorDescription: String? {
         switch self {
         case .invalidURL: return "Invalid URL"
-        case .unauthorized: return "Unauthorized"
-        case .notFound: return "Not found"
-        case .serverError(let code): return "Server error: \(code)"
+        case .unauthorized: return L("登录已过期，请重新登录", "Session expired, please re-login")
+        case .notFound: return L("未找到资源", "Not found")
+        case .serverError(let code):
+            if code >= 500 {
+                return L("服务器错误，请稍后重试", "Server error, please try again later")
+            }
+            return L("请求失败 (\(code))", "Request failed (\(code))")
+        case .serverMessage(let code, let message):
+            if code >= 500 {
+                return L("服务器错误，请稍后重试", "Server error, please try again later") + ": \(message)"
+            }
+            return message
         case .decodingError(let err): return "Decoding error: \(err.localizedDescription)"
-        case .networkError(let err): return "Network error: \(err.localizedDescription)"
+        case .networkError(let err): return L("网络错误: ", "Network error: ") + err.localizedDescription
         }
     }
+}
+
+/// Used to parse error messages from server JSON error responses.
+private struct ServerErrorResponse: Decodable {
+    let error: String?
+    let message: String?
+    let detail: String?
 }
 
 actor APIClient {
@@ -164,6 +181,9 @@ actor APIClient {
             NotificationCenter.default.post(name: .unauthorized, object: nil)
             throw APIError.unauthorized
         default:
+            if let msg = parseErrorMessage(from: respData) {
+                throw APIError.serverMessage(statusCode: http.statusCode, message: msg)
+            }
             throw APIError.serverError(http.statusCode)
         }
     }
@@ -221,7 +241,7 @@ actor APIClient {
         if let token = token {
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        let (_, response) = try await session.data(for: req)
+        let (respData, response) = try await session.data(for: req)
         guard let http = response as? HTTPURLResponse else {
             throw APIError.networkError(URLError(.badServerResponse))
         }
@@ -231,6 +251,9 @@ actor APIClient {
             NotificationCenter.default.post(name: .unauthorized, object: nil)
             throw APIError.unauthorized
         default:
+            if let msg = parseErrorMessage(from: respData) {
+                throw APIError.serverMessage(statusCode: http.statusCode, message: msg)
+            }
             throw APIError.serverError(http.statusCode)
         }
     }
@@ -398,6 +421,14 @@ actor APIClient {
 
     private struct EmptyBody: Encodable {}
 
+    /// Attempts to parse a human-readable error message from the server's JSON response body.
+    private func parseErrorMessage(from data: Data) -> String? {
+        guard let decoded = try? JSONDecoder().decode(ServerErrorResponse.self, from: data) else {
+            return nil
+        }
+        return decoded.error ?? decoded.message ?? decoded.detail
+    }
+
     // MARK: - HTTP Methods
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
@@ -450,8 +481,14 @@ actor APIClient {
             NotificationCenter.default.post(name: .unauthorized, object: nil)
             throw APIError.unauthorized
         case 404:
+            if let msg = parseErrorMessage(from: data) {
+                throw APIError.serverMessage(statusCode: 404, message: msg)
+            }
             throw APIError.notFound
         default:
+            if let msg = parseErrorMessage(from: data) {
+                throw APIError.serverMessage(statusCode: httpResponse.statusCode, message: msg)
+            }
             throw APIError.serverError(httpResponse.statusCode)
         }
     }
@@ -487,8 +524,14 @@ actor APIClient {
             NotificationCenter.default.post(name: .unauthorized, object: nil)
             throw APIError.unauthorized
         case 404:
+            if let msg = parseErrorMessage(from: data) {
+                throw APIError.serverMessage(statusCode: 404, message: msg)
+            }
             throw APIError.notFound
         default:
+            if let msg = parseErrorMessage(from: data) {
+                throw APIError.serverMessage(statusCode: httpResponse.statusCode, message: msg)
+            }
             throw APIError.serverError(httpResponse.statusCode)
         }
     }

@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 struct NottyView: View {
     @State private var messages: [ChatMessage] = []
@@ -11,6 +14,9 @@ struct NottyView: View {
     @State private var supplement: AscanSupplementProgress?
     @State private var supplementTimer: Timer?
     @State private var supplementDoneFlash = false
+    @State private var chatError: String?
+    @State private var llmConfigured: Bool? = nil
+    @State private var showLLMNotConfiguredAlert = false
     var onClose: (() -> Void)? = nil
 
     private let promptSuggestions: [String] = [
@@ -68,6 +74,22 @@ struct NottyView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {
+                        if sessions.isEmpty && sessionId == nil && !isLoading {
+                            VStack(spacing: DG.sp8) {
+                                Image(systemName: "bubble.left.and.bubble.right")
+                                    .font(.system(size: DG.iconEmpty))
+                                    .foregroundStyle(Color.inkTertiary)
+                                Text(L("还没有对话", "No Conversations Yet"))
+                                    .font(.headline)
+                                    .foregroundStyle(Color.inkSecondary)
+                                Text(L("输入消息开始与闹闹交流。", "Type a message to start chatting with Notty."))
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.inkTertiary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
+                        }
                         ForEach(messages) { msg in
                             ChatBubble(message: msg)
                                 .id(msg.id)
@@ -157,6 +179,40 @@ struct NottyView: View {
             isReady = false
             stopSupplementPolling()
         }
+        .alert(L("AI 模型未配置", "AI Model Not Configured"), isPresented: $showLLMNotConfiguredAlert) {
+            Button(L("去设置", "Go to Settings")) {
+                #if os(macOS)
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                #endif
+            }
+            Button(L("取消", "Cancel"), role: .cancel) {}
+        } message: {
+            Text(L("请先在设置中配置 API Key 后再使用 AI 功能。", "Please configure your API Key in Settings before using AI features."))
+        }
+        .overlay(alignment: .top) {
+            if let chatError = chatError {
+                HStack(spacing: DG.sp8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text(chatError)
+                        .font(.caption)
+                        .foregroundStyle(Color.inkSecondary)
+                        .lineLimit(2)
+                    Spacer()
+                    Button {
+                        self.chatError = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(Color.inkTertiary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, DG.sp12)
+                .padding(.vertical, DG.sp8)
+                .background(Color.danger.opacity(0.08))
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
     }
 
     private func initSession() async {
@@ -169,6 +225,13 @@ struct NottyView: View {
             }
         } catch {
             // No sessions yet or network issue — just start fresh
+        }
+
+        do {
+            let settings = try await APIClient.shared.getSettings()
+            await MainActor.run { llmConfigured = settings.llm.hasApiKey }
+        } catch {
+            // If we can't check, allow sending and let the server return the error
         }
 
         if messages.isEmpty {
@@ -227,10 +290,16 @@ struct NottyView: View {
         let text = (preset ?? input).trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
 
+        if let configured = llmConfigured, !configured {
+            showLLMNotConfiguredAlert = true
+            return
+        }
+
         let userMsg = ChatMessage(role: "user", content: text)
         messages.append(userMsg)
         input = ""
         isLoading = true
+        chatError = nil
 
         Task {
             do {
@@ -246,6 +315,7 @@ struct NottyView: View {
                 }
             } catch {
                 await MainActor.run {
+                    chatError = error.localizedDescription
                     messages.append(ChatMessage(role: "assistant", content: L("抱歉，出了点问题：", "Sorry, something went wrong: ") + error.localizedDescription))
                     isLoading = false
                 }

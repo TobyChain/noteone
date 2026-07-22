@@ -29,6 +29,7 @@ struct SettingsView: View {
     @EnvironmentObject var authService: AuthService
     @AppStorage("appTheme") private var selectedTheme: String = AppTheme.system.rawValue
     @AppStorage("appLanguage") private var appLanguage = "zh"
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @State private var stats: StatsResponse?
 
     @State private var llmApiKey = ""
@@ -66,6 +67,17 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            if !llmHasApiKey {
+                Section {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text(L("AI 模型未配置，AI 功能将不可用", "AI model not configured, AI features will be unavailable"))
+                            .font(.caption)
+                    }
+                }
+            }
+            onboardingSection
             languageSection
             appearanceSection
             accountSection
@@ -144,9 +156,98 @@ struct SettingsView: View {
             }
             #endif
         }
+        .onChange(of: llmHasApiKey) { _, configured in
+            if configured && !hasSeenOnboarding {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    withAnimation { hasSeenOnboarding = true }
+                }
+            }
+        }
     }
 
     // MARK: - Sections
+
+    @ViewBuilder
+    private var onboardingSection: some View {
+        if !hasSeenOnboarding {
+            Section {
+                // Step 1: Language
+                HStack(spacing: DG.sp8) {
+                    Image(systemName: "1.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(Color.accent)
+                    Text(L("选择语言", "Select language"))
+                        .font(.subheadline)
+                    Spacer()
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.success)
+                        .font(.caption)
+                }
+
+                // Step 2: LLM
+                HStack(spacing: DG.sp8) {
+                    Image(systemName: llmHasApiKey ? "2.circle.fill" : "2.circle")
+                        .font(.title3)
+                        .foregroundStyle(llmHasApiKey ? Color.success : Color.accent)
+                    Text(L("配置 AI 模型", "Configure AI model"))
+                        .font(.subheadline)
+                    Spacer()
+                    if llmHasApiKey {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color.success)
+                            .font(.caption)
+                    } else {
+                        Image(systemName: "arrow.down")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+
+                // Step 3: NewSee (optional)
+                Button {
+                    showAscanConfig = true
+                } label: {
+                    HStack(spacing: DG.sp8) {
+                        Image(systemName: "3.circle")
+                            .font(.title3)
+                            .foregroundStyle(.tertiary)
+                        Text(L("配置新知（可选）", "Configure NewSee (optional)"))
+                            .font(.subheadline)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                // Step 4: WeChat (optional)
+                Button {
+                    showWechatConfig = true
+                } label: {
+                    HStack(spacing: DG.sp8) {
+                        Image(systemName: "4.circle")
+                            .font(.title3)
+                            .foregroundStyle(.tertiary)
+                        Text(L("配置微信公众号（可选）", "Configure WeChat (optional)"))
+                            .font(.subheadline)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            } header: {
+                Label(L("快速入门", "Quick Start"), systemImage: "lightbulb")
+                    .sectionHeaderStyle()
+            } footer: {
+                Text(L("完成前两步即可开始使用。配置 AI 模型后此引导将自动关闭。", "Complete the first two steps to get started. This guide will auto-dismiss after configuring an AI model."))
+            }
+        }
+    }
 
     private var languageSection: some View {
         Section {

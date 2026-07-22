@@ -6,7 +6,7 @@
 import { db } from "../../db/client.js";
 import { chatSessions, chatMessages } from "../../db/schema.js";
 import { eq, and, asc, desc, inArray } from "drizzle-orm";
-import { chatCompletion, type LLMConfig } from "../llm.js";
+import { chatCompletion, type LLMConfig, isLLMConfigured } from "../llm.js";
 import { getUserChatConfig, getUserLanguage } from "../user-config.js";
 import {
   trimToTokenBudget,
@@ -63,6 +63,21 @@ export async function processSessionMessage(
   const systemPrompt = buildStableSystemPrompt(language);
   const dynamicContext = buildDynamicContext(noteIndex, language);
   const { tools, handlers } = buildNottyToolkit(userId, noteIndex.allNotes, noteIndex.version);
+
+  if (!isLLMConfigured(chatConfig)) {
+    const reply = language === "en"
+      ? "AI model is not configured. Please configure your API Key in Settings first."
+      : "AI 模型未配置，请先在设置中配置 API Key。";
+    const [assistant] = await db.insert(chatMessages).values({
+      sessionId: session.id,
+      role: "assistant",
+      content: reply,
+    }).returning({ id: chatMessages.id });
+    await db.update(chatSessions)
+      .set({ updatedAt: new Date(), title: session.title || message.slice(0, 50) })
+      .where(eq(chatSessions.id, session.id));
+    return { messageId: assistant.id, reply };
+  }
 
   const historyMessages: ContextMessage[] = allMessages.map((m) => ({
     role: m.role,

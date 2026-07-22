@@ -42,6 +42,7 @@ export async function processNote(
     const chatConfig = llmConfig ?? (await getUserChatConfig(userId));
     if (!isLLMConfigured(chatConfig)) {
       await markActiveNoAI(noteId);
+      console.warn(`[pipeline] WARNING: LLM not configured — note ${noteId} saved as active without AI processing. Configure API Key in settings to enable AI features.`);
       console.log(`[pipeline] done noteId=${noteId} duration=${Date.now() - start}ms status=active reason=llm-not-configured`);
       return;
     }
@@ -113,6 +114,7 @@ export async function processNote(
   } catch (err) {
     if (err instanceof LLMNotConfiguredError) {
       await markActiveNoAI(noteId);
+      console.warn(`[pipeline] WARNING: LLM not configured — note ${noteId} saved as active without AI processing. Configure API Key in settings to enable AI features.`);
       console.log(`[pipeline] done noteId=${noteId} duration=${Date.now() - start}ms status=active reason=llm-not-configured`);
       return;
     }

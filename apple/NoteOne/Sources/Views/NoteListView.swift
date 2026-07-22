@@ -153,6 +153,17 @@ struct NoteListView: View {
         }
         .task { await loadNotes() }
         .refreshable { await loadNotes() }
+        .overlay {
+            if !isLoading && filteredNotes.isEmpty && searchText.isEmpty {
+                EmptyStateView(
+                    icon: "note.text",
+                    title: L("还没有笔记", "No Notes Yet"),
+                    subtitle: L("使用全局快捷键或拖拽内容到窗口来捕获第一条笔记。", "Use the global hotkey or drag content to capture your first note."),
+                    actionTitle: L("记一条", "Capture"),
+                    action: { showCreateNote = true }
+                )
+            }
+        }
         .sheet(isPresented: $showCreateNote) {
             #if os(macOS)
             CaptureView(onDismiss: { showCreateNote = false })

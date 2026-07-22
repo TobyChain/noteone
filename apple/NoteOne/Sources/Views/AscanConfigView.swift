@@ -6,6 +6,7 @@ struct AscanConfigView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var saveMessage: String?
+    @State private var llmConfigured = false
 
     // Editable copies
     @State private var llmModel = ""
@@ -31,6 +32,31 @@ struct AscanConfigView: View {
 
     var body: some View {
         Form {
+            // LLM not configured warning
+            if !llmConfigured {
+                Section {
+                    HStack(spacing: DG.sp8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(Color.warning)
+                        Text(L("需要先配置 AI 模型才能运行新知补充",
+                               "Configure AI model first to run NewSee supplement"))
+                            .font(.subheadline)
+                            .foregroundStyle(Color.inkSecondary)
+                    }
+                }
+            }
+
+            // Description section
+            Section {
+                Text(L("新知模块会定期从 ArXiv、GitHub、博客、会议论文和微信公众号等渠道抓取最新内容，并使用 AI 模型进行摘要和分析。",
+                       "NewSee modules periodically fetch latest content from ArXiv, GitHub, blogs, conference papers, and WeChat official accounts, then use AI models for summarization and analysis."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Label(L("关于新知", "About NewSee"), systemImage: "info.circle")
+                    .sectionHeaderStyle()
+            }
+
             if isLoading {
                 Section { ProgressView(L("加载配置…", "Loading config…")) }
             } else if let config {
@@ -43,7 +69,10 @@ struct AscanConfigView: View {
             }
         }
         .navigationTitle(L("新知配置", "NewSee Config"))
-        .task { await loadConfig() }
+        .task {
+            await loadConfig()
+            await checkLLMStatus()
+        }
         .toolbar {
             #if os(macOS)
             ToolbarItem(placement: .primaryAction) {
@@ -80,6 +109,9 @@ struct AscanConfigView: View {
         } header: {
             Label(L("LLM 配置", "LLM Config"), systemImage: "cpu")
                 .sectionHeaderStyle()
+        } footer: {
+            Text(L("用于新知 pipeline 的 AI 模型配置。Base URL 从设置页同步，此处可单独调整模型和并发数。",
+                   "AI model configuration for the NewSee pipeline. Base URL is synced from Settings; you can adjust the model and concurrency here."))
         }
 
         // ArXiv 配置
@@ -92,6 +124,9 @@ struct AscanConfigView: View {
         } header: {
             Label(L("ArXiv 配置", "ArXiv Config"), systemImage: "doc.text.magnifyingglass")
                 .sectionHeaderStyle()
+        } footer: {
+            Text(L("从 arXiv.org 抓取指定分类的预印本论文。分类列表使用 ArXiv 分类号（如 cs.AI, cs.CL）。日期偏移控制抓取几天内的论文。",
+                   "Fetches preprint papers from arXiv.org for the specified categories. Use ArXiv category codes (e.g. cs.AI, cs.CL). Date offset controls how many days of papers to fetch."))
         }
 
         // GitHub 配置
@@ -107,6 +142,9 @@ struct AscanConfigView: View {
         } header: {
             Label(L("GitHub 配置", "GitHub Config"), systemImage: "chevron.left.forwardslash.chevron.right")
                 .sectionHeaderStyle()
+        } footer: {
+            Text(L("按 Topic 搜索 GitHub 热门仓库，使用 LLM 分析 Top N 个仓库的 README。Token 用于提高 API 速率限制，可在 GitHub Settings > Developer settings > Personal access tokens 中生成。",
+                   "Searches trending GitHub repos by topic and uses LLM to analyze Top N READMEs. Token increases API rate limits; generate one at GitHub Settings > Developer settings > Personal access tokens."))
         }
 
         // 会议论文配置
@@ -121,6 +159,9 @@ struct AscanConfigView: View {
         } header: {
             Label(L("会议论文配置", "Conference Papers Config"), systemImage: "graduationcap")
                 .sectionHeaderStyle()
+        } footer: {
+            Text(L("通过 Semantic Scholar API 抓取近期会议论文。会议等级用于筛选（如 CCF-A, CCF-B），方向分类限定研究领域。",
+                   "Fetches recent conference papers via Semantic Scholar API. Conference rank filters results (e.g. CCF-A, CCF-B); categories limit research areas."))
         }
 
         // 博客
@@ -201,6 +242,15 @@ struct AscanConfigView: View {
             semanticScholarApiKey = c.semanticScholarApiKey
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func checkLLMStatus() async {
+        do {
+            let settings = try await APIClient.shared.getSettings()
+            llmConfigured = settings.llm.hasApiKey
+        } catch {
+            llmConfigured = false
         }
     }
 

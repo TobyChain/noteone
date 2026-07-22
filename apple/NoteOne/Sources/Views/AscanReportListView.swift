@@ -98,8 +98,8 @@ struct AscanReportListView: View {
             } else if reports.isEmpty {
                 EmptyStateView(
                     icon: "globe",
-                    title: L("还没有新知", "No NewSee Yet"),
-                    subtitle: L("跟闹闹说\"帮我补充今日新知\"\n即可生成今天的科技前沿日报", "Tell Notty \"help me supplement today's NewSee\"\nto generate today's tech frontier report")
+                    title: L("还没有新知日报", "No NewSee Reports Yet"),
+                    subtitle: L("点击「运行」或跟闹闹说「补充今日新知」来生成。", "Click 'Run' or tell Notty 'supplement today's news' to generate one.")
                 )
             }
         }
