@@ -57,9 +57,9 @@ NoteOne is an AI-powered personal knowledge system.
   │  │  → embed            │  │  doom-loop detection           │    │
   │  └─────────────────────┘  └──────────────────────────────┘    │
   │                                                                │
-  │  PostgreSQL 16 + pgvector          Ascan Python Pipeline       │
-  │  notes · tags · chat · reports     arXiv · GitHub · blog ...   │
-  │  scheduled_tasks                                                  │
+  │  PGlite embedded (WASM) / PostgreSQL 16   Ascan TS Pipeline      │
+  │  notes · tags · chat · reports           arXiv · GitHub · blog   │
+  │  scheduled_tasks · ascan_*                                       │
   └────────────────────────────────────────────────────────────────┘
                            │ stdio (MCP)
   ┌────────────────────────┴──────────────────────────────────────┐
@@ -70,6 +70,14 @@ NoteOne is an AI-powered personal knowledge system.
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ### Quick Start
+
+#### macOS app (recommended)
+
+Download the latest `NoteOne.dmg` from [Releases](https://github.com/TobyChain/noteone/releases), drag to Applications, and double-click. The app bundles a Node runtime and PGlite database — no external dependencies, auto-migrates on first launch.
+
+> If macOS says "cannot verify the developer", go to System Settings → Privacy & Security and click "Open Anyway" (ad-hoc signed, personal use).
+
+#### Backend + database (Docker)
 
 ```bash
 git clone https://github.com/TobyChain/noteone.git
@@ -176,9 +184,9 @@ Tools: `list_notes` · `get_note` · `create_note` · `update_note` · `delete_n
 |-------|--------|
 | Client | SwiftUI (iOS 17 / macOS 14, Swift 6 strict concurrency), Sign in with Apple |
 | Backend | Node.js + TypeScript, Express 5, Drizzle ORM |
-| DB | PostgreSQL 16 + pgvector |
+| DB | PGlite (WASM, embedded) / PostgreSQL 16 + pgvector |
 | AI | Any OpenAI-compatible API (chat temp 0.3, text-embedding-3-small 1536-d) |
-| Ascan | Python 3.11+, Pydantic, SQLAlchemy, loguru |
+| Ascan | TypeScript pipeline (6 modules, in-process) |
 | MCP | @modelcontextprotocol/sdk (stdio) |
 | Auth | Apple Sign In (JWKS-verified) + JWT (30 d) |
 
