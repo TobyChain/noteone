@@ -27,6 +27,7 @@ class HotkeyManager: ObservableObject {
     static let shared = HotkeyManager()
     private var panel: FloatingPanel?
     private var monitor: Any?
+    private var closeObserver: NSObjectProtocol?
 
     func register() {
         monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -57,26 +58,63 @@ class HotkeyManager: ObservableObject {
             return
         }
 
-        let browserMeta = captureBrowserMeta()
-        let captured = captureSelection()
+        // Drain any stale drop payload so the panel starts clean.
+        Task { _ = await DropPayloadStore.shared.consume() }
 
-        let captureView = CaptureView(
-            initialContent: captured.text,
-            initialSourceUrl: browserMeta?.url,
-            initialSourceTitle: browserMeta?.title,
-            initialImageData: captured.image,
-            onDismiss: { [weak self] in
-                self?.panel?.close()
-                self?.panel = nil
-            }
-        )
+        let captureView = CaptureView(allowsClipboardFallback: false, onDismiss: { [weak self] in
+            self?.panel?.close()
+            self?.panel = nil
+        })
 
         let hostingView = NSHostingView(rootView: captureView)
         let panel = FloatingPanel(contentRect: NSRect(x: 0, y: 0, width: 480, height: 320))
         panel.contentView = hostingView
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        // Show immediately WITHOUT stealing focus — the synthetic ⌘C below must land
+        // in the app the user was just working in, not in this panel.
+        panel.orderFront(nil)
         self.panel = panel
+        if let closeObserver { NotificationCenter.default.removeObserver(closeObserver) }
+        closeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification, object: panel, queue: .main
+        ) { [weak self] _ in
+            self?.panel = nil
+        }
+
+        // Capture the selection + browser context off the main thread (AppleScript and
+        // the modifier-release wait can take over a second), then hand the result to the
+        // already-visible CaptureView and only then activate the app.
+        Task.detached { [self, panel] in
+            let captured = captureSelection()
+            let meta = captureBrowserMeta()
+
+            var text = captured.text
+            if let title = meta?.title, !title.isEmpty, let body = text, !body.isEmpty {
+                text = "[\(title)]\n\n\(body)"
+            }
+            let payload = DroppedPayload(text: text, sourceUrl: meta?.url, imageData: captured.image)
+            let hasPayload = payload.text != nil || payload.sourceUrl != nil || payload.imageData != nil
+
+            await MainActor.run {
+                // The user may have closed the panel while the capture was in flight.
+                guard panel.isVisible else { return }
+                Task {
+                    if hasPayload {
+                        await DropPayloadStore.shared.set(payload)
+                        NotificationCenter.default.post(name: .droppedPayloadReady, object: nil)
+                    }
+                    panel.makeKeyAndOrderFront(nil)
+                    activateApp()
+                }
+            }
+        }
+    }
+
+    private func activateApp() {
+        if #available(macOS 14.0, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 
     struct CapturedSelection {
@@ -108,9 +146,10 @@ class HotkeyManager: ObservableObject {
         // / web shells like Yuque, Notion, Obsidian) read the *real* hardware modifier state
         // when interpreting our synthetic ⌘C, so the keystroke arrives as ⌘⇧C and gets
         // misrouted. Wait briefly for the non-command modifiers to be released before
-        // synthesizing the copy.
+        // synthesizing the copy. The panel is already on screen at this point, so the
+        // user naturally releases the chord — give them a generous budget.
         let extraneousMask: NSEvent.ModifierFlags = [.shift, .control, .option]
-        let modifierDeadline = Date().addingTimeInterval(0.5)
+        let modifierDeadline = Date().addingTimeInterval(1.2)
         while !NSEvent.modifierFlags.intersection(extraneousMask).isEmpty && Date() < modifierDeadline {
             Thread.sleep(forTimeInterval: 0.02)
         }
@@ -120,7 +159,12 @@ class HotkeyManager: ObservableObject {
         }
 
         let originalChangeCount = pasteboard.changeCount
-        let originalContent = pasteboard.string(forType: .string)
+        let originalString = pasteboard.string(forType: .string)
+        // Snapshot ALL clipboard types (not just the string) so the synthetic ⌘C never
+        // destroys something the user deliberately copied earlier — images, files, rich text.
+        let snapshot: [(NSPasteboard.PasteboardType, Data)] = (pasteboard.pasteboardItems ?? []).flatMap { item in
+            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+        }
 
         let source = CGEventSource(stateID: .combinedSessionState)
         guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: true),
@@ -143,11 +187,15 @@ class HotkeyManager: ObservableObject {
         if pasteboard.changeCount != originalChangeCount {
             result.text = pasteboard.string(forType: .string)
             result.image = readClipboardImage(pasteboard)
+        } else {
+            // Nothing was selected (the copy left the clipboard untouched) — fall back to
+            // whatever the user last copied, matching the long-standing panel behavior.
+            result.text = originalString
         }
 
         pasteboard.clearContents()
-        if let original = originalContent {
-            pasteboard.setString(original, forType: .string)
+        for (type, data) in snapshot {
+            pasteboard.setData(data, forType: type)
         }
 
         return result

@@ -18,6 +18,9 @@ class FloatingPanel: NSPanel {
         isOpaque = false
         hasShadow = true
         backgroundColor = .clear
+        isReleasedWhenClosed = false
+        // Follow the user across Spaces and stay visible over full-screen apps.
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         center()
     }
 }
