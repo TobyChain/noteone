@@ -24,6 +24,11 @@ struct CaptureView: View {
     var initialSourceUrl: String?
     var initialSourceTitle: String?
     var initialImageData: Data?
+    /// When false, the editor does NOT prefill from the system clipboard on appear.
+    /// The hotkey panel sets this — its captured payload arrives asynchronously a beat
+    /// after the view is visible, and an eager clipboard paste would win the race and
+    /// block the real selection from landing.
+    var allowsClipboardFallback = true
     var onDismiss: (() -> Void)?
 
     private var isURLContent: Bool {
@@ -162,6 +167,17 @@ struct CaptureView: View {
                     .truncationMode(.middle)
                     .frame(maxWidth: 120)
             }
+            #if os(macOS)
+            if let onDismiss {
+                Button { onDismiss() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.inkTertiary)
+                }
+                .buttonStyle(.plain)
+                .help(L("关闭", "Close"))
+            }
+            #endif
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -302,7 +318,7 @@ struct CaptureView: View {
         if let data = initialImageData { imageData = data }
         if let text = initialContent, !text.isEmpty {
             content = text
-        } else if imageData == nil {
+        } else if imageData == nil && allowsClipboardFallback {
             pasteFromClipboard()
         }
         if let url = initialSourceUrl, !url.isEmpty { sourceUrl = url }
@@ -315,9 +331,11 @@ struct CaptureView: View {
     private func consumeDropPayload() async {
         guard let pending = await DropPayloadStore.shared.consume() else { return }
         await MainActor.run {
+            // Never clobber something the user already typed — the hotkey panel delivers
+            // its captured payload asynchronously, a beat after the editor is visible.
             if let data = pending.imageData { imageData = data }
-            if let text = pending.text, !text.isEmpty { content = text }
-            if let src = pending.sourceUrl, !src.isEmpty { sourceUrl = src }
+            if let text = pending.text, !text.isEmpty, content.isEmpty { content = text }
+            if let src = pending.sourceUrl, !src.isEmpty, sourceUrl.isEmpty { sourceUrl = src }
         }
     }
 
