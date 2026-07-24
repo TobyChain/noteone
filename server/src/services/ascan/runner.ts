@@ -9,6 +9,7 @@
  */
 import { generateReportSummary } from "./reports.js";
 import {
+  enabledModuleNames,
   getModuleLabels,
   mergePipelineReport,
   moduleNames,
@@ -19,6 +20,7 @@ import { PipelineLLM } from "./pipeline/llm.js";
 import { getConfig } from "./config.js";
 import { readUserPreferences } from "./pipeline/index.js";
 import { getUserLanguage } from "../user-config.js";
+import type { AscanModuleName } from "./pipeline/types.js";
 
 export interface AscanRunStatus {
   isRunning: boolean;
@@ -52,15 +54,17 @@ export interface SupplementProgress {
 
 const ALL_MODULES = moduleNames();
 
-function freshProgress(date: string, language: "zh" | "en" = "zh"): SupplementProgress {
+function freshProgress(date: string, language: "zh" | "en" = "zh", activeModules?: string[]): SupplementProgress {
   const labels = getModuleLabels(language);
+  const mods = (activeModules && activeModules.length > 0 ? activeModules : ALL_MODULES)
+    .filter((m) => ALL_MODULES.includes(m as AscanModuleName));
   return {
     isRunning: false,
     date,
     startedAt: null,
     phase: "running",
-    modules: ALL_MODULES.map((m) => ({
-      name: m, label: labels[m], status: "pending" as const, chars: 0, error: null,
+    modules: mods.map((m) => ({
+      name: m, label: labels[m as AscanModuleName] ?? m, status: "pending" as const, chars: 0, error: null,
     })),
     currentModule: null,
     error: null,
@@ -107,7 +111,7 @@ export async function mergeReport(
 
 let supplementAbort: AbortController | null = null;
 
-async function runSupplement(dateStr: string, llmConfig?: LLMOverride, userId?: string): Promise<void> {
+async function runSupplement(dateStr: string, llmConfig?: LLMOverride, userId?: string, activeModules?: string[]): Promise<void> {
   const abort = new AbortController();
   supplementAbort = abort;
 
@@ -128,9 +132,12 @@ async function runSupplement(dateStr: string, llmConfig?: LLMOverride, userId?: 
     userId ? getUserLanguage(userId) : ("zh" as const),
   ]);
 
-  // Run all modules in parallel
+  const modulesToRun = (activeModules && activeModules.length > 0 ? activeModules : ALL_MODULES)
+    .filter((m) => ALL_MODULES.includes(m as AscanModuleName));
+
+  // Run selected modules in parallel
   const results = await Promise.allSettled(
-    ALL_MODULES.map(async (mod) => {
+    modulesToRun.map(async (mod) => {
       if (abort.signal.aborted) throw new Error("aborted");
       const mp = supplementProgress!.modules.find((m) => m.name === mod)!;
       mp.status = "running";
@@ -200,17 +207,24 @@ export async function startAscanSupplement(
   if (supplementProgress?.isRunning || pipelineBusy) {
     throw new Error("新知补充已在运行中");
   }
-  const language = userId ? await getUserLanguage(userId) : "zh";
+  const [language, config] = await Promise.all([
+    userId ? getUserLanguage(userId) : Promise.resolve("zh" as const),
+    getConfig(),
+  ]);
   const labels = getModuleLabels(language);
-  supplementProgress = freshProgress(dateStr, language);
+  const enabled = enabledModuleNames(config);
+  if (enabled.length === 0) {
+    throw new Error("没有启用的爬取模块，请先在配置中启用至少一个模块");
+  }
+  supplementProgress = freshProgress(dateStr, language, enabled);
   supplementProgress.isRunning = true;
   supplementProgress.startedAt = new Date().toISOString();
   pipelineBusy = true;
 
-  console.log(`[ascan] startAscanSupplement date=${dateStr} (background, in-process)`);
+  console.log(`[ascan] startAscanSupplement date=${dateStr} modules=${enabled.join(",")} (background, in-process)`);
 
   // Run in background — do NOT await.
-  runSupplement(dateStr, llmConfig, userId)
+  runSupplement(dateStr, llmConfig, userId, enabled)
     .catch((err) => {
       console.error("[ascan] supplement background error:", err);
       supplementProgress!.isRunning = false;
@@ -221,11 +235,52 @@ export async function startAscanSupplement(
       pipelineBusy = false;
     });
 
-  return { started: true, date: dateStr, modules: ALL_MODULES.map((m) => labels[m]) };
+  return { started: true, date: dateStr, modules: enabled.map((m) => labels[m as AscanModuleName] ?? m) };
 }
 
 export function getSupplementProgress(): SupplementProgress | null {
   return supplementProgress;
+}
+
+/**
+ * Run a specific subset of modules in the background (e.g. "今天只跑微信公众号").
+ * Same engine as startAscanSupplement but with an explicit module list.
+ */
+export async function startAscanModules(
+  modules: string[],
+  date?: string,
+  llmConfig?: LLMOverride,
+  userId?: string,
+): Promise<{ started: boolean; date: string; modules: string[] }> {
+  const dateStr = date || todayDateStr();
+  if (supplementProgress?.isRunning || pipelineBusy) {
+    throw new Error("新知补充已在运行中");
+  }
+  const valid = modules.filter((m) => ALL_MODULES.includes(m as AscanModuleName));
+  if (valid.length === 0) {
+    throw new Error(`没有有效的模块。可选：${ALL_MODULES.join(", ")}`);
+  }
+  const language = userId ? await getUserLanguage(userId) : "zh";
+  const labels = getModuleLabels(language);
+  supplementProgress = freshProgress(dateStr, language, valid);
+  supplementProgress.isRunning = true;
+  supplementProgress.startedAt = new Date().toISOString();
+  pipelineBusy = true;
+
+  console.log(`[ascan] startAscanModules date=${dateStr} modules=${valid.join(",")} (background)`);
+
+  runSupplement(dateStr, llmConfig, userId, valid)
+    .catch((err) => {
+      console.error("[ascan] runModules background error:", err);
+      supplementProgress!.isRunning = false;
+      supplementProgress!.phase = "failed";
+      supplementProgress!.error = String(err);
+    })
+    .finally(() => {
+      pipelineBusy = false;
+    });
+
+  return { started: true, date: dateStr, modules: valid.map((m) => labels[m as AscanModuleName] ?? m) };
 }
 
 // ── Full run (background, same engine as supplement) ──────────────────

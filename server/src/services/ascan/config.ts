@@ -38,6 +38,8 @@ export interface AscanConfig {
   llm_max_concurrency: number;
   llm_max_tokens: number;
   llm_timeout_ms: number;
+  // Pipeline
+  enabled_modules: string[];
   // GitHub
   github_token: string;
   github_topics: string[];
@@ -57,6 +59,7 @@ export interface AscanConfig {
   conference_days_recent: number;
   // Blog
   blog_max_per_source: number;
+  blog_sources: string[];
   // WeChat MP (built-in service)
   wechat_service_url: string;
   wechat_auth_key: string;

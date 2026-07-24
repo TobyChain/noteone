@@ -7,6 +7,7 @@
     { "key": "llm_max_concurrency", "type": "int", "default": 5, "group": "llm" },
     { "key": "llm_max_tokens", "type": "int", "default": 8192, "group": "llm" },
     { "key": "llm_timeout_ms", "type": "int", "default": 240000, "group": "llm" },
+    { "key": "enabled_modules", "type": "string_list", "default": ["official", "blog", "github", "arxiv", "conference", "wechat"], "group": "pipeline" },
 
     { "key": "github_token", "type": "string", "default": "", "sensitive": true, "group": "github" },
     { "key": "github_topics", "type": "string_list", "default": ["digital-twin", "digital-avatar", "virtual-human", "recommendation-system", "product-recommendation", "e-commerce", "product-inspection", "compliance-detection", "content-moderation", "customer-service", "chatbot", "conversational-ai", "llm-agent", "ai-agent", "rag", "multi-agent"], "group": "github" },
@@ -26,6 +27,7 @@
     { "key": "conference_days_recent", "type": "int", "default": 90, "group": "conference" },
 
     { "key": "blog_max_per_source", "type": "int", "default": 2, "group": "blog" },
+    { "key": "blog_sources", "type": "string_list", "default": ["阮一峰周刊|https://www.ruanyifeng.com/blog/atom.xml", "Sebastian Raschka|https://magazine.sebastianraschka.com/feed", "Lilian Weng|https://lilianweng.github.io/index.xml", "Chip Huyen|https://huyenchip.com/feed.xml", "Simon Willison|https://simonwillison.net/atom/everything/", "Eugene Yan|https://eugeneyan.com/rss/", "Andrej Karpathy|https://karpathy.github.io/feed.xml", "BAIR (Berkeley AI)|https://bair.berkeley.edu/blog/feed.xml", "OpenAI Blog|https://openai.com/news/rss.xml", "Apple ML Research|https://machinelearning.apple.com/rss.xml", "HuggingFace Blog|https://huggingface.co/blog/feed.xml", "NVIDIA Tech Blog|https://developer.nvidia.com/blog/feed", "NVIDIA Blog|https://blogs.nvidia.com/feed/", "AWS ML Blog|https://aws.amazon.com/blogs/machine-learning/feed/", "GitHub Engineering|https://github.blog/engineering/feed/", "TLDR AI|https://tldr.tech/api/rss/ai", "Import AI|https://importai.substack.com/feed", "AWS 中国博客|https://aws.amazon.com/cn/blogs/china/feed/"], "group": "blog" },
 
     { "key": "wechat_service_url", "type": "string", "default": "http://localhost:3000", "group": "wechat" },
     { "key": "wechat_auth_key", "type": "string", "default": "", "sensitive": true, "group": "wechat" },
