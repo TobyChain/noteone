@@ -33,6 +33,15 @@ export function moduleNames(): AscanModuleName[] {
   return Object.keys(MODULE_REGISTRY) as AscanModuleName[];
 }
 
+/** Modules enabled in config (intersected with the registry; empty config = all). */
+export function enabledModuleNames(config: { enabled_modules?: string[] }): string[] {
+  const all = moduleNames() as string[];
+  const enabled = config.enabled_modules;
+  if (!enabled || enabled.length === 0) return all;
+  const filtered = enabled.filter((m) => all.includes(m));
+  return filtered.length > 0 ? filtered : all;
+}
+
 export interface ModuleRunResult {
   module: string;
   ok: boolean;

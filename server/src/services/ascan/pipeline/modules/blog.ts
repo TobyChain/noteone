@@ -59,6 +59,35 @@ const RSS_SOURCES: Array<{ name: string; url: string; label: string }> = [
 
 // ── date helpers ──────────────────────────────────────────────
 
+/** Parse "label|url" config entries into the internal source format. */
+function parseConfigSources(entries: string[]): Array<{ name: string; url: string; label: string }> {
+  const sources: Array<{ name: string; url: string; label: string }> = [];
+  for (const entry of entries) {
+    const idx = entry.lastIndexOf("|");
+    if (idx === -1) continue;
+    const label = entry.slice(0, idx).trim();
+    const url = entry.slice(idx + 1).trim();
+    if (!label || !url.startsWith("http")) continue;
+    // Derive a stable slug name from the URL host
+    let name = label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 30);
+    try {
+      const host = new URL(url).hostname.replace(/^www\./, "").split(".")[0];
+      if (host) name = host;
+    } catch {}
+    sources.push({ name, url, label });
+  }
+  return sources;
+}
+
+/** Resolve the active RSS source list: config.blog_sources if set, else the hardcoded defaults. */
+function resolveSources(configSources: string[] | undefined): Array<{ name: string; url: string; label: string }> {
+  if (configSources && configSources.length > 0) {
+    const parsed = parseConfigSources(configSources);
+    if (parsed.length > 0) return parsed;
+  }
+  return RSS_SOURCES;
+}
+
 const MONTHS: Record<string, string> = {
   jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
   jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
@@ -141,11 +170,11 @@ async function fetchRssFeed(url: string, log: (msg: string) => void): Promise<Ra
 }
 
 /** Fetch all configured RSS feeds and return unified BlogPost list. */
-async function fetchAllFeeds(maxPerSource: number, log: (msg: string) => void): Promise<BlogPost[]> {
+async function fetchAllFeeds(maxPerSource: number, sources: Array<{ name: string; url: string; label: string }>, log: (msg: string) => void): Promise<BlogPost[]> {
   const allPosts: BlogPost[] = [];
 
-  for (let i = 0; i < RSS_SOURCES.length; i++) {
-    const source = RSS_SOURCES[i];
+  for (let i = 0; i < sources.length; i++) {
+    const source = sources[i];
     log(`Fetching RSS: ${source.label} (${source.url})`);
     try {
       const items = await fetchRssFeed(source.url, log);
@@ -178,7 +207,7 @@ async function fetchAllFeeds(maxPerSource: number, log: (msg: string) => void): 
     }
 
     // Be polite between feeds
-    if (i < RSS_SOURCES.length - 1) await sleep(500);
+    if (i < sources.length - 1) await sleep(500);
   }
 
   log(`All RSS feeds: ${allPosts.length} total posts`);
@@ -402,7 +431,8 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
   const cutoff = new Date(Date.now() - DAYS_RECENT * 24 * 60 * 60 * 1000);
 
   const maxPerSource = ctx.config.blog_max_per_source || 2;
-  const allPosts = await fetchAllFeeds(maxPerSource, ctx.log);
+  const sources = resolveSources(ctx.config.blog_sources);
+  const allPosts = await fetchAllFeeds(maxPerSource, sources, ctx.log);
 
   // Filter: new + within 30 days + not in official tracker
   const newPosts: BlogPost[] = [];
