@@ -267,9 +267,13 @@ actor APIClient {
     }
 
     /// Download the user's full data export as a zip into a temporary file. Caller can
-    /// hand the resulting URL to a share sheet / file viewer.
-    func exportData() async throws -> URL {
-        guard let url = URL(string: "\(baseURL)/api/export") else { throw APIError.invalidURL }
+    /// hand the resulting URL to a share sheet / file viewer. When `includeSecrets` is true
+    /// (the default for personal cross-device transfer) LLM apiKeys and pipeline tokens are
+    /// bundled so the target device can use them directly.
+    func exportData(includeSecrets: Bool = true) async throws -> URL {
+        var path = "/api/export"
+        if includeSecrets { path += "?secrets=1" }
+        guard let url = URL(string: "\(baseURL)\(path)") else { throw APIError.invalidURL }
         var req = URLRequest(url: url)
         req.httpMethod = "GET"
         if let token = token {
@@ -423,6 +427,8 @@ actor APIClient {
     struct ImportResult: Decodable {
         let ok: Bool
         let imported: ImportCounts?
+        let configRestored: Bool?
+        let settingsRestored: Bool?
         let error: String?
     }
     struct ImportCounts: Decodable {
