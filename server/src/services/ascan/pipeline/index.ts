@@ -63,6 +63,8 @@ async function buildContext(
     baseUrl: llmOverride?.baseUrl || config.llm_base_url,
     model: llmOverride?.model || config.llm_model,
     maxConcurrency: config.llm_max_concurrency,
+    maxTokens: config.llm_max_tokens,
+    timeoutMs: config.llm_timeout_ms,
   });
   return {
     date: toDashed(dateCompact),

@@ -5,6 +5,8 @@
     { "key": "llm_base_url", "type": "string", "default": "https://yunwu.ai/v1", "group": "llm" },
     { "key": "llm_model", "type": "string", "default": "deepseek-v4-pro", "group": "llm" },
     { "key": "llm_max_concurrency", "type": "int", "default": 5, "group": "llm" },
+    { "key": "llm_max_tokens", "type": "int", "default": 8192, "group": "llm" },
+    { "key": "llm_timeout_ms", "type": "int", "default": 240000, "group": "llm" },
 
     { "key": "github_token", "type": "string", "default": "", "sensitive": true, "group": "github" },
     { "key": "github_topics", "type": "string_list", "default": ["digital-twin", "digital-avatar", "virtual-human", "recommendation-system", "product-recommendation", "e-commerce", "product-inspection", "compliance-detection", "content-moderation", "customer-service", "chatbot", "conversational-ai", "llm-agent", "ai-agent", "rag", "multi-agent"], "group": "github" },

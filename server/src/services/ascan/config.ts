@@ -36,6 +36,8 @@ export interface AscanConfig {
   llm_base_url: string;
   llm_model: string;
   llm_max_concurrency: number;
+  llm_max_tokens: number;
+  llm_timeout_ms: number;
   // GitHub
   github_token: string;
   github_topics: string[];

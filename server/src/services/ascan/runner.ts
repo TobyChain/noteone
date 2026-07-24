@@ -118,6 +118,8 @@ async function runSupplement(dateStr: string, llmConfig?: LLMOverride, userId?: 
     baseUrl: llmConfig?.baseUrl || config.llm_base_url,
     model: llmConfig?.model || config.llm_model,
     maxConcurrency: config.llm_max_concurrency,
+    maxTokens: config.llm_max_tokens,
+    timeoutMs: config.llm_timeout_ms,
   });
 
   // Read user preferences and language for module order, focus, and report labels
