@@ -28,12 +28,11 @@
 		29B03C832D82CADE94C2F67B /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */; };
 		2B8C5F1D4C871851581171BA /* MCPInstallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF28AE8C3C361172D698542 /* MCPInstallView.swift */; };
 		2BC4131212ABE644E3B8DAEA /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76C21DFC46974BFDA55F2506 /* Tag.swift */; };
-		2D3CBB2E9C348E13172B654B /* AscanConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C58163DA04DCC6DB3C1161 /* AscanConfigView.swift */; };
-		3007C9B5986F112253CAE6F3 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = E127F96E2FB02EA2DA6E6483 /* KeychainHelper.swift */; };
 		32B81D1B2D186399D5F7F9D0 /* WechatConfigSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B779E3EEA5B5ACB09EF434 /* WechatConfigSheet.swift */; };
 		3388C8E60E0175207F77FCD8 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */; };
 		339AF008D8024E6745D78291 /* NottyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9509847332E1CD6E94D93766 /* NottyView.swift */; };
 		37554AF0D24204D3657B6399 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */; };
+		3B07BA01FBF61AFB50A070C3 /* AscanConfigSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F59E10FCF516F30C12BE3059 /* AscanConfigSheet.swift */; };
 		3F0CCA0684CF8A06E2D1BA95 /* NottyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9509847332E1CD6E94D93766 /* NottyView.swift */; };
 		3F5C09D2FEC610090FABBFF6 /* DailyReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 096AC32613C23DFBA4FE9C76 /* DailyReport.swift */; };
 		3FFB0395699513A12ED73F26 /* AscanModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D0D4C30A3BC535056D7A10 /* AscanModels.swift */; };
@@ -42,6 +41,7 @@
 		4459BFB7C1293B7493ACD5AD /* MainSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E875B6C24D11D9C0898293C /* MainSplitView.swift */; };
 		44C8046955AC4D6D3DE2DD6B /* CaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73BC93FEB9429E19B23B5E29 /* CaptureView.swift */; };
 		47C9A03ECAFB28A15047D880 /* DropPayloadStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09673A90D04295D8ADE17C3E /* DropPayloadStore.swift */; };
+		4C9DB10F80CC8259D00D2485 /* AscanConfigSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F59E10FCF516F30C12BE3059 /* AscanConfigSheet.swift */; };
 		5802ECF1F8EF845155DFD2C4 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76C21DFC46974BFDA55F2506 /* Tag.swift */; };
 		58F5346BC6D2D527DB1810AB /* ReportScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E6049FD1E08FF125D9F2C7 /* ReportScheduler.swift */; };
 		5AAC27E42588329568F30FAE /* WechatConfigSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B779E3EEA5B5ACB09EF434 /* WechatConfigSheet.swift */; };
@@ -50,7 +50,6 @@
 		62B3E429A88D8775DCFA5CB6 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B602EDB986B9E9A44D794F /* ChatMessage.swift */; };
 		6AE477980D253F7C5E90C276 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CA362CA9A0DEF17406F4EB /* FloatingPanel.swift */; };
 		704AD0EFD6A50EF4E1FE7E24 /* NoteListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D0A97460BE3D35B5B5E39C /* NoteListView.swift */; };
-		706218EFE6D537894BBA5531 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = E127F96E2FB02EA2DA6E6483 /* KeychainHelper.swift */; };
 		71EEC1DDB69116CF9E39ED4C /* NoteDragPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83FCC5C0224750CD7B2821EC /* NoteDragPayload.swift */; };
 		752867F30AE0200A5275A792 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71CF96D60D564E9C8477248C /* ShareViewController.swift */; };
 		7900B47DAC5B115E6C8BC65D /* CaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73BC93FEB9429E19B23B5E29 /* CaptureView.swift */; };
@@ -68,7 +67,6 @@
 		BE542556499CAE7E9BEB758B /* ReportScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E6049FD1E08FF125D9F2C7 /* ReportScheduler.swift */; };
 		BED52FECAD8F2EC26D54A16E /* AscanReportListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E466F11801DBE484BAC936A3 /* AscanReportListView.swift */; };
 		C22CE2548E2B97A6202CF8AB /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E32898665D7F1037FCA772A /* Strings.swift */; };
-		C38213479D5D7D981128ED72 /* AscanConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C58163DA04DCC6DB3C1161 /* AscanConfigView.swift */; };
 		C9059888FEE4DD5E1FFE574B /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E32898665D7F1037FCA772A /* Strings.swift */; };
 		C9D7063EF8E499B5BE1ECFAC /* ServerLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E200FAAB3020409357DC43 /* ServerLauncher.swift */; };
 		CB6B65E525BD4E0FD9A4737F /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37F332F07FEEED5830F8D113 /* ShareSheet.swift */; };
@@ -125,15 +123,14 @@
 		A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthModels.swift; sourceTree = "<group>"; };
 		A90E817CE5C78342A6CC13B7 /* UnifiedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedSettingsView.swift; sourceTree = "<group>"; };
 		B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteOneApp.swift; sourceTree = "<group>"; };
-		C1C58163DA04DCC6DB3C1161 /* AscanConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanConfigView.swift; sourceTree = "<group>"; };
 		C4CA362CA9A0DEF17406F4EB /* FloatingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanel.swift; sourceTree = "<group>"; };
 		C5C40C18CBEE1BFC465F5798 /* AscanReportDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanReportDetailView.swift; sourceTree = "<group>"; };
 		CDF28AE8C3C361172D698542 /* MCPInstallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPInstallView.swift; sourceTree = "<group>"; };
 		CE43870CCBC22B239AB8DFFD /* TrashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashView.swift; sourceTree = "<group>"; };
 		D1E6049FD1E08FF125D9F2C7 /* ReportScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportScheduler.swift; sourceTree = "<group>"; };
-		E127F96E2FB02EA2DA6E6483 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		E466F11801DBE484BAC936A3 /* AscanReportListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanReportListView.swift; sourceTree = "<group>"; };
 		E6E762FC507022AF17F62E03 /* AscanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanView.swift; sourceTree = "<group>"; };
+		F59E10FCF516F30C12BE3059 /* AscanConfigSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanConfigSheet.swift; sourceTree = "<group>"; };
 		FB061DC2E0E8A734A94854AE /* NoteOne.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NoteOne.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -167,7 +164,6 @@
 				A147139B5F8A558D8AB007CC /* APIClient.swift */,
 				09BC0033D2386FF0223874AF /* AuthService.swift */,
 				09673A90D04295D8ADE17C3E /* DropPayloadStore.swift */,
-				E127F96E2FB02EA2DA6E6483 /* KeychainHelper.swift */,
 				D1E6049FD1E08FF125D9F2C7 /* ReportScheduler.swift */,
 				77E200FAAB3020409357DC43 /* ServerLauncher.swift */,
 				14E6C7017395B182C0EB0733 /* SyncQueue.swift */,
@@ -229,7 +225,6 @@
 		CCB774B1C6263F74D65361CA /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				C1C58163DA04DCC6DB3C1161 /* AscanConfigView.swift */,
 				C5C40C18CBEE1BFC465F5798 /* AscanReportDetailView.swift */,
 				E466F11801DBE484BAC936A3 /* AscanReportListView.swift */,
 				E6E762FC507022AF17F62E03 /* AscanView.swift */,
@@ -254,6 +249,7 @@
 		D2C658F422876DF10010BA5C /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				F59E10FCF516F30C12BE3059 /* AscanConfigSheet.swift */,
 				04E851A2481E24C52DA0DF93 /* HotkeyRecorderField.swift */,
 				37F332F07FEEED5830F8D113 /* ShareSheet.swift */,
 				22B779E3EEA5B5ACB09EF434 /* WechatConfigSheet.swift */,
@@ -401,7 +397,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				10F5263C8963D04F59AE8FEF /* APIClient.swift in Sources */,
-				2D3CBB2E9C348E13172B654B /* AscanConfigView.swift in Sources */,
+				4C9DB10F80CC8259D00D2485 /* AscanConfigSheet.swift in Sources */,
 				23E4E7BCE5EC5DFB1F995E43 /* AscanModels.swift in Sources */,
 				D066AA834CCD05574AD60493 /* AscanReportDetailView.swift in Sources */,
 				BED52FECAD8F2EC26D54A16E /* AscanReportListView.swift in Sources */,
@@ -416,7 +412,6 @@
 				1AC8A13C778ED964BFC1C4D9 /* FloatingPanel.swift in Sources */,
 				E821B6AB0140CC645D83574C /* HotkeyManager.swift in Sources */,
 				A799A0E95E29799214E6114B /* HotkeyRecorderField.swift in Sources */,
-				706218EFE6D537894BBA5531 /* KeychainHelper.swift in Sources */,
 				D8974388C3F186B91C9DC7DF /* LoginView.swift in Sources */,
 				1247B34F985FEF5628352116 /* MCPInstallView.swift in Sources */,
 				10D7E5E046E729E33FFEE314 /* MainSidebar.swift in Sources */,
@@ -455,7 +450,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A80FEA9ED8D0B7507FDBDB46 /* APIClient.swift in Sources */,
-				C38213479D5D7D981128ED72 /* AscanConfigView.swift in Sources */,
+				3B07BA01FBF61AFB50A070C3 /* AscanConfigSheet.swift in Sources */,
 				3FFB0395699513A12ED73F26 /* AscanModels.swift in Sources */,
 				60E4FDF6D02AC774D26991F1 /* AscanReportDetailView.swift in Sources */,
 				0CE3108F96E9D7194EC940D9 /* AscanReportListView.swift in Sources */,
@@ -470,7 +465,6 @@
 				6AE477980D253F7C5E90C276 /* FloatingPanel.swift in Sources */,
 				29B03C832D82CADE94C2F67B /* HotkeyManager.swift in Sources */,
 				E67A7D512495E908E56DF3DC /* HotkeyRecorderField.swift in Sources */,
-				3007C9B5986F112253CAE6F3 /* KeychainHelper.swift in Sources */,
 				A2800C9A83B55804E7753C0F /* LoginView.swift in Sources */,
 				2B8C5F1D4C871851581171BA /* MCPInstallView.swift in Sources */,
 				1ED5F854C10518D271CF0465 /* MainSidebar.swift in Sources */,

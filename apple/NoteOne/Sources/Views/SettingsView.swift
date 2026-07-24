@@ -111,17 +111,7 @@ struct SettingsView: View {
             Text(L("此操作不可撤销。所有笔记、标签、对话及上传的图片都会被永久删除。如需保留请先\"导出我的数据\"。", "This action cannot be undone. All notes, tags, conversations, and uploaded images will be permanently deleted. To keep your data, please \"Export My Data\" first."))
         }
         .sheet(isPresented: $showAscanConfig) {
-            NavigationStack {
-                AscanConfigView()
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button(L("完成", "Done")) { showAscanConfig = false }
-                        }
-                    }
-            }
-            #if os(macOS)
-            .frame(minWidth: 560, minHeight: 640)
-            #endif
+            AscanConfigSheet()
         }
         .sheet(isPresented: $showWechatConfig, onDismiss: {
             Task { await probeWechatHealth() }

@@ -21,7 +21,7 @@ struct AscanView: View {
             case .reports:
                 AscanReportListView()
             case .config:
-                AscanConfigView()
+                AscanConfigWebContent()
             }
         }
         .navigationTitle(L("新知", "NewSee"))

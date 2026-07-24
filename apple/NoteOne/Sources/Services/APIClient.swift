@@ -298,6 +298,13 @@ actor APIClient {
         return comps?.url
     }
 
+    func ascanConfigURL() -> URL? {
+        guard let token else { return nil }
+        var comps = URLComponents(string: "\(baseURL)/ascan/")
+        comps?.queryItems = [URLQueryItem(name: "token", value: token)]
+        return comps?.url
+    }
+
     // MARK: - Chat Sessions
 
     func createChatSession(title: String? = nil) async throws -> ChatSession {

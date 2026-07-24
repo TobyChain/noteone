@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>新知配置</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>新知配置</h1>
+
+    <!-- 爬取模块开关 -->
+    <section class="card">
+      <div class="card-header">
+        <h2>爬取模块</h2>
+        <span class="badge" id="module-count"></span>
+      </div>
+      <p class="muted">勾选要启用的模块，日报只会包含启用的模块。</p>
+      <div id="module-list" class="module-list"></div>
+    </section>
+
+    <!-- 微信公众号入口 -->
+    <section class="card">
+      <div class="card-header">
+        <h2>微信公众号</h2>
+        <span class="badge" id="mp-count"></span>
+      </div>
+      <div id="mp-summary" class="muted">加载中…</div>
+      <div class="row">
+        <a class="btn-link" id="open-wechat">管理公众号订阅 →</a>
+      </div>
+    </section>
+
+    <!-- 博客信息源 -->
+    <section class="card">
+      <div class="card-header">
+        <h2>博客信息源</h2>
+        <span class="badge" id="blog-count"></span>
+      </div>
+      <ul id="blog-list" class="item-list"></ul>
+      <p class="muted hidden" id="blog-empty">还没有自定义信息源，使用默认源。</p>
+      <div class="search-box">
+        <input id="blog-name" type="text" placeholder="名称（如 阮一峰周刊）">
+        <input id="blog-url" type="text" placeholder="RSS 地址（https://…）">
+        <button id="btn-add-blog">添加</button>
+      </div>
+      <label>每个信息源最多抓取文章数
+        <input id="blog-max-per-source" type="number" min="1" max="10">
+      </label>
+    </section>
+
+    <!-- ArXiv -->
+    <section class="card">
+      <div class="card-header"><h2>ArXiv 论文</h2></div>
+      <label>分类列表（逗号分隔，如 cs.AI, cs.CL）
+        <input id="arxiv-subjects" type="text">
+      </label>
+      <label>日期偏移（天）
+        <input id="arxiv-offset" type="number" min="0" max="7">
+      </label>
+      <label>每分类最大论文数
+        <input id="arxiv-max-per-subject" type="number" min="10" max="500" step="10">
+      </label>
+      <label>总最大论文数
+        <input id="arxiv-max-total" type="number" min="50" max="2000" step="50">
+      </label>
+    </section>
+
+    <!-- GitHub -->
+    <section class="card">
+      <div class="card-header"><h2>GitHub 项目</h2></div>
+      <label>Topic 列表（逗号分隔）
+        <textarea id="github-topics" rows="3"></textarea>
+      </label>
+      <label>每 Topic 最大仓库数
+        <input id="github-max-repos" type="number" min="1" max="50">
+      </label>
+      <label>最低 Star 数
+        <input id="github-min-stars" type="number" min="0" max="5000" step="100">
+      </label>
+      <label>LLM 分析 Top N
+        <input id="github-top-analyze" type="number" min="5" max="100" step="5">
+      </label>
+      <label>GitHub Token（可选，提高速率限制）
+        <input id="github-token" type="password" placeholder="留空保持不变">
+      </label>
+    </section>
+
+    <!-- 会议论文 -->
+    <section class="card">
+      <div class="card-header"><h2>会议论文</h2></div>
+      <label>回溯天数
+        <input id="conf-lookback" type="number" min="7" max="90">
+      </label>
+      <label>会议等级（逗号分隔，如 A, B）
+        <input id="conf-rank" type="text">
+      </label>
+      <label>方向分类（逗号分隔，如 ai, nlp, cv）
+        <input id="conf-categories" type="text">
+      </label>
+      <label>Semantic Scholar API Key（可选）
+        <input id="conf-apikey" type="password" placeholder="留空保持不变">
+      </label>
+    </section>
+
+    <!-- LLM -->
+    <section class="card">
+      <div class="card-header"><h2>LLM（pipeline 专用）</h2></div>
+      <label>模型名称
+        <input id="llm-model" type="text">
+      </label>
+      <label>最大并发
+        <input id="llm-concurrency" type="number" min="1" max="50">
+      </label>
+      <label>最大输出 token
+        <input id="llm-max-tokens" type="number" min="1024" max="32768" step="1024">
+      </label>
+    </section>
+
+    <!-- 日志 -->
+    <section class="card">
+      <div class="card-header"><h2>其他</h2></div>
+      <label>日志级别
+        <select id="log-level">
+          <option>DEBUG</option>
+          <option>INFO</option>
+          <option>WARNING</option>
+          <option>ERROR</option>
+        </select>
+      </label>
+    </section>
+
+    <div class="row savebar">
+      <button id="btn-save">保存全部配置</button>
+    </div>
+
+    <p id="toast" class="toast hidden"></p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

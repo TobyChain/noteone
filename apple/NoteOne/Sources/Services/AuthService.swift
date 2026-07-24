@@ -6,8 +6,15 @@ class AuthService: ObservableObject {
     @Published var userName: String?
     @Published var userId: String?
 
+    // The JWT is stored in UserDefaults, not the Keychain. The app is ad-hoc
+    // signed, so every rebuild produces a new cdhash — the new binary can't
+    // silently read a Keychain item written by the old binary, which is what
+    // triggered the "wants to access confidential information" password prompt
+    // on every launch. For a single-user localhost app, UserDefaults is fine.
+    private let tokenKey = "jwt_token"
+
     init() {
-        if let token = KeychainHelper.load(key: "jwt_token") {
+        if let token = UserDefaults.standard.string(forKey: tokenKey) {
             self.userId = Self.decodeUserId(from: token)
             Task {
                 await APIClient.shared.setToken(token)
@@ -39,7 +46,7 @@ class AuthService: ObservableObject {
     }
 
     func signOut() {
-        KeychainHelper.delete(key: "jwt_token")
+        UserDefaults.standard.removeObject(forKey: tokenKey)
         isAuthenticated = false
         userName = nil
         userId = nil
@@ -49,7 +56,7 @@ class AuthService: ObservableObject {
         Task {
             do {
                 let response = try await APIClient.shared.devLogin(name: name)
-                KeychainHelper.save(key: "jwt_token", value: response.token)
+                UserDefaults.standard.set(response.token, forKey: tokenKey)
                 await APIClient.shared.setToken(response.token)
                 self.isAuthenticated = true
                 self.userName = response.user.name
