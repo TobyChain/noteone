@@ -118,6 +118,7 @@ export interface PipelineLLMConfig {
   maxConcurrency?: number;
   maxRetries?: number;
   timeoutMs?: number;
+  maxTokens?: number;
 }
 
 export class PipelineLLM {
@@ -129,7 +130,8 @@ export class PipelineLLM {
     this.cfg = {
       maxConcurrency: 5,
       maxRetries: 3,
-      timeoutMs: 120_000,
+      timeoutMs: 240_000,
+      maxTokens: 8192,
       ...cfg,
     };
   }
@@ -173,7 +175,7 @@ export class PipelineLLM {
               Authorization: `Bearer ${this.cfg.apiKey}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ model: this.cfg.model, messages, stream: false }),
+            body: JSON.stringify({ model: this.cfg.model, messages, stream: false, max_tokens: this.cfg.maxTokens }),
             signal: controller.signal,
           });
           if (resp.status === 429) {
