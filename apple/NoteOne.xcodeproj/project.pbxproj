@@ -19,6 +19,7 @@
 		1247B34F985FEF5628352116 /* MCPInstallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF28AE8C3C361172D698542 /* MCPInstallView.swift */; };
 		1618DF935486DBE43FD7E509 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82FA9FA28AD13D36EB22561F /* Theme.swift */; };
 		16E3680BEE83F8BA9584A1C3 /* MainSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E875B6C24D11D9C0898293C /* MainSplitView.swift */; };
+		18979B145A59FB78DBDDCE28 /* ToolActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F6CBFD41C45C7C402AC49F9 /* ToolActivityView.swift */; };
 		1AC8A13C778ED964BFC1C4D9 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CA362CA9A0DEF17406F4EB /* FloatingPanel.swift */; };
 		1ED5F854C10518D271CF0465 /* MainSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BCCCC76ED5579DC573ABA62 /* MainSidebar.swift */; };
 		23E4E7BCE5EC5DFB1F995E43 /* AscanModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D0D4C30A3BC535056D7A10 /* AscanModels.swift */; };
@@ -60,6 +61,7 @@
 		A2800C9A83B55804E7753C0F /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F93BB424A479EE7F81E50F0 /* LoginView.swift */; };
 		A799A0E95E29799214E6114B /* HotkeyRecorderField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04E851A2481E24C52DA0DF93 /* HotkeyRecorderField.swift */; };
 		A80FEA9ED8D0B7507FDBDB46 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A147139B5F8A558D8AB007CC /* APIClient.swift */; };
+		A8C198CD43D47FBCC7CF5CA5 /* ToolActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F6CBFD41C45C7C402AC49F9 /* ToolActivityView.swift */; };
 		B47FCC10098D017F3D146CE3 /* SyncQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E6C7017395B182C0EB0733 /* SyncQueue.swift */; };
 		B53C64BD271955A8ED4CBC62 /* ReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BEA8C791A16C5CC865643D6 /* ReportsView.swift */; };
 		B71C4E81A9A2EEF6987D2B43 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B602EDB986B9E9A44D794F /* ChatMessage.swift */; };
@@ -94,6 +96,7 @@
 		096AC32613C23DFBA4FE9C76 /* DailyReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReport.swift; sourceTree = "<group>"; };
 		09BC0033D2386FF0223874AF /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		0F652DB919B58BC615BE4B57 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0F6CBFD41C45C7C402AC49F9 /* ToolActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolActivityView.swift; sourceTree = "<group>"; };
 		1079E75DF4BD08C37A84A968 /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
 		14E6C7017395B182C0EB0733 /* SyncQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncQueue.swift; sourceTree = "<group>"; };
 		1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -239,6 +242,7 @@
 				9509847332E1CD6E94D93766 /* NottyView.swift */,
 				6BEA8C791A16C5CC865643D6 /* ReportsView.swift */,
 				1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */,
+				0F6CBFD41C45C7C402AC49F9 /* ToolActivityView.swift */,
 				CE43870CCBC22B239AB8DFFD /* TrashView.swift */,
 				A90E817CE5C78342A6CC13B7 /* UnifiedSettingsView.swift */,
 				D2C658F422876DF10010BA5C /* Settings */,
@@ -431,6 +435,7 @@
 				B47FCC10098D017F3D146CE3 /* SyncQueue.swift in Sources */,
 				2BC4131212ABE644E3B8DAEA /* Tag.swift in Sources */,
 				1618DF935486DBE43FD7E509 /* Theme.swift in Sources */,
+				A8C198CD43D47FBCC7CF5CA5 /* ToolActivityView.swift in Sources */,
 				25DBE5C91BD9DA63F932CF98 /* TrashView.swift in Sources */,
 				DB918CB34CC939B90F2DCA24 /* UnifiedSettingsView.swift in Sources */,
 				5AAC27E42588329568F30FAE /* WechatConfigSheet.swift in Sources */,
@@ -484,6 +489,7 @@
 				ED95702218A9FF3F35F3495D /* SyncQueue.swift in Sources */,
 				5802ECF1F8EF845155DFD2C4 /* Tag.swift in Sources */,
 				D93A6AA6BE5BADE41BB54865 /* Theme.swift in Sources */,
+				18979B145A59FB78DBDDCE28 /* ToolActivityView.swift in Sources */,
 				DB89638BBDCE0136E772803D /* TrashView.swift in Sources */,
 				E2C4A2A8486497040D2ED8F8 /* UnifiedSettingsView.swift in Sources */,
 				32B81D1B2D186399D5F7F9D0 /* WechatConfigSheet.swift in Sources */,

@@ -17,6 +17,7 @@ struct NottyView: View {
     @State private var chatError: String?
     @State private var llmConfigured: Bool? = nil
     @State private var showLLMNotConfiguredAlert = false
+    @State private var liveActivities: [ToolActivity] = []
     var onClose: (() -> Void)? = nil
 
     private let promptSuggestions: [String] = [
@@ -94,6 +95,15 @@ struct NottyView: View {
                             ChatBubble(message: msg)
                                 .id(msg.id)
                         }
+                        if !liveActivities.isEmpty {
+                            VStack(alignment: .leading, spacing: 4) {
+                                ForEach(liveActivities) { activity in
+                                    ToolActivityRow(activity: activity)
+                                }
+                            }
+                            .padding(.leading, 12)
+                            .id("activities")
+                        }
                         if isLoading {
                             HStack(spacing: 6) {
                                 ProgressView()
@@ -111,6 +121,11 @@ struct NottyView: View {
                 .onChange(of: messages.count) {
                     if let last = messages.last {
                         withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                    }
+                }
+                .onChange(of: liveActivities.count) {
+                    if !liveActivities.isEmpty {
+                        withAnimation { proxy.scrollTo("activities", anchor: .bottom) }
                     }
                 }
                 .onChange(of: isLoading) {
@@ -221,7 +236,7 @@ struct NottyView: View {
             if let latest = sessions.first {
                 sessionId = latest.id
                 let detail = try await APIClient.shared.getChatSession(id: latest.id)
-                messages = detail.messages.map { ChatMessage(role: $0.role, content: $0.content) }
+                messages = Self.mapHistory(detail.messages)
             }
         } catch {
             // No sessions yet or network issue — just start fresh
@@ -250,7 +265,7 @@ struct NottyView: View {
             do {
                 let detail = try await APIClient.shared.getChatSession(id: session.id)
                 await MainActor.run {
-                    messages = detail.messages.map { ChatMessage(role: $0.role, content: $0.content) }
+                    messages = Self.mapHistory(detail.messages)
                     if messages.isEmpty {
                         messages.append(ChatMessage(role: "assistant", content: L("你好！我是 Notty，你的笔记助手", "Hi! I'm Notty, your note assistant.")))
                     }
@@ -268,6 +283,46 @@ struct NottyView: View {
             role: "assistant",
             content: L("你好！我是 Notty，你的笔记助手\n\n我可以帮你检索、总结和分析你的所有笔记。试试问我：\"最近有哪些关于 AI 的笔记？\"", "Hi! I'm Notty, your note assistant.\n\nI can help you search, summarize, and analyze all your notes. Try asking: \"What recent notes do I have about AI?\"")
         )]
+    }
+
+    /// Rebuilds the chat flow from persisted messages: intermediate assistant tool_calls and
+    /// their tool results are folded into ToolActivity rows attached to Notty's final reply,
+    /// instead of showing up as raw JSON bubbles.
+    static func mapHistory(_ serverMessages: [ServerChatMessage]) -> [ChatMessage] {
+        var result: [ChatMessage] = []
+        var pending: [ToolActivity] = []
+        var pendingIndexByCallId: [String: Int] = [:]
+
+        for msg in serverMessages {
+            if msg.role == "assistant", let calls = msg.toolCalls, !calls.isEmpty {
+                for call in calls {
+                    var activity = ToolActivity(name: call.function.name, argsSummary: summarizeArgsJSON(call.function.arguments))
+                    activity.isRunning = false
+                    pendingIndexByCallId[call.id] = pending.count
+                    pending.append(activity)
+                }
+            } else if msg.role == "tool" {
+                if let callId = msg.toolCallId, let idx = pendingIndexByCallId[callId] {
+                    pending[idx].resultPreview = String(msg.content.prefix(400))
+                }
+            } else if msg.role == "assistant", !pending.isEmpty {
+                result.append(ChatMessage(role: msg.role, content: msg.content, toolActivities: pending))
+                pending.removeAll()
+                pendingIndexByCallId.removeAll()
+            } else {
+                result.append(ChatMessage(role: msg.role, content: msg.content))
+            }
+        }
+        return result
+    }
+
+    private static func summarizeArgsJSON(_ raw: String) -> String? {
+        guard let data = raw.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              !obj.isEmpty else { return nil }
+        let parts = obj.prefix(2).map { "\($0.key)=\(String(describing: $0.value))" }
+        let joined = parts.joined(separator: ", ")
+        return joined.count > 80 ? String(joined.prefix(80)) + "…" : joined
     }
 
     private func deleteSession(_ session: ChatSession) {
@@ -300,25 +355,47 @@ struct NottyView: View {
         input = ""
         isLoading = true
         chatError = nil
+        liveActivities = []
 
         Task {
             do {
                 if sessionId == nil {
                     let session = try await APIClient.shared.createChatSession()
-                    await MainActor.run { sessionId = session.id }
+                    sessionId = session.id
                 }
                 guard let sid = sessionId else { return }
-                let response = try await APIClient.shared.sendSessionMessage(sessionId: sid, message: text)
-                await MainActor.run {
-                    messages.append(ChatMessage(role: response.role, content: response.content))
+                let stream = await APIClient.shared.streamSessionMessage(sessionId: sid, message: text)
+                var gotFinalMessage = false
+                for try await event in stream {
+                    switch event {
+                    case .toolStart(let name, let argsSummary):
+                        liveActivities.append(ToolActivity(name: name, argsSummary: argsSummary))
+                    case .toolEnd(let name, let durationMs, let preview):
+                        if let idx = liveActivities.lastIndex(where: { $0.name == name && $0.isRunning }) {
+                            liveActivities[idx].isRunning = false
+                            liveActivities[idx].durationMs = durationMs
+                            liveActivities[idx].resultPreview = preview
+                        }
+                    case .message(let response):
+                        gotFinalMessage = true
+                        for i in liveActivities.indices { liveActivities[i].isRunning = false }
+                        messages.append(ChatMessage(role: response.role, content: response.content, toolActivities: liveActivities))
+                        liveActivities = []
+                        isLoading = false
+                    case .failure(let message):
+                        throw APIError.serverMessage(statusCode: 500, message: message)
+                    }
+                }
+                if !gotFinalMessage && isLoading {
                     isLoading = false
+                    liveActivities = []
+                    chatError = L("连接中断，未收到完整回复", "Connection lost before the reply completed")
                 }
             } catch {
-                await MainActor.run {
-                    chatError = error.localizedDescription
-                    messages.append(ChatMessage(role: "assistant", content: L("抱歉，出了点问题：", "Sorry, something went wrong: ") + error.localizedDescription))
-                    isLoading = false
-                }
+                chatError = error.localizedDescription
+                messages.append(ChatMessage(role: "assistant", content: L("抱歉，出了点问题：", "Sorry, something went wrong: ") + error.localizedDescription))
+                liveActivities = []
+                isLoading = false
             }
         }
     }
@@ -510,6 +587,12 @@ private struct ChatBubble: View {
                     .foregroundStyle(Color.inkTertiary)
                 }
 
+                if !message.toolActivities.isEmpty {
+                    ForEach(message.toolActivities) { activity in
+                        ToolActivityRow(activity: activity)
+                    }
+                }
+
                 if isUser {
                     Text(message.content)
                         .font(.body)
@@ -519,7 +602,7 @@ private struct ChatBubble: View {
                         .background(Color.accent)
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: DG.r16))
-                } else {
+                } else if !message.content.isEmpty {
                     Text(markdownAttributed(message.content))
                         .font(.body)
                         .textSelection(.enabled)
