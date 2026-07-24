@@ -9,12 +9,29 @@ import {
 import { eq, asc, inArray } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { UPLOAD_DIR } from "./uploads.js";
+import { getConfig, type AscanConfig } from "../services/ascan/config.js";
 
 const router = Router();
 
-const SCHEMA_VERSION = "1.0";
+const SCHEMA_VERSION = "1.1";
 const ALLOWED_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "heic", "heif"]);
 const UUID_BASENAME = /^[0-9a-fA-F-]{32,36}\.[a-z0-9]{1,8}$/;
+
+/// Keys that carry real secrets (not just preferences). Omitted from the export unless the
+/// caller explicitly opts in with ?secrets=1 (personal cross-device transfer).
+const SENSITIVE_ASCAN_KEYS = new Set([
+    "llm_api_key", "github_token", "semantic_scholar_api_key", "wechat_auth_key",
+]);
+
+function stripAscanSecrets(config: AscanConfig, includeSecrets: boolean): Partial<AscanConfig> {
+    if (includeSecrets) return { ...config };
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(config)) {
+        if (SENSITIVE_ASCAN_KEYS.has(k)) continue;
+        out[k] = v;
+    }
+    return out as Partial<AscanConfig>;
+}
 
 function uploadBasenameFromUrl(sourceUrl: string | null | undefined): string | null {
     if (!sourceUrl) return null;
@@ -38,24 +55,32 @@ function uploadBasenameFromUrl(sourceUrl: string | null | undefined): string | n
 // from the user record. Designed for App Store / GDPR data-portability requirements.
 router.get("/", async (req: AuthRequest, res) => {
     const userId = req.userId!;
+    const includeSecrets = req.query.secrets === "1" || req.query.secrets === "true";
 
     const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
     if (!user) {
         res.status(404).json({ error: "User not found" });
         return;
     }
-    // Never include the LLM apiKey or any other future secrets in the export.
+    // Never include the LLM apiKey unless the caller explicitly opted in with ?secrets=1.
     const userSettings = (user.settings ?? {}) as any;
     const safeSettings = { ...userSettings };
     if (safeSettings.llm) {
         const { apiKey: _omit, ...rest } = safeSettings.llm;
         safeSettings.llm = rest;
+        if (includeSecrets && userSettings.llm?.apiKey) {
+            safeSettings.llm.apiKey = userSettings.llm.apiKey;
+        }
     }
     const safeUser = {
         id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl,
         settings: safeSettings,
         createdAt: user.createdAt, updatedAt: user.updatedAt,
     };
+
+    // NewSee / WeChat pipeline config (lives in ascan/.env, not the DB). Strip secrets
+    // unless opted in so a default export never leaks tokens.
+    const ascanConfig = stripAscanSecrets(await getConfig(), includeSecrets);
 
     const userNotes = await db.query.notes.findMany({
         where: eq(notes.userId, userId),
@@ -86,7 +111,9 @@ router.get("/", async (req: AuthRequest, res) => {
     const exportPayload = {
         schemaVersion: SCHEMA_VERSION,
         exportedAt: new Date().toISOString(),
+        includeSecrets,
         user: safeUser,
+        ascanConfig,
         notes: userNotes.map((n) => ({
             id: n.id, contentType: n.contentType, title: n.title, content: n.content,
             sourceUrl: n.sourceUrl, sourceApp: n.sourceApp, author: n.author, authorOrg: n.authorOrg,
@@ -129,8 +156,6 @@ router.get("/", async (req: AuthRequest, res) => {
 
     archive.append(JSON.stringify(exportPayload, null, 2), { name: "noteone-export.json" });
     archive.append(buildReadme(exportPayload), { name: "README.txt" });
-
-    // Bundle uploaded image files referenced by image/mixed notes; skip anything missing.
     for (const note of userNotes) {
         if (note.contentType !== "image" && note.contentType !== "mixed") continue;
         const basename = uploadBasenameFromUrl(note.sourceUrl);
@@ -145,22 +170,27 @@ router.get("/", async (req: AuthRequest, res) => {
     await archive.finalize();
 });
 
-function buildReadme(payload: { schemaVersion: string; exportedAt: string }): string {
+function buildReadme(payload: { schemaVersion: string; exportedAt: string; includeSecrets?: boolean }): string {
+    const hasSecrets = payload.includeSecrets;
     return [
         "NoteOne Data Export",
         "===================",
         "",
         `schemaVersion: ${payload.schemaVersion}`,
         `exportedAt:    ${payload.exportedAt}`,
+        `secrets:       ${hasSecrets ? "INCLUDED (LLM apiKey, tokens, WeChat auth key)" : "omitted (re-enter on import)"}`,
         "",
         "Files:",
-        "  noteone-export.json    All your notes, tags, chat sessions, and metadata.",
+        "  noteone-export.json    Notes, tags, chat sessions, user settings, and NewSee/WeChat config.",
         "  uploads/               Image files referenced by your image/mixed notes.",
         "  README.txt             This file.",
         "",
         "Notes:",
         "  - Embeddings are omitted (re-derivable after import).",
-        "  - LLM API keys are stripped from settings.",
+        "  - NewSee pipeline + WeChat MP config is included so it migrates to the target device.",
+        hasSecrets
+            ? "  - This archive CONTAINS secrets (API keys / tokens). Treat it as sensitive."
+            : "  - API keys / tokens are stripped; re-enter them on the target device.",
         "  - Soft-deleted notes (status=trashed) are included.",
         "",
     ].join("\n");

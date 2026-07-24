@@ -5,18 +5,21 @@ import path from "node:path";
 import fs from "node:fs";
 import { db } from "../db/client.js";
 import {
-    notes, tags, noteTags, chatSessions, chatMessages,
+    users, notes, tags, noteTags, chatSessions, chatMessages,
 } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { UPLOAD_DIR } from "./uploads.js";
 import { generateEmbedding, isLLMConfigured } from "../services/llm.js";
 import { getUserChatConfig } from "../services/user-config.js";
+import { updateConfig, sanitizeConfigUpdates } from "../services/ascan/config.js";
 
 const router = Router();
 
 interface ImportPayload {
     schemaVersion: string;
+    user?: { settings?: any };
+    ascanConfig?: Record<string, any>;
     notes: any[];
     tags: any[];
     noteTags: any[];
@@ -27,6 +30,24 @@ function toDate(v: any): Date | null {
     if (!v) return null;
     const d = new Date(v);
     return isNaN(d.getTime()) ? null : d;
+}
+
+/// Deep-merge two settings objects. Import values win EXCEPT for absent apiKey: if the
+/// export omitted the LLM apiKey (secrets stripped), the target device keeps its own.
+function deepMergeSettings(current: any, incoming: any): any {
+    const out: any = { ...current };
+    for (const [k, v] of Object.entries(incoming ?? {})) {
+        if (v && typeof v === "object" && !Array.isArray(v)) {
+            out[k] = deepMergeSettings(out[k] ?? {}, v);
+        } else if (v !== undefined && v !== null) {
+            out[k] = v;
+        }
+    }
+    // Preserve an existing apiKey if the import payload didn't carry one.
+    if (current?.llm?.apiKey && !out.llm?.apiKey) {
+        out.llm = { ...(out.llm ?? {}), apiKey: current.llm.apiKey };
+    }
+    return out;
 }
 
 // The archive arrives as a raw request body (application/zip). The client just uploads the
@@ -179,6 +200,35 @@ router.post("/", express.raw({ type: "*/*", limit: "500mb" }), async (req: AuthR
             };
         });
 
+        // Restore NewSee / WeChat pipeline config (lives in ascan/.env). sanitizeConfigUpdates
+        // drops unknown keys and "***" placeholders, so a secrets-stripped export simply leaves
+        // existing sensitive values untouched on the target device.
+        let configRestored = false;
+        if (payload.ascanConfig && Object.keys(payload.ascanConfig).length > 0) {
+            try {
+                await updateConfig(sanitizeConfigUpdates(payload.ascanConfig));
+                configRestored = true;
+            } catch (err) {
+                console.warn("[import] ascan config restore failed:", err);
+            }
+        }
+
+        // Merge user settings (LLM provider/baseUrl/model/apiKey, etc.) into the current user.
+        // Deep-merge so an import without secrets doesn't clobber an existing apiKey.
+        let settingsRestored = false;
+        if (payload.user?.settings) {
+            try {
+                const current = await db.query.users.findFirst({ where: eq(users.id, userId) });
+                if (current) {
+                    const merged = deepMergeSettings(current.settings ?? {}, payload.user.settings);
+                    await db.update(users).set({ settings: merged, updatedAt: new Date() }).where(eq(users.id, userId));
+                    settingsRestored = true;
+                }
+            } catch (err) {
+                console.warn("[import] user settings restore failed:", err);
+            }
+        }
+
         // Re-derive embeddings asynchronously for imported notes that lack one. Fire-and-forget
         // so the API returns immediately; only runs when an embedding-capable LLM is configured.
         const chatConfig = await getUserChatConfig(userId).catch(() => null);
@@ -188,7 +238,7 @@ router.post("/", express.raw({ type: "*/*", limit: "500mb" }), async (req: AuthR
             });
         }
 
-        res.json({ ok: true, imported: counts });
+        res.json({ ok: true, imported: counts, configRestored, settingsRestored });
     } catch (err) {
         console.error("[import] failed:", err);
         res.status(500).json({

@@ -582,10 +582,17 @@ struct SettingsView: View {
                 await MainActor.run {
                     isImporting = false
                     if result.ok, let c = result.imported {
-                        importSummary = L(
-                            "已导入 \(c.notes) 条笔记、\(c.tags) 个标签、\(c.chatSessions) 个对话",
-                            "Imported \(c.notes) notes, \(c.tags) tags, \(c.chatSessions) chats"
-                        )
+                        var parts = [L(
+                            "\(c.notes) 条笔记、\(c.tags) 个标签、\(c.chatSessions) 个对话",
+                            "\(c.notes) notes, \(c.tags) tags, \(c.chatSessions) chats"
+                        )]
+                        if result.configRestored == true {
+                            parts.append(L("新知/微信配置已迁移", "NewSee/WeChat config migrated"))
+                        }
+                        if result.settingsRestored == true {
+                            parts.append(L("LLM 配置已迁移", "LLM config migrated"))
+                        }
+                        importSummary = L("已导入 ", "Imported ") + parts.joined(separator: " · ")
                         NotificationCenter.default.post(name: .noteCreated, object: nil)
                     } else {
                         importError = result.error ?? L("导入失败", "Import failed")
