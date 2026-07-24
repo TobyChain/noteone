@@ -64,6 +64,14 @@ private struct ServerErrorResponse: Decodable {
     let detail: String?
 }
 
+/// Events streamed from POST /api/chat-sessions/:id/messages (SSE).
+enum ChatStreamEvent {
+    case toolStart(name: String, argsSummary: String?)
+    case toolEnd(name: String, durationMs: Int, preview: String)
+    case message(ChatResponseMessage)
+    case failure(String)
+}
+
 actor APIClient {
     static let shared = APIClient()
 
@@ -329,6 +337,130 @@ actor APIClient {
         struct Resp: Decodable { let message: ChatResponseMessage }
         let response: Resp = try await post("/api/chat-sessions/\(sessionId)/messages", body: Body(message: message))
         return response.message
+    }
+
+    /// Streams the reply via SSE, yielding tool_start/tool_end events as Notty works and
+    /// finally the assistant message. Falls out of the stream on `error` events.
+    func streamSessionMessage(sessionId: String, message: String) -> AsyncThrowingStream<ChatStreamEvent, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    guard let url = URL(string: "\(baseURL)/api/chat-sessions/\(sessionId)/messages") else {
+                        throw APIError.invalidURL
+                    }
+                    var req = URLRequest(url: url)
+                    req.httpMethod = "POST"
+                    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    req.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+                    if let token {
+                        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                    }
+                    struct Body: Encodable { let message: String }
+                    req.httpBody = try JSONEncoder().encode(Body(message: message))
+
+                    let (bytes, response) = try await session.bytes(for: req)
+                    guard let http = response as? HTTPURLResponse else {
+                        throw APIError.networkError(URLError(.badServerResponse))
+                    }
+                    guard (200...299).contains(http.statusCode) else {
+                        var body = Data()
+                        for try await byte in bytes { body.append(byte) }
+                        if http.statusCode == 401 {
+                            NotificationCenter.default.post(name: .unauthorized, object: nil)
+                            throw APIError.unauthorized
+                        }
+                        throw APIError.serverMessage(
+                            statusCode: http.statusCode,
+                            message: parseErrorMessage(from: body) ?? L("请求失败", "Request failed")
+                        )
+                    }
+
+                    var eventName = ""
+                    for try await line in bytes.lines {
+                        if line.hasPrefix("event:") {
+                            eventName = line.dropFirst("event:".count).trimmingCharacters(in: .whitespaces)
+                        } else if line.hasPrefix("data:"), let data = String(line.dropFirst("data:".count))
+                            .trimmingCharacters(in: .whitespaces).data(using: .utf8),
+                            let event = Self.parseStreamEvent(eventName, data: data) {
+                            if case .failure(let message) = event {
+                                throw APIError.serverMessage(statusCode: 500, message: message)
+                            }
+                            continuation.yield(event)
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    private static func parseStreamEvent(_ name: String, data: Data) -> ChatStreamEvent? {
+        struct ToolStart: Decodable { let name: String; let argsSummary: String? }
+        struct ToolEnd: Decodable { let name: String; let durationMs: Int?; let preview: String? }
+        struct ErrorPayload: Decodable { let error: String }
+        switch name {
+        case "tool_start":
+            guard let p = try? JSONDecoder().decode(ToolStart.self, from: data) else { return nil }
+            return .toolStart(name: p.name, argsSummary: p.argsSummary)
+        case "tool_end":
+            guard let p = try? JSONDecoder().decode(ToolEnd.self, from: data) else { return nil }
+            return .toolEnd(name: p.name, durationMs: p.durationMs ?? 0, preview: p.preview ?? "")
+        case "message":
+            guard let m = try? JSONDecoder().decode(ChatResponseMessage.self, from: data) else { return nil }
+            return .message(m)
+        case "error":
+            let p = try? JSONDecoder().decode(ErrorPayload.self, from: data)
+            return .failure(p?.error ?? "Unknown error")
+        default:
+            return nil
+        }
+    }
+
+    /// Uploads a previously-exported zip to restore notes/tags/chat into this account.
+    struct ImportResult: Decodable {
+        let ok: Bool
+        let imported: ImportCounts?
+        let error: String?
+    }
+    struct ImportCounts: Decodable {
+        let notes: Int
+        let tags: Int
+        let noteTags: Int
+        let chatSessions: Int
+        let chatMessages: Int
+        let images: Int
+    }
+
+    func importData(fileURL: URL) async throws -> ImportResult {
+        guard let url = URL(string: "\(baseURL)/api/import") else { throw APIError.invalidURL }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/zip", forHTTPHeaderField: "Content-Type")
+        if let token {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        // Upload the raw zip bytes; the server reads the body directly (no multipart).
+        let (data, response) = try await session.upload(for: req, fromFile: fileURL)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.networkError(URLError(.badServerResponse))
+        }
+        switch http.statusCode {
+        case 200...299:
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            return try decoder.decode(ImportResult.self, from: data)
+        case 401:
+            NotificationCenter.default.post(name: .unauthorized, object: nil)
+            throw APIError.unauthorized
+        default:
+            if let msg = parseErrorMessage(from: data) {
+                throw APIError.serverMessage(statusCode: http.statusCode, message: msg)
+            }
+            throw APIError.serverError(http.statusCode)
+        }
     }
 
     // MARK: - Reports

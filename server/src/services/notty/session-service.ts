@@ -34,11 +34,32 @@ export interface ProcessedMessage {
   reply: string;
 }
 
+export interface ToolActivityEvent {
+  type: "start" | "end";
+  name: string;
+  argsSummary?: string;
+  durationMs?: number;
+  preview?: string;
+}
+
+/// Compact one-line summary of tool arguments for live UI display (e.g. `query="AI 笔记"`).
+function summarizeArgs(args: Record<string, any>): string | undefined {
+  const entries = Object.entries(args);
+  if (entries.length === 0) return undefined;
+  const parts = entries.slice(0, 2).map(([k, v]) => {
+    const raw = typeof v === "string" ? v : JSON.stringify(v);
+    return `${k}=${String(raw)}`;
+  });
+  const joined = parts.join(", ");
+  return joined.length > 80 ? joined.slice(0, 80) + "…" : joined;
+}
+
 export async function processSessionMessage(
   userId: string,
   sessionId: string,
   message: string,
   signal?: AbortSignal,
+  onToolActivity?: (event: ToolActivityEvent) => void,
 ): Promise<ProcessedMessage | null> {
   const start = Date.now();
   const session = await findSession(userId, sessionId);
@@ -101,6 +122,13 @@ export async function processSessionMessage(
     maxIterations: 5,
     signal,
     onIntermediateMessage: (msg) => intermediateMessages.push(msg),
+    onToolStart: (name, args) => onToolActivity?.({ type: "start", name, argsSummary: summarizeArgs(args) }),
+    onToolEnd: (name, result, durationMs) => onToolActivity?.({
+      type: "end",
+      name,
+      durationMs,
+      preview: result.length > 400 ? result.slice(0, 400) + "…" : result,
+    }),
   });
 
   // Persist intermediate tool messages and final reply atomically

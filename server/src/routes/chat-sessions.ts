@@ -72,16 +72,29 @@ router.post("/:id/messages", async (req: AuthRequest, res) => {
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
     });
+    const send = (event: string, data: unknown) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
 
-    const result = await processSessionMessage(
-      req.userId!, req.params.id as string, parsed.data.message, controller.signal,
-    );
-    if (!result) {
-      res.write(`event: error\ndata: ${JSON.stringify({ error: "Not found" })}\n\n`);
-      res.end();
-      return;
+    try {
+      const result = await processSessionMessage(
+        req.userId!, req.params.id as string, parsed.data.message, controller.signal,
+        (activity) => {
+          if (activity.type === "start") {
+            send("tool_start", { name: activity.name, argsSummary: activity.argsSummary });
+          } else {
+            send("tool_end", { name: activity.name, durationMs: activity.durationMs, preview: activity.preview });
+          }
+        },
+      );
+      if (!result) {
+        send("error", { error: "Not found" });
+      } else {
+        send("message", { id: result.messageId, role: "assistant", content: result.reply });
+      }
+    } catch (err) {
+      send("error", { error: err instanceof Error ? err.message : String(err) });
     }
-    res.write(`event: message\ndata: ${JSON.stringify({ id: result.messageId, role: "assistant", content: result.reply })}\n\n`);
     res.end();
     return;
   }
