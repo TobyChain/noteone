@@ -86,6 +86,7 @@ app.use("/api/wechat", wechatRouter);
 const PUBLIC_DIR = process.env.NOTEONE_PUBLIC_DIR
   || fileURLToPath(new URL("../public", import.meta.url));
 app.use("/wechat", express.static(join(PUBLIC_DIR, "wechat")));
+app.use("/ascan", express.static(join(PUBLIC_DIR, "ascan")));
 
 // Central error handler — never leak stack traces in production.
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
