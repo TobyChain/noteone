@@ -18,6 +18,11 @@ struct MainSplitView: View {
 
     // Right drawer
     @State private var drawerVisible: Bool = true
+    @State private var drawerWidth: CGFloat = {
+        let stored = UserDefaults.standard.object(forKey: "nottyDrawerWidth") as? CGFloat
+        return stored ?? 360
+    }()
+    @GestureState private var dragWidth: CGFloat = 0
     @State private var showMCPInstall = false
     @State private var showCreateNote = false
     @State private var pollTimer: Timer?
@@ -45,9 +50,29 @@ struct MainSplitView: View {
                 centerPane
                     .frame(maxWidth: .infinity)
                 if drawerVisible {
-                    Divider()
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(width: 6)
+                        .overlay(Rectangle().fill(Color.hairline).frame(width: 1))
+                        .contentShape(Rectangle())
+                        .onHover { hovering in
+                            #if os(macOS)
+                            if hovering { NSCursor.resizeLeftRight.push() }
+                            else { NSCursor.pop() }
+                            #endif
+                        }
+                        .gesture(
+                            DragGesture(minimumDistance: 1)
+                                .updating($dragWidth) { value, state, _ in
+                                    state = value.translation.width
+                                }
+                                .onEnded { value in
+                                    drawerWidth = min(max(drawerWidth - value.translation.width, 280), 640)
+                                    UserDefaults.standard.set(drawerWidth, forKey: "nottyDrawerWidth")
+                                }
+                        )
                     drawer
-                        .frame(width: 360)
+                        .frame(width: min(max(drawerWidth - dragWidth, 280), 640))
                 }
             }
         }
