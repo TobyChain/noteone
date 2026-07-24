@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 #if os(macOS)
 import AppKit
 #else
@@ -46,6 +47,10 @@ struct SettingsView: View {
 
     @State private var isExporting = false
     @State private var exportError: String?
+    @State private var isImporting = false
+    @State private var importError: String?
+    @State private var importSummary: String?
+    @State private var showImportPicker = false
     @State private var showDeleteConfirm = false
     @State private var isDeletingAccount = false
     @State private var deleteError: String?
@@ -109,6 +114,13 @@ struct SettingsView: View {
             Button(L("取消", "Cancel"), role: .cancel) {}
         } message: {
             Text(L("此操作不可撤销。所有笔记、标签、对话及上传的图片都会被永久删除。如需保留请先\"导出我的数据\"。", "This action cannot be undone. All notes, tags, conversations, and uploaded images will be permanently deleted. To keep your data, please \"Export My Data\" first."))
+        }
+        .fileImporter(
+            isPresented: $showImportPicker,
+            allowedContentTypes: [.zip],
+            allowsMultipleSelection: false
+        ) { result in
+            handleImportPick(result)
         }
         .sheet(isPresented: $showAscanConfig) {
             AscanConfigSheet()
@@ -293,6 +305,26 @@ struct SettingsView: View {
             .disabled(isExporting)
             if let exportError = exportError {
                 Text(exportError).font(.caption).foregroundStyle(Color.danger)
+            }
+
+            Button {
+                showImportPicker = true
+            } label: {
+                HStack {
+                    if isImporting {
+                        ProgressView().controlSize(.small)
+                        Text(L("正在导入…", "Importing…"))
+                    } else {
+                        Label(L("导入数据", "Import Data"), systemImage: "square.and.arrow.down")
+                    }
+                }
+            }
+            .disabled(isImporting)
+            if let importSummary {
+                Text(importSummary).font(.caption).foregroundStyle(Color.success)
+            }
+            if let importError {
+                Text(importError).font(.caption).foregroundStyle(Color.danger)
             }
 
             Button(role: .destructive) {
@@ -522,6 +554,47 @@ struct SettingsView: View {
                 await MainActor.run {
                     isExporting = false
                     exportError = L("导出失败: ", "Export failed: ") + error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private func handleImportPick(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            importMyData(from: url)
+        case .failure(let error):
+            importError = error.localizedDescription
+        }
+    }
+
+    private func importMyData(from url: URL) {
+        isImporting = true
+        importError = nil
+        importSummary = nil
+        Task {
+            // On iOS the picked URL is security-scoped; on macOS it's directly accessible.
+            let needsScope = url.startAccessingSecurityScopedResource()
+            defer { if needsScope { url.stopAccessingSecurityScopedResource() } }
+            do {
+                let result = try await APIClient.shared.importData(fileURL: url)
+                await MainActor.run {
+                    isImporting = false
+                    if result.ok, let c = result.imported {
+                        importSummary = L(
+                            "已导入 \(c.notes) 条笔记、\(c.tags) 个标签、\(c.chatSessions) 个对话",
+                            "Imported \(c.notes) notes, \(c.tags) tags, \(c.chatSessions) chats"
+                        )
+                        NotificationCenter.default.post(name: .noteCreated, object: nil)
+                    } else {
+                        importError = result.error ?? L("导入失败", "Import failed")
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isImporting = false
+                    importError = L("导入失败: ", "Import failed: ") + error.localizedDescription
                 }
             }
         }

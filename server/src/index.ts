@@ -16,6 +16,7 @@ import { uploadsRouter, UPLOAD_DIR } from "./routes/uploads.js";
 import { settingsRouter } from "./routes/settings.js";
 import { accountRouter } from "./routes/account.js";
 import { exportRouter } from "./routes/export.js";
+import { importRouter } from "./routes/import.js";
 import { reportsRouter } from "./routes/reports.js";
 import { ascanRouter } from "./routes/ascan.js";
 import { wechatRouter } from "./routes/wechat.js";
@@ -77,6 +78,7 @@ app.use("/api/uploads", requireAuth, uploadsRouter);
 app.use("/api/settings", requireAuth, settingsRouter);
 app.use("/api/account", requireAuth, accountRouter);
 app.use("/api/export", requireAuth, exportRouter);
+app.use("/api/import", requireAuth, importRouter);
 app.use("/api/reports", requireAuth, reportsRouter);
 app.use("/api/ascan", requireAuth, ascanRouter);
 // WeChat MP integration: login flow uses WeChat uuid cookies, data endpoints use auth-key.

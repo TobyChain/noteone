@@ -107,6 +107,7 @@ router.get("/", async (req: AuthRequest, res) => {
                 .filter((m) => m.sessionId === s.id)
                 .map((m) => ({
                     id: m.id, role: m.role, content: m.content, isSummary: m.isSummary,
+                    toolCalls: m.toolCalls, toolCallId: m.toolCallId,
                     createdAt: m.createdAt,
                 })),
         })),
