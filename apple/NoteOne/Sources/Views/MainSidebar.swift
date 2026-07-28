@@ -257,27 +257,24 @@ struct MainSidebar: View {
                                         if case .ascanReport(let d) = selection { return d == report.date }
                                         return false
                                     }()
-                                    Button {
-                                        selection = .ascanReport(report.date)
-                                    } label: {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(report.formattedDate)
-                                                .font(.subheadline)
-                                                .foregroundStyle(Color.ink)
-                                            if !report.summary.isEmpty {
-                                                Text(report.summary)
-                                                    .font(.system(size: 10))
-                                                    .foregroundStyle(Color.inkTertiary)
-                                                    .lineLimit(2)
-                                            }
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(report.formattedDate)
+                                            .font(.subheadline)
+                                            .foregroundStyle(Color.ink)
+                                        if !report.summary.isEmpty {
+                                            Text(report.summary)
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(Color.inkTertiary)
+                                                .lineLimit(2)
                                         }
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(.horizontal, DG.sp8)
-                                        .padding(.vertical, 3)
-                                        .background(isSel ? Color.accent.opacity(0.1) : Color.clear)
-                                        .cornerRadius(DG.r6)
                                     }
-                                    .buttonStyle(.plain)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, DG.sp8)
+                                    .padding(.vertical, 3)
+                                    .background(isSel ? Color.accent.opacity(0.1) : Color.clear)
+                                    .cornerRadius(DG.r6)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { selection = .ascanReport(report.date) }
                                     .padding(.horizontal, DG.sp4)
                                     .contextMenu {
                                         #if os(macOS)
