@@ -95,6 +95,8 @@ const STABLE_PREFIX_ZH = `你是闹闹，壹识应用的 AI 助手。你可以�
 - cancel_scheduled_task({ taskId })：取消定时任务。
 - get_ascan_preferences()：获取用户的新知挖取偏好（每日重点、兴趣主题、模块显示顺序）。
 - update_ascan_preferences({ focus?, topics?, moduleOrder? })：更新新知挖取偏好。用户说"今天重点关注XX"或"调整日报顺序"时使用。
+- generate_study_report({ url })：对指定 URL 生成 learn-art 深度解析报告（HTML），自动保存到往事。非阻塞，后台运行。用户说"深入分析这个链接"、"用 learn-art 分析"、"深度解读这篇文章"时使用。
+- get_study_report_status()：查看学习报告生成状态。
 
 规则：
 - 用中文回答
@@ -134,6 +136,8 @@ You have the following tools:
 - cancel_scheduled_task({ taskId }): Cancel a scheduled task.
 - get_ascan_preferences(): Get user's NewSee mining preferences (daily focus, interest topics, module display order).
 - update_ascan_preferences({ focus?, topics?, moduleOrder? }): Update NewSee mining preferences. Use when users say "focus on XX today" or "adjust report order".
+- generate_study_report({ url }): Generate a learn-art deep analysis report (HTML) for the given URL, auto-saved to OldScene. Non-blocking, runs in background. Use when users say "analyze this link" or "deep dive into this article".
+- get_study_report_status(): Check study report generation status.
 
 Rules:
 - Respond in English

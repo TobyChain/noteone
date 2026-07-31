@@ -35,6 +35,7 @@ export interface AgentLoopOptions {
 const EXCLUSIVE_TOOLS = new Set([
   "run_command", "schedule_task", "cancel_scheduled_task",
   "run_ascan_module", "merge_ascan_report",
+  "generate_study_report",
 ]);
 
 function isExclusive(name: string): boolean {

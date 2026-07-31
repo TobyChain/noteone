@@ -13,6 +13,7 @@ struct NottyView: View {
     @State private var showSessionList = false
     @State private var supplement: AscanSupplementProgress?
     @State private var supplementTimer: Timer?
+    @State private var studyReportNotified = false
     @State private var supplementDoneFlash = false
     @State private var chatError: String?
     @State private var llmConfigured: Bool? = nil
@@ -92,8 +93,10 @@ struct NottyView: View {
                             .padding(.top, 40)
                         }
                         ForEach(messages) { msg in
-                            ChatBubble(message: msg)
-                                .id(msg.id)
+                            ChatBubble(message: msg) { url in
+                                send(L("用 learn-art 深入分析这个链接：", "Analyze this link with learn-art: ") + url)
+                            }
+                            .id(msg.id)
                         }
                         if !liveActivities.isEmpty {
                             VStack(alignment: .leading, spacing: 4) {
@@ -477,13 +480,30 @@ struct NottyView: View {
                         } else if supp.isRunning {
                             supplement = supp
                         } else if !supp.isRunning && supplement != nil {
-                            // Just finished
                             supplement = supp
                             supplementDoneFlash = true
                             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                                 supplementDoneFlash = false
                                 supplement = nil
                             }
+                        }
+                    }
+                    if let sr = status.studyReport {
+                        if sr.isRunning {
+                            studyReportNotified = false
+                        } else if sr.phase == "done", sr.noteId != nil, !studyReportNotified {
+                            studyReportNotified = true
+                            messages.append(ChatMessage(
+                                role: "assistant",
+                                content: L("学习报告已生成并保存到往事：", "Study report generated and saved to OldScene: ") + (sr.title ?? "")
+                            ))
+                            NotificationCenter.default.post(name: .noteCreated, object: nil)
+                        } else if sr.phase == "failed", !studyReportNotified {
+                            studyReportNotified = true
+                            messages.append(ChatMessage(
+                                role: "assistant",
+                                content: L("学习报告生成失败：", "Study report generation failed: ") + (sr.error ?? "")
+                            ))
                         }
                     }
                 } catch {}
@@ -567,8 +587,41 @@ private struct SessionListPopover: View {
 
 private struct ChatBubble: View {
     let message: ChatMessage
+    var onLearnArtAnalyze: ((String) -> Void)? = nil
 
     var isUser: Bool { message.role == "user" }
+
+    private func extractURLs(from text: String) -> [String] {
+        let pattern = #"https?://[^\s<>"')\]]+"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.matches(in: text, range: range).compactMap { match in
+            guard let r = Range(match.range, in: text) else { return nil }
+            return String(text[r])
+        }
+    }
+
+    @ViewBuilder
+    private var messageContextMenu: some View {
+        let urls = extractURLs(from: message.content)
+        ForEach(urls, id: \.self) { url in
+            Button {
+                onLearnArtAnalyze?(url)
+            } label: {
+                Label(L("用 learn-art 深入分析", "Analyze with learn-art"), systemImage: "book.fill")
+            }
+        }
+        Button {
+            #if os(macOS)
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(message.content, forType: .string)
+            #elseif os(iOS)
+            UIPasteboard.general.string = message.content
+            #endif
+        } label: {
+            Label(L("复制", "Copy"), systemImage: "doc.on.doc")
+        }
+    }
 
     var body: some View {
         HStack {
@@ -602,6 +655,7 @@ private struct ChatBubble: View {
                         .background(Color.accent)
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: DG.r16))
+                        .contextMenu { messageContextMenu }
                 } else if !message.content.isEmpty {
                     Text(markdownAttributed(message.content))
                         .font(.body)
@@ -611,6 +665,7 @@ private struct ChatBubble: View {
                         .background(Color.canvasSecondary)
                         .foregroundStyle(Color.ink)
                         .clipShape(RoundedRectangle(cornerRadius: DG.r16))
+                        .contextMenu { messageContextMenu }
                 }
             }
 

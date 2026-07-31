@@ -44,6 +44,14 @@
         show($("btn-logout"), true);
         return true;
       }
+      if (info && info.base_resp && info.base_resp.ret === 200003) {
+        setBadge("登录已过期", "warn");
+        $("login-status").textContent = "微信公众号登录已过期，请重新扫码登录。";
+        show($("btn-login"), true);
+        show($("btn-relogin"), false);
+        show($("btn-logout"), false);
+        return false;
+      }
     } catch (e) { /* fall through */ }
     setBadge("未登录", "warn");
     $("login-status").textContent = "登录后才能搜索公众号并抓取文章（有效期 4 天）。";

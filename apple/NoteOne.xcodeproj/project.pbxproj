@@ -20,6 +20,7 @@
 		1618DF935486DBE43FD7E509 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82FA9FA28AD13D36EB22561F /* Theme.swift */; };
 		16E3680BEE83F8BA9584A1C3 /* MainSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E875B6C24D11D9C0898293C /* MainSplitView.swift */; };
 		18979B145A59FB78DBDDCE28 /* ToolActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F6CBFD41C45C7C402AC49F9 /* ToolActivityView.swift */; };
+		1A44A732C96AF0A116E21BAE /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8767928A7B1E5379A53FEB /* MarkdownRenderer.swift */; };
 		1AC8A13C778ED964BFC1C4D9 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CA362CA9A0DEF17406F4EB /* FloatingPanel.swift */; };
 		1ED5F854C10518D271CF0465 /* MainSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BCCCC76ED5579DC573ABA62 /* MainSidebar.swift */; };
 		23E4E7BCE5EC5DFB1F995E43 /* AscanModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D0D4C30A3BC535056D7A10 /* AscanModels.swift */; };
@@ -88,6 +89,7 @@
 		EC71192E9677EAA4E2F5A2C0 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1079E75DF4BD08C37A84A968 /* Note.swift */; };
 		ED95702218A9FF3F35F3495D /* SyncQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E6C7017395B182C0EB0733 /* SyncQueue.swift */; };
 		F070D55A3185B32FAF7835FA /* ServerLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E200FAAB3020409357DC43 /* ServerLauncher.swift */; };
+		FB6AEF4BCEB015BD1D56E3F0 /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8767928A7B1E5379A53FEB /* MarkdownRenderer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -133,6 +135,7 @@
 		D1E6049FD1E08FF125D9F2C7 /* ReportScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportScheduler.swift; sourceTree = "<group>"; };
 		E466F11801DBE484BAC936A3 /* AscanReportListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanReportListView.swift; sourceTree = "<group>"; };
 		E6E762FC507022AF17F62E03 /* AscanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanView.swift; sourceTree = "<group>"; };
+		EC8767928A7B1E5379A53FEB /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
 		F59E10FCF516F30C12BE3059 /* AscanConfigSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanConfigSheet.swift; sourceTree = "<group>"; };
 		FB061DC2E0E8A734A94854AE /* NoteOne.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NoteOne.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -236,6 +239,7 @@
 				1F93BB424A479EE7F81E50F0 /* LoginView.swift */,
 				2BCCCC76ED5579DC573ABA62 /* MainSidebar.swift */,
 				4E875B6C24D11D9C0898293C /* MainSplitView.swift */,
+				EC8767928A7B1E5379A53FEB /* MarkdownRenderer.swift */,
 				CDF28AE8C3C361172D698542 /* MCPInstallView.swift */,
 				490BB48DEEA279237A8A473B /* NoteDetailView.swift */,
 				41D0A97460BE3D35B5B5E39C /* NoteListView.swift */,
@@ -420,6 +424,7 @@
 				1247B34F985FEF5628352116 /* MCPInstallView.swift in Sources */,
 				10D7E5E046E729E33FFEE314 /* MainSidebar.swift in Sources */,
 				16E3680BEE83F8BA9584A1C3 /* MainSplitView.swift in Sources */,
+				1A44A732C96AF0A116E21BAE /* MarkdownRenderer.swift in Sources */,
 				0704C59F11814237F711C53B /* Note.swift in Sources */,
 				0BA6C6E06F9D0E3229505304 /* NoteDetailView.swift in Sources */,
 				8EF57FDC2D85A8B72B4E15ED /* NoteDragPayload.swift in Sources */,
@@ -474,6 +479,7 @@
 				2B8C5F1D4C871851581171BA /* MCPInstallView.swift in Sources */,
 				1ED5F854C10518D271CF0465 /* MainSidebar.swift in Sources */,
 				4459BFB7C1293B7493ACD5AD /* MainSplitView.swift in Sources */,
+				FB6AEF4BCEB015BD1D56E3F0 /* MarkdownRenderer.swift in Sources */,
 				EC71192E9677EAA4E2F5A2C0 /* Note.swift in Sources */,
 				DF5D981F89DBB27AA09D34B5 /* NoteDetailView.swift in Sources */,
 				71EEC1DDB69116CF9E39ED4C /* NoteDragPayload.swift in Sources */,

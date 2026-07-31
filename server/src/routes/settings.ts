@@ -4,6 +4,8 @@ import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { AuthRequest } from "../middleware/auth.js";
+import { chatCompletion } from "../services/llm.js";
+import { getUserChatConfig } from "../services/user-config.js";
 
 const router = Router();
 
@@ -76,6 +78,43 @@ router.patch("/", async (req: AuthRequest, res) => {
     },
     language: (merged.language === "en" ? "en" : "zh") as "zh" | "en",
   });
+});
+
+const testSchema = z.object({
+  apiKey: z.string().optional(),
+  baseUrl: z.string().optional(),
+  model: z.string().optional(),
+});
+
+router.post("/test-llm", async (req: AuthRequest, res) => {
+  const parsed = testSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ ok: false, error: "Invalid request body" });
+    return;
+  }
+
+  // Start from saved config, then override with any fields from the request body
+  // (so users can test unsaved changes before saving).
+  const saved = await getUserChatConfig(req.userId!);
+  const apiKey = parsed.data.apiKey || saved.apiKey;
+  const baseUrl = parsed.data.baseUrl || saved.baseUrl;
+  const model = parsed.data.model || saved.model;
+
+  if (!apiKey || !baseUrl || !model) {
+    res.json({ ok: false, error: "API Key、Base URL 和模型名不能为空" });
+    return;
+  }
+
+  const testPrompt = `你好，这是一条测试Prompt，你只需要输出"你好"，你不需要思考`;
+  try {
+    const response = await chatCompletion(
+      [{ role: "user", content: testPrompt }],
+      { apiKey, baseUrl, model },
+    );
+    res.json({ ok: true, response: response.trim() });
+  } catch (err: any) {
+    res.json({ ok: false, error: err?.message || String(err) });
+  }
 });
 
 export { router as settingsRouter };

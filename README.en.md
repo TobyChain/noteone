@@ -73,9 +73,41 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 #### macOS app (recommended)
 
+**Homebrew (recommended):**
+
+```bash
+brew tap TobyChain/tap https://github.com/TobyChain/homebrew-tap.git
+brew install --cask noteone
+```
+
+Update to the latest version:
+
+```bash
+brew update && brew upgrade --cask noteone
+```
+
+Uninstall:
+
+```bash
+brew uninstall --cask noteone
+```
+
+> Data is not automatically removed on uninstall (stored in `~/Library/Application Support/NoteOne`). Remove that directory manually to fully clean up.
+
+**DMG download:**
+
 Download the latest `NoteOne.dmg` from [Releases](https://github.com/TobyChain/noteone/releases), drag to Applications, and double-click. The app bundles a Node runtime and PGlite database — no external dependencies, auto-migrates on first launch.
 
 > If macOS says "cannot verify the developer", go to System Settings → Privacy & Security and click "Open Anyway" (ad-hoc signed, personal use).
+
+**Homebrew installation notes:**
+
+- **Apple Silicon only (arm64)**: The DMG is built for darwin-arm64; Intel Macs are not currently supported
+- **macOS 14+ (Sonoma)**: The app uses SwiftUI 6 + WKWebView system frameworks requiring macOS 14 or later
+- **Gatekeeper prompt on first launch**: Due to ad-hoc signing (no Apple Developer certificate), you may see "cannot verify developer" — go to System Settings → Privacy & Security → "Open Anyway"
+- **Tap is a separate repo**: `TobyChain/tap` points to `github.com/TobyChain/homebrew-tap`, separate from the main noteone repo — Cask version updates must be pushed to the tap repo
+- **Version upgrades**: `brew upgrade` downloads the new DMG and replaces the app binary. Data lives in `~/Library/Application Support/NoteOne`, separate from the app, so upgrades are non-destructive
+- **Migrating from DMG to Homebrew**: If previously installed via DMG, remove `/Applications/NoteOne.app` first, then `brew install --cask noteone` — your data directory is unaffected
 
 #### Backend + database (Docker)
 

@@ -48,5 +48,6 @@ cpSync(join(ROOT, "drizzle"), join(OUT, "drizzle"), { recursive: true });
 cpSync(join(ROOT, "public"), join(OUT, "public"), { recursive: true });
 cpSync(join(ROOT, "../ascan/config.schema.json"), join(OUT, "config.schema.json"));
 cpSync(join(ROOT, "src/services/ascan/pipeline/data"), join(OUT, "data"), { recursive: true });
+cpSync(join(ROOT, "src/services/notty/resources"), join(OUT, "notty-resources"), { recursive: true });
 
 console.log(`bundle ready at ${OUT}`);

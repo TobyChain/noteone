@@ -28,6 +28,12 @@ if (config.isEmbedded) {
     || new URL("../../drizzle", import.meta.url).pathname;
   bootstrapPromise = (async () => {
     await pglite.exec("CREATE EXTENSION IF NOT EXISTS vector;");
+    // ALTER TYPE ... ADD VALUE cannot run inside a transaction (drizzle wraps
+    // migrations in BEGIN/COMMIT), so apply enum expansions directly here.
+    try {
+      await pglite.exec("ALTER TYPE content_type ADD VALUE IF NOT EXISTS 'html'");
+      await pglite.exec("ALTER TYPE content_type ADD VALUE IF NOT EXISTS 'md'");
+    } catch { /* already exists */ }
     await migrate(pgliteDb, { migrationsFolder });
     console.log("[db] embedded PGlite ready at", join(config.dataDir, "db"));
   })();

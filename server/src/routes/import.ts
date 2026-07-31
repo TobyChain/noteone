@@ -12,7 +12,7 @@ import { AuthRequest } from "../middleware/auth.js";
 import { UPLOAD_DIR } from "./uploads.js";
 import { generateEmbedding, isLLMConfigured } from "../services/llm.js";
 import { getUserChatConfig } from "../services/user-config.js";
-import { updateConfig, sanitizeConfigUpdates } from "../services/ascan/config.js";
+import { updateEffectiveConfig, sanitizeConfigUpdates } from "../services/ascan/config.js";
 
 const router = Router();
 
@@ -206,7 +206,7 @@ router.post("/", express.raw({ type: "*/*", limit: "500mb" }), async (req: AuthR
         let configRestored = false;
         if (payload.ascanConfig && Object.keys(payload.ascanConfig).length > 0) {
             try {
-                await updateConfig(sanitizeConfigUpdates(payload.ascanConfig));
+                await updateEffectiveConfig(req.userId, sanitizeConfigUpdates(payload.ascanConfig));
                 configRestored = true;
             } catch (err) {
                 console.warn("[import] ascan config restore failed:", err);

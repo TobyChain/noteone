@@ -1,7 +1,7 @@
 import { pgTable, pgEnum, text, timestamp, uuid, real, boolean, jsonb, index, uniqueIndex, vector, serial, integer } from "drizzle-orm/pg-core";
 
 export const contentTypeEnum = pgEnum("content_type", [
-  "text", "image", "video", "link", "mixed",
+  "text", "image", "video", "link", "mixed", "html", "md",
 ]);
 
 export const noteStatusEnum = pgEnum("note_status", [

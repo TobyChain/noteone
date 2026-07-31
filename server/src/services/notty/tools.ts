@@ -12,6 +12,8 @@ import { searchWeb } from "../web-search.js";
 import { ascanToolDefinitions, makeAscanHandlers } from "../ascan/tools.js";
 import { localToolDefinitions, makeLocalHandlers } from "../local-tools.js";
 import { scheduleToolDefinitions, makeScheduleHandlers } from "../schedule-tools.js";
+import { startStudyReport, getStudyReportProgress } from "./learn-art.js";
+import { getUserChatConfig } from "../user-config.js";
 import type { ToolDefinition, ToolHandler } from "./agent-loop.js";
 import type { NoteIndexEntry } from "./prompt-builder.js";
 import type { AscanPreferences, AscanModuleName } from "../ascan/pipeline/types.js";
@@ -231,6 +233,54 @@ function makePreferenceHandlers(userId: string): Record<string, ToolHandler> {
   };
 }
 
+const learnArtToolDefinitions: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "generate_study_report",
+      description: "对指定 URL 生成 learn-art 深度解析报告（单文件 HTML），自动保存到往事。非阻塞，后台运行，完成后通知用户。当用户说\"深入分析这个链接\"、\"用 learn-art 分析\"、\"深度解读这篇文章\"或右键选择\"用 learn-art 深入分析\"时使用。",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "要分析的目标 URL（GitHub 仓库、论文、技术文章/博客均可）" },
+        },
+        required: ["url"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_study_report_status",
+      description: "查看 learn-art 学习报告的生成状态和进度。",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+];
+
+function makeLearnArtHandlers(userId: string): Record<string, ToolHandler> {
+  return {
+    generate_study_report: async (args: Record<string, any>) => {
+      const url = args.url as string;
+      try {
+        const llmConfig = await getUserChatConfig(userId);
+        await startStudyReport(url, userId, llmConfig);
+        return `学习报告生成已启动（URL: ${url}），后台运行中。完成后会自动保存到往事并通知用户。`;
+      } catch (err: any) {
+        return `启动失败: ${err?.message || err}`;
+      }
+    },
+    get_study_report_status: async () => {
+      const p = getStudyReportProgress();
+      if (!p) return "当前无学习报告生成任务";
+      if (p.isRunning) return `学习报告生成中（${p.phase}）：${p.url}`;
+      if (p.phase === "done") return `学习报告已完成并保存到往事：${p.title}`;
+      if (p.phase === "failed") return `学习报告生成失败：${p.error}`;
+      return "未知状态";
+    },
+  };
+}
+
 // Static tool definitions — assembled once.
 let cachedTools: ToolDefinition[] | null = null;
 
@@ -245,6 +295,7 @@ export function buildNottyToolkit(userId: string, allNotes: NoteIndexEntry[], no
       ...ascanToolDefinitions,
       ...localToolDefinitions,
       ...scheduleToolDefinitions,
+      ...learnArtToolDefinitions,
     ];
   }
 
@@ -260,6 +311,7 @@ export function buildNottyToolkit(userId: string, allNotes: NoteIndexEntry[], no
     ...makeAscanHandlers(userId),
     ...makeLocalHandlers(),
     ...makeScheduleHandlers(userId),
+    ...makeLearnArtHandlers(userId),
   };
 
   handlerCache.set(userId, { noteVersion, handlers });

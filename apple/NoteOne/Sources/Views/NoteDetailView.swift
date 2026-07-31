@@ -7,6 +7,7 @@ struct NoteDetailView: View {
     @State private var isEditing = false
     @State private var editTitle = ""
     @State private var editContent = ""
+    @State private var mdPreviewMode = false
     @State private var showDeleteConfirm = false
     @State private var isDeleted = false
     @State private var pollTimer: Timer?
@@ -31,51 +32,13 @@ struct NoteDetailView: View {
                         .foregroundStyle(Color.inkTertiary)
                 }
             } else if let note = note {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 6) {
-                        if note.status == .trashed {
-                            TrashedBanner(onRestore: restoreNote, onPermanentDelete: permanentDeleteNote)
-                        } else if note.status == .pendingAi {
-                            AIProcessingBanner()
-                        } else if note.status == .failed {
-                            FailedBanner(onRetry: retryNote)
-                        }
-
-                        if isEditing {
-                            TextField(L("标题", "Title"), text: $editTitle)
-                                .font(.title)
-                                .textFieldStyle(.plain)
-                                .foregroundStyle(Color.ink)
-                                .padding(.bottom, 8)
-
-                            Divider()
-
-                            TextEditor(text: $editContent)
-                                .font(.body)
-                                .frame(minHeight: 400)
-                                .scrollContentBackground(.hidden)
-                                .padding(.top, 4)
-                        } else {
-                            noteHeader(note)
-                                .padding(.bottom, 8)
-
-                            Divider()
-
-                            ForEach(contentChunks(note.content)) { chunk in
-                                Text(chunk.text)
-                                    .font(.body)
-                                    .foregroundStyle(Color.ink)
-                                    .textSelection(.enabled)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-
-                            Divider()
-                                .padding(.top, 8)
-
-                            MetaSection(note: note)
-                        }
-                    }
-                    .padding()
+                switch note.contentType {
+                case .html:
+                    htmlNoteView(note)
+                case .md:
+                    mdNoteView(note)
+                default:
+                    textNoteView(note)
                 }
             } else {
                 ProgressView(L("加载中...", "Loading..."))
@@ -90,14 +53,24 @@ struct NoteDetailView: View {
                         }
                         .help(L("恢复", "Restore"))
                     } else if isEditing {
+                        if note.contentType == .md {
+                            Toggle(L("预览", "Preview"), isOn: $mdPreviewMode)
+                                .toggleStyle(.button)
+                        }
                         Button(L("取消", "Cancel")) { isEditing = false }
                         Button(L("保存", "Save")) { saveEdit() }
                             .buttonStyle(.borderedProminent)
-                    } else {
+                    } else if note.contentType != .html {
                         Button { startEditing() } label: {
                             Image(systemName: "pencil")
                         }
                         .help(L("编辑", "Edit"))
+                        Button { showDeleteConfirm = true } label: {
+                            Image(systemName: "trash")
+                                .foregroundStyle(Color.danger)
+                        }
+                        .help(L("移入垃圾箱", "Move to Trash"))
+                    } else {
                         Button { showDeleteConfirm = true } label: {
                             Image(systemName: "trash")
                                 .foregroundStyle(Color.danger)
@@ -123,6 +96,126 @@ struct NoteDetailView: View {
         }
         .task(id: noteId) { await loadNote() }
         .onDisappear { stopPolling() }
+    }
+
+    // MARK: - HTML note view (read-only WKWebView)
+
+    @ViewBuilder
+    private func htmlNoteView(_ note: Note) -> some View {
+        VStack(spacing: 0) {
+            if note.status == .trashed {
+                TrashedBanner(onRestore: restoreNote, onPermanentDelete: permanentDeleteNote)
+                    .padding()
+            }
+            HStack {
+                Text(note.title ?? L("无标题", "Untitled"))
+                    .font(.title2)
+                    .foregroundStyle(Color.ink)
+                Spacer()
+            }
+            .padding()
+            Divider()
+            AscanWebView(htmlContent: note.content) { _ in }
+            Divider()
+            MetaSection(note: note)
+                .padding()
+        }
+    }
+
+    // MARK: - MD note view (editable + preview)
+
+    @ViewBuilder
+    private func mdNoteView(_ note: Note) -> some View {
+        VStack(spacing: 0) {
+            if note.status == .trashed {
+                TrashedBanner(onRestore: restoreNote, onPermanentDelete: permanentDeleteNote)
+                    .padding()
+            }
+            if isEditing {
+                HStack {
+                    TextField(L("标题", "Title"), text: $editTitle)
+                        .font(.title)
+                        .textFieldStyle(.plain)
+                    Spacer()
+                }
+                .padding()
+                Divider()
+                if mdPreviewMode {
+                    AscanWebView(htmlContent: MarkdownRenderer.render(markdown: editContent, title: editTitle)) { _ in }
+                } else {
+                    TextEditor(text: $editContent)
+                        .font(.body)
+                        .frame(minHeight: 400)
+                        .scrollContentBackground(.hidden)
+                        .padding()
+                }
+            } else {
+                HStack {
+                    Text(note.title ?? L("无标题", "Untitled"))
+                        .font(.title2)
+                        .foregroundStyle(Color.ink)
+                    Spacer()
+                }
+                .padding()
+                Divider()
+                AscanWebView(htmlContent: MarkdownRenderer.render(markdown: note.content, title: note.title)) { _ in }
+                Divider()
+                MetaSection(note: note)
+                    .padding()
+            }
+        }
+    }
+
+    // MARK: - Text note view (existing rendering)
+
+    @ViewBuilder
+    private func textNoteView(_ note: Note) -> some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 6) {
+                if note.status == .trashed {
+                    TrashedBanner(onRestore: restoreNote, onPermanentDelete: permanentDeleteNote)
+                } else if note.status == .pendingAi {
+                    AIProcessingBanner()
+                } else if note.status == .failed {
+                    FailedBanner(onRetry: retryNote)
+                }
+
+                if isEditing {
+                    TextField(L("标题", "Title"), text: $editTitle)
+                        .font(.title)
+                        .textFieldStyle(.plain)
+                        .foregroundStyle(Color.ink)
+                        .padding(.bottom, 8)
+
+                    Divider()
+
+                    TextEditor(text: $editContent)
+                        .font(.body)
+                        .frame(minHeight: 400)
+                        .scrollContentBackground(.hidden)
+                        .padding(.top, 4)
+                } else {
+                    noteHeader(note)
+                        .padding(.bottom, 8)
+
+                    Divider()
+
+                    ForEach(contentChunks(note.content)) { chunk in
+                        Text(chunk.text)
+                            .font(.body)
+                            .foregroundStyle(Color.ink)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    Divider()
+                        .padding(.top, 8)
+
+                    MetaSection(note: note)
+                }
+            }
+            .padding()
+        }
     }
 
     @ViewBuilder
@@ -207,6 +300,7 @@ struct NoteDetailView: View {
         guard let note else { return }
         editTitle = note.title ?? ""
         editContent = note.content
+        mdPreviewMode = false
         isEditing = true
     }
 

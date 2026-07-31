@@ -37,7 +37,7 @@ async function loadTagsForNotes(noteIds: string[]) {
 
 const createNoteSchema = z.object({
   content: z.string().min(1),
-  contentType: z.enum(["text", "image", "video", "link", "mixed"]).default("text"),
+  contentType: z.enum(["text", "image", "video", "link", "mixed", "html", "md"]).default("text"),
   title: z.string().optional(),
   sourceUrl: z.string().optional(),
   sourceApp: z.string().optional(),
@@ -68,7 +68,12 @@ router.post("/", async (req: AuthRequest, res) => {
     ...parsed.data,
   }).returning();
 
-  processNote(note.id, req.userId!, note.content, note.contentType, note.sourceUrl).catch(console.error);
+  if (note.contentType === "html" || note.contentType === "md") {
+    db.update(notes).set({ status: "active", aiSummary: note.title ?? "" })
+      .where(eq(notes.id, note.id)).catch(console.error);
+  } else {
+    processNote(note.id, req.userId!, note.content, note.contentType, note.sourceUrl).catch(console.error);
+  }
 
   res.status(201).json({ note });
 });

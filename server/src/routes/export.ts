@@ -9,7 +9,7 @@ import {
 import { eq, asc, inArray } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { UPLOAD_DIR } from "./uploads.js";
-import { getConfig, type AscanConfig } from "../services/ascan/config.js";
+import { getEffectiveConfig, type AscanConfig } from "../services/ascan/config.js";
 
 const router = Router();
 
@@ -80,7 +80,7 @@ router.get("/", async (req: AuthRequest, res) => {
 
     // NewSee / WeChat pipeline config (lives in ascan/.env, not the DB). Strip secrets
     // unless opted in so a default export never leaks tokens.
-    const ascanConfig = stripAscanSecrets(await getConfig(), includeSecrets);
+    const ascanConfig = stripAscanSecrets(await getEffectiveConfig(req.userId), includeSecrets);
 
     const userNotes = await db.query.notes.findMany({
         where: eq(notes.userId, userId),

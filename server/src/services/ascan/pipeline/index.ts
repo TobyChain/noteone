@@ -7,7 +7,7 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
-import { ASCAN_DOCS, ASCAN_LOGS, getConfig } from "../config.js";
+import { ASCAN_DOCS, ASCAN_LOGS, getEffectiveConfig } from "../config.js";
 import { PipelineLLM } from "./llm.js";
 import { buildUnifiedHtml, buildUnifiedMd } from "./report.js";
 import { MODULE_LABELS, getModuleLabels, type AscanModuleName, type ModuleContext, type ModuleRunner, type AscanPreferences } from "./types.js";
@@ -65,8 +65,9 @@ async function buildContext(
   sharedLlm?: PipelineLLM,
   preferences?: AscanPreferences,
   language: "zh" | "en" = "zh",
+  userId?: string,
 ): Promise<ModuleContext> {
-  const config = await getConfig();
+  const config = await getEffectiveConfig(userId);
   const llm = sharedLlm ?? new PipelineLLM({
     apiKey: llmOverride?.apiKey || config.llm_api_key,
     baseUrl: llmOverride?.baseUrl || config.llm_base_url,
@@ -134,7 +135,7 @@ export async function runPipelineModule(
       readUserPreferences(userId),
       userId ? getUserLanguage(userId) : Promise.resolve<"zh" | "en">("zh"),
     ]);
-    const ctx = await buildContext(dateCompact, llmOverride, sharedLlm, preferences, language);
+    const ctx = await buildContext(dateCompact, llmOverride, sharedLlm, preferences, language, userId);
     const { run } = await MODULE_REGISTRY[moduleName]();
     const result = await run(ctx);
     const chars = await persistFragment(dateCompact, name, result.html, result.md);

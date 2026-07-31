@@ -7,7 +7,7 @@ import type { ToolDefinition } from "../notty/agent-loop.js";
 import { listReports, getReport, deleteReport, stripHtml } from "./reports.js";
 import { startAscanSupplement, startAscanModules, getRunStatus } from "./runner.js";
 import { getUserChatConfig } from "../user-config.js";
-import { getConfig, updateConfig, maskConfig } from "./config.js";
+import { getEffectiveConfig, updateEffectiveConfig, maskConfig } from "./config.js";
 import { searchAccounts } from "../wechat/service.js";
 
 export const ascanToolDefinitions: ToolDefinition[] = [
@@ -258,13 +258,13 @@ export function makeAscanHandlers(userId: string): Record<string, (args: any) =>
     },
     // ── 公众号管理 ──
     list_wechat_mps: async () => {
-      const config = await getConfig();
+      const config = await getEffectiveConfig(userId);
       const mps = config.wechat_mp_ids || [];
       if (mps.length === 0) return "当前未配置任何公众号。可用 add_wechat_mp 添加。";
       return `当前共 ${mps.length} 个公众号：\n` + mps.map((m, i) => `${i + 1}. ${m.name}（${m.id}）`).join("\n");
     },
     search_wechat_mp: async ({ keyword }: any) => {
-      const config = await getConfig();
+      const config = await getEffectiveConfig(userId);
       if (!config.wechat_auth_key) return "未登录微信公众平台，请先在设置中扫码登录。";
       try {
         const result: any = await searchAccounts(config.wechat_auth_key, String(keyword ?? ""));
@@ -279,7 +279,7 @@ export function makeAscanHandlers(userId: string): Record<string, (args: any) =>
       }
     },
     add_wechat_mp: async ({ name, fakeid }: any) => {
-      const config = await getConfig();
+      const config = await getEffectiveConfig(userId);
       const mps = [...(config.wechat_mp_ids || [])];
       let id = typeof fakeid === "string" && fakeid ? fakeid : "";
       let displayName = String(name ?? "").trim();
@@ -299,11 +299,11 @@ export function makeAscanHandlers(userId: string): Record<string, (args: any) =>
       }
       if (mps.some((m) => m.id === id)) return `公众号 ${displayName} 已在抓取列表中。`;
       mps.push({ id, name: displayName });
-      await updateConfig({ wechat_mp_ids: mps });
+      await updateEffectiveConfig(userId, { wechat_mp_ids: mps });
       return `已添加公众号：${displayName}（${id}）。当前共 ${mps.length} 个公众号。`;
     },
     remove_wechat_mp: async ({ name }: any) => {
-      const config = await getConfig();
+      const config = await getEffectiveConfig(userId);
       const mps = config.wechat_mp_ids || [];
       const key = String(name ?? "").trim().toLowerCase();
       const remaining = mps.filter((m) => m.name.toLowerCase() !== key && m.id !== name);
@@ -311,12 +311,12 @@ export function makeAscanHandlers(userId: string): Record<string, (args: any) =>
         return `未找到公众号"${name}"。当前列表：${mps.map((m) => m.name).join("、") || "（空）"}`;
       }
       const removed = mps.filter((m) => m.name.toLowerCase() === key || m.id === name);
-      await updateConfig({ wechat_mp_ids: remaining });
+      await updateEffectiveConfig(userId, { wechat_mp_ids: remaining });
       return `已移除公众号：${removed.map((m) => m.name).join("、")}。当前共 ${remaining.length} 个。`;
     },
     // ── 博客信息源管理 ──
     list_blog_sources: async () => {
-      const config = await getConfig();
+      const config = await getEffectiveConfig(userId);
       const sources = config.blog_sources || [];
       if (sources.length === 0) return "当前使用默认博客源（配置为空）。";
       return `当前共 ${sources.length} 个博客信息源：\n` + sources.map((s, i) => `${i + 1}. ${s}`).join("\n");
@@ -327,17 +327,17 @@ export function makeAscanHandlers(userId: string): Record<string, (args: any) =>
       if (!label) return "请提供信息源名称";
       if (!feedUrl.startsWith("http")) return "请提供以 http 开头的 RSS/Atom 地址";
       if (label.includes("|")) return "名称中不能包含 | 字符";
-      const config = await getConfig();
+      const config = await getEffectiveConfig(userId);
       const sources = [...(config.blog_sources || [])];
       if (sources.some((s) => s.endsWith(`|${feedUrl}`) || s.split("|")[0] === label)) {
         return `信息源 ${label} 已存在。`;
       }
       sources.push(`${label}|${feedUrl}`);
-      await updateConfig({ blog_sources: sources });
+      await updateEffectiveConfig(userId, { blog_sources: sources });
       return `已添加博客信息源：${label}（${feedUrl}）。当前共 ${sources.length} 个。`;
     },
     remove_blog_source: async ({ name }: any) => {
-      const config = await getConfig();
+      const config = await getEffectiveConfig(userId);
       const sources = config.blog_sources || [];
       const key = String(name ?? "").trim().toLowerCase();
       const remaining = sources.filter((s) => {
@@ -349,12 +349,12 @@ export function makeAscanHandlers(userId: string): Record<string, (args: any) =>
       if (remaining.length === sources.length) {
         return `未找到信息源"${name}"。`;
       }
-      await updateConfig({ blog_sources: remaining });
+      await updateEffectiveConfig(userId, { blog_sources: remaining });
       return `已移除信息源"${name}"。当前共 ${remaining.length} 个。`;
     },
     // ── 配置查看与更新 ──
     get_ascan_config: async () => {
-      const config = maskConfig(await getConfig());
+      const config = maskConfig(await getEffectiveConfig(userId));
       const entries = Object.entries(config)
         .filter(([, v]) => v !== "" && !(Array.isArray(v) && v.length === 0))
         .map(([k, v]) => `${k}: ${Array.isArray(v) ? JSON.stringify(v) : v}`);
@@ -364,9 +364,9 @@ export function makeAscanHandlers(userId: string): Record<string, (args: any) =>
       const k = String(key ?? "").trim();
       if (!k) return "请提供配置键名";
       if (BLOCKED_CONFIG_KEYS.has(k)) return `出于安全考虑，不能通过对话修改 ${k}（API Key/Token 类）。请在设置页修改。`;
-      const config = await getConfig();
+      const config = await getEffectiveConfig(userId);
       if (!(k in config)) return `未知配置键：${k}。可用 get_ascan_config 查看当前配置。`;
-      await updateConfig({ [k]: value } as any);
+      await updateEffectiveConfig(userId, { [k]: value } as any);
       return `已更新配置 ${k} = ${Array.isArray(value) ? JSON.stringify(value) : value}`;
     },
   };

@@ -2,6 +2,7 @@ import { db } from "../db/client.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { LLMConfig, getDefaultLLMConfig } from "./llm.js";
+import type { AscanConfig } from "./ascan/config.js";
 
 export interface UserLLMSettings {
   apiKey?: string;
@@ -42,4 +43,33 @@ export async function getUserLanguage(userId: string): Promise<"zh" | "en"> {
     columns: { settings: true },
   });
   return (user?.settings as any)?.language === "en" ? "en" : "zh";
+}
+
+export async function getUserAscanConfig(userId: string): Promise<Partial<AscanConfig> | undefined> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { settings: true },
+  });
+  const cfg = (user?.settings as any)?.ascanConfig;
+  return cfg && typeof cfg === "object" ? cfg : undefined;
+}
+
+export async function setUserAscanConfig(
+  userId: string,
+  updates: Partial<AscanConfig>,
+): Promise<Partial<AscanConfig>> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { settings: true },
+  });
+  const currentSettings = (user?.settings ?? {}) as any;
+  const currentAscan = currentSettings.ascanConfig ?? {};
+  const merged = { ...currentAscan, ...updates };
+  await db.update(users)
+    .set({
+      settings: { ...currentSettings, ascanConfig: merged },
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
+  return merged;
 }

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}}</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-light.min.css">
+<style>
+  /* ============ design tokens ============ */
+  :root{
+    --ink:#1a1c2c;
+    --ink-2:#3b3f5c;
+    --ink-3:#6c7395;
+    --paper:#fbfaf6;
+    --paper-2:#f3efe5;
+    --line:#e6dfcd;
+    --accent:#d96f3a;        /* warm orange */
+    --accent-2:#7c5cff;      /* violet for code-pair */
+    --good:#3a8f5d;
+    --warn:#c4612a;
+    --err:#b03a48;
+    --shadow:0 1px 0 rgba(26,28,44,.04), 0 8px 32px -16px rgba(26,28,44,.18);
+    --radius:14px;
+    --max:980px;
+    --side:280px;
+    --mono:'JetBrains Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:'Noto Sans SC',-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.75;
+    font-size:16px;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* ============ layout ============ */
+  .layout{display:grid;grid-template-columns:var(--side) 1fr;min-height:100vh}
+  aside.toc{
+    position:sticky;top:0;align-self:start;
+    height:100vh;overflow:auto;
+    background:var(--paper-2);
+    border-right:1px solid var(--line);
+    padding:32px 22px;
+  }
+  aside.toc h2{
+    font-size:13px;font-weight:500;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-3);
+    margin:0 0 16px;
+  }
+  aside.toc ol{list-style:none;margin:0;padding:0;counter-reset:sec}
+  aside.toc li{counter-increment:sec;margin:0}
+  aside.toc a{
+    display:block;
+    padding:8px 10px 8px 36px;
+    color:var(--ink-2);text-decoration:none;
+    font-size:14px;line-height:1.4;
+    border-radius:8px;
+    position:relative;
+    transition:background .12s,color .12s;
+  }
+  aside.toc a::before{
+    content:counter(sec,decimal-leading-zero);
+    position:absolute;left:8px;top:8px;
+    font-family:var(--mono);font-size:11px;
+    color:var(--ink-3);
+  }
+  aside.toc a:hover{background:#fff;color:var(--ink)}
+  aside.toc a.active{background:#fff;color:var(--accent);font-weight:500}
+  aside.toc a.active::before{color:var(--accent)}
+
+  main{padding:48px 56px 96px;max-width:var(--max);width:100%;margin:0;}
+  header.title{margin:0 0 56px;padding-bottom:24px;border-bottom:1px solid var(--line)}
+  header.title .badge{
+    display:inline-block;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--accent);
+    background:rgba(217,111,58,.08);padding:4px 10px;border-radius:999px;
+    margin-bottom:14px;
+  }
+  header.title h1{font-size:34px;line-height:1.25;margin:0 0 12px;font-weight:700;letter-spacing:-.01em}
+  header.title p.subtitle{font-size:17px;color:var(--ink-2);margin:0;line-height:1.6}
+
+  section{margin:0 0 64px;scroll-margin-top:24px}
+  section h2{
+    font-size:24px;font-weight:700;margin:0 0 20px;
+    padding-bottom:8px;border-bottom:1px solid var(--line);
+    display:flex;align-items:baseline;gap:14px;
+  }
+  section h2 .num{
+    font-family:var(--mono);font-size:13px;color:var(--accent);
+    background:rgba(217,111,58,.08);padding:3px 9px;border-radius:6px;
+    font-weight:500;
+  }
+  section h3{font-size:18px;font-weight:500;margin:28px 0 10px;color:var(--ink)}
+  section p{margin:0 0 14px}
+  section ul,section ol{padding-left:22px;margin:0 0 16px}
+  section li{margin:6px 0}
+  section blockquote{
+    margin:16px 0;padding:12px 18px;
+    border-left:3px solid var(--accent);
+    background:rgba(217,111,58,.05);
+    color:var(--ink-2);border-radius:0 8px 8px 0;
+  }
+  section a{color:var(--accent-2);text-decoration:none;border-bottom:1px solid rgba(124,92,255,.3)}
+  section a:hover{border-bottom-color:var(--accent-2)}
+
+  /* ============ tables ============ */
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px}
+  th,td{padding:10px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+  th{background:var(--paper-2);font-weight:500;color:var(--ink-2);font-size:13px;letter-spacing:.02em}
+  tr:hover td{background:rgba(217,111,58,.03)}
+
+  /* ============ code ============ */
+  pre,code{font-family:var(--mono)}
+  :not(pre)>code{
+    background:var(--paper-2);padding:2px 6px;border-radius:4px;
+    font-size:13.5px;color:var(--ink);
+  }
+  pre{
+    margin:14px 0;padding:18px 20px;
+    background:#fdfcf7;border:1px solid var(--line);
+    border-radius:var(--radius);overflow:auto;
+    font-size:13.5px;line-height:1.6;
+    box-shadow:var(--shadow);
+  }
+  pre code{background:transparent;padding:0;font-size:inherit;color:var(--ink)}
+
+  /* ============ code-pair (代码 + 大白话双栏) ============ */
+  .code-pair{
+    display:grid;grid-template-columns:1.05fr 1fr;gap:16px;
+    margin:18px 0;
+  }
+  .code-pair pre{margin:0}
+  .code-pair .explain{
+    background:rgba(124,92,255,.045);
+    border:1px solid rgba(124,92,255,.18);
+    border-radius:var(--radius);
+    padding:16px 18px;font-size:14.5px;line-height:1.7;color:var(--ink-2);
+    position:relative;
+  }
+  .code-pair .explain::before{
+    content:'大白话';display:inline-block;
+    font-size:11px;letter-spacing:.12em;
+    color:var(--accent-2);font-weight:500;
+    background:#fff;padding:2px 8px;border-radius:999px;
+    margin-bottom:10px;
+  }
+  .code-pair .explain p{margin:0 0 8px}
+  .code-pair .explain p:last-child{margin:0}
+  @media (max-width:900px){
+    .code-pair{grid-template-columns:1fr}
+  }
+
+  /* ============ mermaid ============ */
+  .mermaid{
+    margin:20px 0;padding:22px;text-align:center;
+    background:#fdfcf7;border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);
+  }
+
+  /* ============ quiz ============ */
+  details.quiz{
+    margin:12px 0;
+    background:rgba(58,143,93,.05);
+    border:1px solid rgba(58,143,93,.22);
+    border-radius:var(--radius);
+    padding:0;
+  }
+  details.quiz summary{
+    cursor:pointer;padding:14px 18px;font-weight:500;
+    list-style:none;display:flex;gap:10px;align-items:flex-start;
+  }
+  details.quiz summary::-webkit-details-marker{display:none}
+  details.quiz summary::before{
+    content:'?';flex-shrink:0;
+    width:22px;height:22px;border-radius:50%;
+    background:var(--good);color:#fff;
+    font-family:var(--mono);font-size:13px;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-weight:700;margin-top:1px;
+  }
+  details.quiz[open] summary::before{content:'✓';background:var(--accent)}
+  details.quiz .answer{
+    padding:0 18px 16px 50px;color:var(--ink-2);
+    font-size:15px;line-height:1.7;
+    border-top:1px dashed rgba(58,143,93,.25);
+    margin-top:-2px;padding-top:12px;
+  }
+
+  /* ============ pitfall list (常见误区) ============ */
+  .pitfall{
+    border-left:3px solid var(--err);
+    background:rgba(176,58,72,.04);
+    padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0;
+  }
+  .pitfall .label{font-size:11px;letter-spacing:.12em;color:var(--err);font-weight:500;text-transform:uppercase}
+  .pitfall .truth{margin-top:6px;color:var(--ink-2);font-size:14.5px}
+  .pitfall .truth strong{color:var(--good)}
+
+  /* ============ meta footer ============ */
+  footer.meta{
+    margin-top:80px;padding-top:24px;
+    border-top:1px solid var(--line);
+    color:var(--ink-3);font-size:13px;line-height:1.7;
+  }
+  footer.meta a{color:var(--ink-3)}
+
+  /* ============ print ============ */
+  @media print{
+    aside.toc{display:none}
+    .layout{grid-template-columns:1fr}
+    main{padding:24px}
+    pre,.mermaid,.code-pair .explain{box-shadow:none;border-color:#ddd}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="toc">
+    <h2>目录</h2>
+    <ol>
+      {{TOC_ITEMS}}
+    </ol>
+  </aside>
+  <main>
+    <header class="title">
+      <span class="badge">learn-art · 研究报告</span>
+      <h1>{{TITLE}}</h1>
+      <p class="subtitle">{{SUBTITLE}}</p>
+    </header>
+
+    {{SECTIONS_HTML}}
+
+    <footer class="meta">
+      {{META_FOOTER}}
+    </footer>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  // 1. code highlighting
+  document.querySelectorAll('pre code').forEach(b => window.hljs && hljs.highlightElement(b));
+
+  // 2. mermaid
+  if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        primaryColor:'#fdfcf7',
+        primaryTextColor:'#1a1c2c',
+        primaryBorderColor:'#d96f3a',
+        lineColor:'#6c7395',
+        fontFamily:'Noto Sans SC, sans-serif'
+      },
+      flowchart:{ curve:'basis' }
+    });
+  }
+
+  // 3. TOC scroll-spy
+  const links = Array.from(document.querySelectorAll('aside.toc a'));
+  const sections = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const onScroll = () => {
+    const y = window.scrollY + 80;
+    let activeIdx = 0;
+    sections.forEach((s, i) => { if (s.offsetTop <= y) activeIdx = i; });
+    links.forEach((a, i) => a.classList.toggle('active', i === activeIdx));
+  };
+  window.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
+</script>
+</body>
+</html>

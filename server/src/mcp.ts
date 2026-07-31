@@ -11,6 +11,7 @@ import { attachPromptTags } from "./services/prompt-tagging.js";
 import { listReports, getReport, deleteReport } from "./services/ascan/reports.js";
 import { getRunStatus, runModule, mergeReport } from "./services/ascan/runner.js";
 import { getUserChatConfig } from "./services/user-config.js";
+import { checkWechatHealth } from "./services/wechat/service.js";
 
 const server = new McpServer({
   name: "noteone",
@@ -261,7 +262,7 @@ server.tool(
 
 server.tool(
   "get_ascan_status",
-  "查看新知 pipeline 的运行状态",
+  "查看新知 pipeline 的运行状态，包括微信公众号登录状态",
   {},
   async () => {
     const status = await getRunStatus();
@@ -270,7 +271,31 @@ server.tool(
       status.recentLog ? `最新日志: ${status.recentLog}` : null,
       status.lockAge ? `锁文件时长: ${status.lockAge}` : null,
     ].filter(Boolean);
+    const health = await checkWechatHealth();
+    const healthLabel = {
+      ready: `已登录（${health.nickname || ""}，有效期至 ${health.expiresAt || "?"}）`,
+      auth_expired: "登录已过期，请重新扫码登录",
+      unconfigured: "尚未扫码登录",
+      unreachable: `无法连接：${health.message || ""}`,
+    }[health.status];
+    parts.push(`微信公众号: ${healthLabel}`);
     return { content: [{ type: "text" as const, text: parts.join("\n") }] };
+  }
+);
+
+server.tool(
+  "check_wechat_health",
+  "检查微信公众号登录状态。当登录过期时会提示重新扫码登录。返回状态：ready（已登录）、auth_expired（登录已过期）、unconfigured（未配置）、unreachable（无法连接）。",
+  {},
+  async () => {
+    const health = await checkWechatHealth();
+    const labels = {
+      ready: `微信公众号登录正常（${health.nickname || ""}，有效期至 ${health.expiresAt || "?"}）`,
+      auth_expired: "微信公众号登录已过期，请重新扫码登录（打开服务端 /wechat/ 页面重新扫码）",
+      unconfigured: "微信公众号尚未扫码登录，请打开服务端 /wechat/ 页面扫码登录",
+      unreachable: `微信公众号无法连接：${health.message || "未知错误"}`,
+    };
+    return { content: [{ type: "text" as const, text: labels[health.status] }] };
   }
 );
 
@@ -305,12 +330,16 @@ server.tool(
   async ({ module, date }) => {
     const llmConfig = await getUserChatConfig(USER_ID);
     const r = await runModule(module, date, llmConfig, USER_ID);
-    return {
-      content: [{
-        type: "text" as const,
-        text: `${module} 模块${r.ok ? "完成" : "失败"}：${r.chars} 字符${r.error ? "；错误：" + r.error : ""}`,
-      }],
-    };
+    let text = `${module} 模块${r.ok ? "完成" : "失败"}：${r.chars} 字符${r.error ? "；错误：" + r.error : ""}`;
+    if (module === "wechat") {
+      const health = await checkWechatHealth();
+      if (health.status === "auth_expired") {
+        text += `\n⚠️ 微信公众号登录已过期，请重新扫码登录（打开 /wechat/ 页面重新扫码）。`;
+      } else if (health.status === "unconfigured") {
+        text += `\n⚠️ 微信公众号尚未扫码登录，无法抓取文章。`;
+      }
+    }
+    return { content: [{ type: "text" as const, text }] };
   }
 );
 

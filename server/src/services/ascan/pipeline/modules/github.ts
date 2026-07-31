@@ -323,6 +323,59 @@ class GitHubFetcher {
   }
 }
 
+// ── LLM topic filter (similar to wechat's llmFilterArticles) ─────────────
+
+const LLM_FILTER_THRESHOLD = 6;
+
+async function llmFilterRepos(repos: RepoInfo[], ctx: ModuleContext): Promise<RepoInfo[]> {
+  if (!repos.length) return repos;
+  if (!ctx.llm.isConfigured) {
+    ctx.log("[github] LLM 过滤：LLM 未配置，跳过过滤");
+    return repos;
+  }
+  const topics = ctx.config.github_topics || [];
+  const topicsHint = topics.length ? `关注方向：${topics.join("、")}` : "大模型/Agent/智能体";
+
+  const listStr = repos
+    .map((r, i) => `[${i + 1}] ${r.full_name} | ${r.description || ""} | stars: ${r.stars} | topics: ${(r.topics || []).join(",")}`)
+    .join("\n");
+
+  const prompt = `你是一位技术编辑。请为以下 GitHub 仓库评估技术相关性和关注度，打分1-10分。
+
+${topicsHint}
+
+评分标准：
+- 9-10分：与大模型/Agent/智能体/AI前沿高度相关，极具关注价值
+- 7-8分：技术内容扎实，与AI/科技有较强关联
+- 5-6分：有一定技术价值，但相关性一般
+- 3-4分：技术含量较低
+- 1-2分：与科技无关
+
+仓库列表：
+${listStr}
+
+请严格输出JSON（不要包含markdown代码块标记）：
+{
+  "scores": [
+    {"index": 1, "score": 8}
+  ]
+}`;
+
+  try {
+    const data = await ctx.llm.chatJson<any>(prompt);
+    const scoreMap = new Map<number, number>();
+    if (Array.isArray(data.scores)) {
+      for (const item of data.scores) scoreMap.set(Number(item.index), Number(item.score));
+    }
+    const filtered = repos.filter((_, i) => (scoreMap.get(i + 1) ?? 0) >= LLM_FILTER_THRESHOLD);
+    ctx.log(`[github] LLM 过滤: ${repos.length} → ${filtered.length} 仓库（阈值≥${LLM_FILTER_THRESHOLD}）`);
+    return filtered.length ? filtered : repos;
+  } catch (e) {
+    ctx.log(`[github] LLM 过滤失败，保留全部仓库: ${e}`);
+    return repos;
+  }
+}
+
 // ── DB access (database/repositories.py: RepoRepository) ─────────────────
 
 /** Return a set of full_name strings for all repos that have been LLM-analyzed. */
@@ -854,8 +907,11 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
   oldRepos.sort((a, b) => b.stars - a.stars);
 
   // Final list: new first, then old — analysis window will naturally hit new ones
-  const repos = [...newRepos, ...oldRepos];
+  let repos = [...newRepos, ...oldRepos];
   log(`[github] Fetch done: ${newRepos.length} new + ${oldRepos.length} known = ${repos.length} total`);
+
+  // LLM topic filter: drop repos not relevant to user's interests
+  repos = await llmFilterRepos(repos, ctx);
 
   // Persist to DB
   await upsertRepos(repos, dateCompact);

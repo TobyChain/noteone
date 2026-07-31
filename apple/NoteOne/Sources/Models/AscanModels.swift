@@ -102,6 +102,15 @@ struct AscanSupplementProgress: Decodable, Hashable {
     }
 }
 
+struct StudyReportStatus: Decodable {
+    let isRunning: Bool
+    let url: String?
+    let phase: String?
+    let error: String?
+    let noteId: String?
+    let title: String?
+}
+
 struct AscanRunStatus: Decodable {
     let isRunning: Bool
     let pid: Int?
@@ -110,6 +119,7 @@ struct AscanRunStatus: Decodable {
     let recentLog: String?
     let recentLogs: [String]
     let supplement: AscanSupplementProgress?
+    let studyReport: StudyReportStatus?
 }
 
 struct AscanTriggerResponse: Decodable {

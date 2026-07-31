@@ -331,6 +331,8 @@ extension ContentType {
         case .video: return L("视频", "Video")
         case .link: return L("链接", "Link")
         case .mixed: return L("混合", "Mixed")
+        case .html: return L("HTML", "HTML")
+        case .md: return L("MD", "MD")
         }
     }
 
@@ -341,6 +343,8 @@ extension ContentType {
         case .video: return "video"
         case .link: return "link"
         case .mixed: return "doc.on.doc"
+        case .html: return "doc.richtext"
+        case .md: return "doc.text.fill"
         }
     }
 }

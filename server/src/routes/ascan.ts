@@ -13,7 +13,7 @@ import {
   generateReportSummary,
   getDocsPath,
 } from "../services/ascan/reports.js";
-import { getConfig, updateConfig, maskConfig, sanitizeConfigUpdates } from "../services/ascan/config.js";
+import { getEffectiveConfig, updateEffectiveConfig, maskConfig, sanitizeConfigUpdates } from "../services/ascan/config.js";
 import {
   triggerRun,
   abortRun,
@@ -25,6 +25,8 @@ import { moduleNames } from "../services/ascan/pipeline/index.js";
 import { getUserChatConfig } from "../services/user-config.js";
 import { checkWechatHealth } from "../services/wechat/service.js";
 import { isLLMConfigured } from "../services/llm.js";
+import { PRESETS, applyPreset } from "../services/ascan/presets.js";
+import { getStudyReportProgress } from "../services/notty/learn-art.js";
 
 export const ascanRouter = Router();
 
@@ -83,8 +85,8 @@ ascanRouter.delete("/reports/:date", async (req: AuthRequest, res) => {
   }
 });
 
-ascanRouter.get("/config", async (_req: AuthRequest, res) => {
-  res.json(maskConfig(await getConfig()));
+ascanRouter.get("/config", async (req: AuthRequest, res) => {
+  res.json(maskConfig(await getEffectiveConfig(req.userId)));
 });
 
 ascanRouter.patch("/config", async (req: AuthRequest, res) => {
@@ -92,7 +94,22 @@ ascanRouter.patch("/config", async (req: AuthRequest, res) => {
     res.status(400).json({ error: "Invalid request body" });
     return;
   }
-  const updated = await updateConfig(sanitizeConfigUpdates(req.body));
+  const updated = await updateEffectiveConfig(req.userId, sanitizeConfigUpdates(req.body));
+  res.json(maskConfig(updated));
+});
+
+ascanRouter.get("/presets", async (_req: AuthRequest, res) => {
+  res.json({ presets: PRESETS.map((p) => ({ id: p.id, name: p.name, description: p.description })) });
+});
+
+ascanRouter.post("/config/preset", async (req: AuthRequest, res) => {
+  const { presetId } = req.body || {};
+  const preset = PRESETS.find((p) => p.id === presetId);
+  if (!preset) {
+    res.status(400).json({ error: "Unknown preset" });
+    return;
+  }
+  const updated = await updateEffectiveConfig(req.userId, applyPreset(preset));
   res.json(maskConfig(updated));
 });
 
@@ -147,7 +164,8 @@ ascanRouter.post("/merge", async (req: AuthRequest, res) => {
 });
 
 ascanRouter.get("/status", async (_req: AuthRequest, res) => {
-  res.json(await getRunStatus());
+  const status = await getRunStatus();
+  res.json({ ...status, studyReport: getStudyReportProgress() });
 });
 
 ascanRouter.post("/abort", async (_req: AuthRequest, res) => {

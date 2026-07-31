@@ -82,9 +82,41 @@
 
 #### macOS 客户端（推荐）
 
+**Homebrew 安装（推荐）：**
+
+```bash
+brew tap TobyChain/tap https://github.com/TobyChain/homebrew-tap.git
+brew install --cask noteone
+```
+
+更新到最新版：
+
+```bash
+brew update && brew upgrade --cask noteone
+```
+
+卸载：
+
+```bash
+brew uninstall --cask noteone
+```
+
+> 卸载后数据不会自动清理（保留在 `~/Library/Application Support/NoteOne`），如需彻底删除请手动移除该目录。
+
+**DMG 安装：**
+
 从 [Releases](https://github.com/TobyChain/noteone/releases) 下载最新 `NoteOne.dmg`，拖入 Applications 双击即可。App 内嵌 Node 运行时与 PGlite 数据库，无需安装任何外部环境，首次启动自动建库迁移。
 
 > 首次打开若提示"无法验证开发者"，在「系统设置 → 隐私与安全性」中点击"仍要打开"（ad-hoc 签名，个人自用）。
+
+**Homebrew 安装注意事项：**
+
+- **仅支持 Apple Silicon（arm64）**：当前 DMG 只构建了 darwin-arm64 架构，Intel Mac 暂不支持
+- **macOS 14+（Sonoma）**：App 使用了 SwiftUI 6 + WKWebView 等系统框架，需要 macOS 14 或更高版本
+- **首次启动 Gatekeeper 提示**：由于使用 ad-hoc 签名（非 Apple Developer 证书），首次打开可能提示"无法验证开发者"，在「系统设置 → 隐私与安全性」点击"仍要打开"即可
+- **Homebrew tap 是独立仓库**：`TobyChain/tap` 指向 `github.com/TobyChain/homebrew-tap`，与 noteone 主仓库分离，更新 Cask 版本时需要同步更新 tap 仓库
+- **版本更新**：`brew upgrade` 会自动下载新版 DMG 替换旧版，但不会迁移数据——数据存储在 `~/Library/Application Support/NoteOne`，与 App 二进制分离，升级不影响数据
+- **从 DMG 迁移到 Homebrew**：如果之前通过 DMG 安装过，先手动移除 `/Applications/NoteOne.app`，再执行 `brew install --cask noteone`，数据目录不受影响
 
 #### 后端 + 数据库（Docker 推荐）
 
@@ -213,6 +245,7 @@ noteone/
 │   ├── docs/                   #   生成的 HTML 日报
 │   └── README.md               #   pipeline 入门
 ├── scripts/package-dmg.sh      # dmg 单体分发打包（内嵌 Node + PGlite，双击即用）
+├── homebrew/Casks/noteone.rb   # Homebrew Cask 定义（brew tap TobyChain/tap）
 ├── mcp-server/                 # 独立 MCP（HTTP 代理，5 只读工具）
 ├── browser-extension/          # Chrome 扩展（Manifest V3）
 ├── docs/

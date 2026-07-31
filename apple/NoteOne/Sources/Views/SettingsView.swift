@@ -40,6 +40,9 @@ struct SettingsView: View {
     @State private var llmHasApiKey = false
     @State private var llmSaving = false
     @State private var llmSaved = false
+    @State private var llmTesting = false
+    @State private var llmTestResult: String?
+    @State private var llmTestError = false
 
     @State private var showAscanConfig = false
     @State private var showWechatConfig = false
@@ -375,10 +378,27 @@ struct SettingsView: View {
                         .font(.caption)
                 }
                 Spacer()
+                Button(action: testLLM) {
+                    if llmTesting {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Text(L("测试", "Test"))
+                    }
+                }
+                .disabled(llmTesting || llmSaving)
                 Button(action: saveLLMSettings) {
                     if llmSaving { ProgressView().controlSize(.small) } else { Text(L("保存模型设置", "Save Model Settings")) }
                 }
-                .disabled(llmSaving)
+                .disabled(llmSaving || llmTesting)
+            }
+            if let result = llmTestResult {
+                HStack(spacing: 6) {
+                    Image(systemName: llmTestError ? "xmark.circle.fill" : "checkmark.circle.fill")
+                        .foregroundStyle(llmTestError ? Color.danger : Color.success)
+                    Text(result)
+                        .font(.caption)
+                        .foregroundStyle(llmTestError ? Color.danger : Color.inkSecondary)
+                }
             }
         } header: {
             Label(L("AI 模型（自带 API Key）", "AI Model (BYOK)"), systemImage: "cpu")
@@ -520,6 +540,36 @@ struct SettingsView: View {
                 }
             } catch {
                 await MainActor.run { llmSaving = false }
+            }
+        }
+    }
+
+    private func testLLM() {
+        llmTesting = true
+        llmTestResult = nil
+        // Send fields from the UI; empty apiKey means "use saved key".
+        let key = llmApiKey.isEmpty ? nil : llmApiKey
+        Task {
+            do {
+                let result = try await APIClient.shared.testLLM(
+                    apiKey: key, baseUrl: llmBaseUrl, model: llmModel
+                )
+                await MainActor.run {
+                    llmTesting = false
+                    if result.ok {
+                        llmTestError = false
+                        llmTestResult = L("测试成功：", "Test OK: ") + (result.response ?? "")
+                    } else {
+                        llmTestError = true
+                        llmTestResult = L("测试失败：", "Test failed: ") + (result.error ?? "未知错误")
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    llmTesting = false
+                    llmTestError = true
+                    llmTestResult = L("测试失败：", "Test failed: ") + error.localizedDescription
+                }
             }
         }
     }

@@ -1,7 +1,7 @@
 import Foundation
 
 enum ContentType: String, Codable, CaseIterable, Sendable {
-    case text, image, video, link, mixed
+    case text, image, video, link, mixed, html, md
 }
 
 enum NoteStatus: String, Codable, Sendable {

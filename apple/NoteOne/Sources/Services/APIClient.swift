@@ -238,6 +238,21 @@ actor APIClient {
         return try await patch("/api/settings", body: Body(llm: LLMBody(apiKey: apiKey, baseUrl: baseUrl, model: model)))
     }
 
+    struct LLMTestResult: Decodable, Sendable {
+        let ok: Bool
+        let response: String?
+        let error: String?
+    }
+
+    func testLLM(apiKey: String?, baseUrl: String?, model: String?) async throws -> LLMTestResult {
+        struct Body: Encodable {
+            let apiKey: String?
+            let baseUrl: String?
+            let model: String?
+        }
+        return try await post("/api/settings/test-llm", body: Body(apiKey: apiKey, baseUrl: baseUrl, model: model))
+    }
+
     // MARK: - Account
 
     /// Permanently delete the authenticated user and all their data. Returns once the

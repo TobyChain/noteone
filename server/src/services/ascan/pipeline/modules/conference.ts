@@ -356,6 +356,55 @@ async function fetchAllConferences(
   return filtered.slice(0, DEFAULT_MAX_TOTAL);
 }
 
+// ── LLM topic filter (similar to wechat's llmFilterArticles) ─────────────
+
+const LLM_FILTER_THRESHOLD = 6;
+
+async function llmFilterPapers(papers: ConferencePaper[], ctx: ModuleContext): Promise<ConferencePaper[]> {
+  if (!papers.length) return papers;
+  if (!ctx.llm.isConfigured) {
+    ctx.log("Conference LLM 过滤：LLM 未配置，跳过过滤");
+    return papers;
+  }
+
+  const listStr = papers
+    .map((p, i) => `[${i + 1}] 标题：${p.title} | 会议：${p.venue} | 摘要：${(p.abstract || "").slice(0, 200)}`)
+    .join("\n");
+
+  const prompt = `你是一位 AI 领域的学术编辑。请为以下会议论文评估技术相关性和阅读价值，打分1-10分。
+
+评分标准：
+- 9-10分：与大模型/Agent/智能体/AI前沿高度相关，突破性成果
+- 7-8分：重要创新，对AI前沿有显著贡献
+- 5-6分：有一定技术价值，但相关性一般
+- 3-4分：技术含量较低
+- 1-2分：与AI/科技无关
+
+论文列表：
+${listStr}
+
+请严格输出JSON（不要包含markdown代码块标记）：
+{
+  "scores": [
+    {"index": 1, "score": 8}
+  ]
+}`;
+
+  try {
+    const data = await ctx.llm.chatJson<any>(prompt);
+    const scoreMap = new Map<number, number>();
+    if (Array.isArray(data.scores)) {
+      for (const item of data.scores) scoreMap.set(Number(item.index), Number(item.score));
+    }
+    const filtered = papers.filter((_, i) => (scoreMap.get(i + 1) ?? 0) >= LLM_FILTER_THRESHOLD);
+    ctx.log(`Conference LLM 过滤: ${papers.length} → ${filtered.length} 篇（阈值≥${LLM_FILTER_THRESHOLD}）`);
+    return filtered.length ? filtered : papers;
+  } catch (e) {
+    ctx.log(`Conference LLM 过滤失败，保留全部论文: ${e}`);
+    return papers;
+  }
+}
+
 // ── LLM analysis (analyzer.py) ────────────────────────────────
 
 const PROMPT_TEMPLATE_ZH = `你是一位 AI 领域的学术论文分析专家。请分析以下会议论文，生成中文摘要和评估。
@@ -821,6 +870,9 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
 
     if (skippedDoiDup) log(`跳过 ${skippedDoiDup} 篇与 arXiv DOI 重复的会议论文`);
     if (skippedOld) log(`跳过 ${skippedOld} 篇超过 ${daysRecent} 天的旧会议论文`);
+
+    // LLM topic filter: drop papers not relevant to AI/tech interests
+    newPapers = await llmFilterPapers(newPapers, ctx);
 
     for (const paper of newPapers) {
       try {

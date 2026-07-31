@@ -37,6 +37,37 @@
     renderAll();
   }
 
+  async function loadPresets() {
+    const data = await api("/api/ascan/presets");
+    const container = $("preset-list");
+    container.innerHTML = "";
+    for (const p of data.presets) {
+      const btn = document.createElement("button");
+      btn.className = "preset-btn";
+      const name = document.createElement("strong");
+      name.textContent = p.name;
+      const desc = document.createElement("span");
+      desc.className = "muted";
+      desc.textContent = p.description;
+      btn.append(name, document.createElement("br"), desc);
+      btn.onclick = async () => {
+        if (!confirm(`应用「${p.name}」预设？当前个人配置将被覆盖。`)) return;
+        try {
+          await api("/api/ascan/config/preset", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ presetId: p.id }),
+          });
+          await loadConfig();
+          toast(`已应用「${p.name}」预设`);
+        } catch (e) {
+          toast(`应用失败：${e.message}`);
+        }
+      };
+      container.appendChild(btn);
+    }
+  }
+
   async function saveConfig(updates, silent) {
     config = await api("/api/ascan/config", {
       method: "PATCH",
@@ -225,4 +256,5 @@
   $("btn-save").onclick = saveAll;
 
   loadConfig().catch((e) => toast(`配置加载失败：${e.message}`));
+  loadPresets().catch(() => {});
 })();

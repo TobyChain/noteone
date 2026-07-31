@@ -17,7 +17,7 @@ import {
   todayCompact,
 } from "./pipeline/index.js";
 import { PipelineLLM } from "./pipeline/llm.js";
-import { getConfig } from "./config.js";
+import { getEffectiveConfig } from "./config.js";
 import { readUserPreferences } from "./pipeline/index.js";
 import { getUserLanguage } from "../user-config.js";
 import type { AscanModuleName } from "./pipeline/types.js";
@@ -116,7 +116,7 @@ async function runSupplement(dateStr: string, llmConfig?: LLMOverride, userId?: 
   supplementAbort = abort;
 
   // Shared PipelineLLM so all modules share one concurrency semaphore
-  const config = await getConfig();
+  const config = await getEffectiveConfig(userId);
   const sharedLlm = new PipelineLLM({
     apiKey: llmConfig?.apiKey || config.llm_api_key,
     baseUrl: llmConfig?.baseUrl || config.llm_base_url,
@@ -209,7 +209,7 @@ export async function startAscanSupplement(
   }
   const [language, config] = await Promise.all([
     userId ? getUserLanguage(userId) : Promise.resolve("zh" as const),
-    getConfig(),
+    getEffectiveConfig(userId),
   ]);
   const labels = getModuleLabels(language);
   const enabled = enabledModuleNames(config);

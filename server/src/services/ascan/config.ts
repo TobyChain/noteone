@@ -11,6 +11,7 @@ import { readFileSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, resolve, join } from "path";
 import { config as appConfig } from "../../config.js";
+import { getUserAscanConfig, setUserAscanConfig } from "../user-config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -80,6 +81,7 @@ interface SchemaField {
   type: FieldType;
   default: any;
   sensitive?: boolean;
+  personal?: boolean;
   group: string;
 }
 
@@ -267,4 +269,56 @@ export function sanitizeConfigUpdates(updates: Record<string, unknown>): Partial
     (filtered as any)[key] = val;
   }
   return filtered;
+}
+
+// ── per-user personal config (DB) + effective config merge ──────
+
+export const PERSONAL_KEYS: Set<string> = new Set(
+  schema.fields.filter((f) => f.personal).map((f) => f.key as string),
+);
+
+export function splitConfigUpdates(updates: Partial<AscanConfig>): {
+  personal: Partial<AscanConfig>;
+  global: Partial<AscanConfig>;
+} {
+  const personal: Partial<AscanConfig> = {};
+  const global: Partial<AscanConfig> = {};
+  for (const [k, v] of Object.entries(updates)) {
+    if (PERSONAL_KEYS.has(k)) (personal as any)[k] = v;
+    else (global as any)[k] = v;
+  }
+  return { personal, global };
+}
+
+export async function getEffectiveConfig(userId?: string): Promise<AscanConfig> {
+  const globalConfig = await getConfig();
+  if (!userId) return globalConfig;
+
+  const userConfig = await getUserAscanConfig(userId);
+  if (!userConfig) return globalConfig;
+
+  const merged = { ...globalConfig };
+  for (const key of PERSONAL_KEYS) {
+    if (key in userConfig && (userConfig as any)[key] !== undefined) {
+      (merged as any)[key] = (userConfig as any)[key];
+    }
+  }
+  return merged;
+}
+
+export async function updateEffectiveConfig(
+  userId: string | undefined,
+  updates: Partial<AscanConfig>,
+): Promise<AscanConfig> {
+  const { personal, global } = splitConfigUpdates(updates);
+
+  if (Object.keys(global).length > 0) {
+    await updateConfig(global);
+  }
+
+  if (Object.keys(personal).length > 0 && userId) {
+    await setUserAscanConfig(userId, personal);
+  }
+
+  return getEffectiveConfig(userId);
 }
