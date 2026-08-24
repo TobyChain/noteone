@@ -1,0 +1,91 @@
+name: NoteOne
+options:
+  bundleIdPrefix: com.noteone
+  deploymentTarget:
+    iOS: "17.0"
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_ALLOWED: "NO"
+
+targets:
+  NoteOne:
+    type: application
+    platform: [iOS, macOS]
+    sources:
+      - path: NoteOne/Sources
+      - path: NoteOne/Resources/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.noteone.app
+        MARKETING_VERSION: "0.2.0"
+        CURRENT_PROJECT_VERSION: "2"
+        CODE_SIGN_ENTITLEMENTS: NoteOne/NoteOne.entitlements
+    info:
+      path: NoteOne/Info.plist
+      properties:
+        CFBundleDisplayName: 壹识
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # ATS: enforce HTTPS in release; allow plaintext localhost / Bonjour for dev only.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSExceptionDomains:
+            localhost:
+              NSExceptionAllowsInsecureHTTPLoads: true
+              NSIncludesSubdomains: true
+        # Advertise NoteOne as a legal Drag & Drop target for these UTIs (iPadOS Slide-Over /
+        # Dock drop, iOS share-sheet drop). Actual handling is via SwiftUI .onDrop on root.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Text
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.text
+              - public.plain-text
+          - CFBundleTypeName: URL
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.url
+          - CFBundleTypeName: Image
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.image
+          - CFBundleTypeName: Movie
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.movie
+    entitlements:
+      path: NoteOne/NoteOne.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.noteone.app
+
+  NoteOneShareExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: NoteOneShareExtension/Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.noteone.app.share
+        CODE_SIGN_ENTITLEMENTS: NoteOneShareExtension/ShareExtension.entitlements
+    entitlements:
+      path: NoteOneShareExtension/ShareExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.noteone.app
+    info:
+      path: NoteOneShareExtension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
