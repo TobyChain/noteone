@@ -146,7 +146,10 @@ export async function runAgentLoop(
   tools: ToolDefinition[],
   toolHandlers: Record<string, ToolHandler>,
   optsOrConfig?: AgentLoopOptions | LLMConfig,
-  maxIterations = 12,
+  // Default: unlimited iterations — the model decides when it's done. Runaway
+  // loops are caught by doom-loop detection (identical/alternating repeats).
+  // Pass a finite number only when a hard budget is deliberately wanted.
+  maxIterations = Infinity,
   onIntermediateMessage?: (msg: IntermediateMessage) => void,
 ): Promise<string> {
   // Support both old positional signature and new options-object signature

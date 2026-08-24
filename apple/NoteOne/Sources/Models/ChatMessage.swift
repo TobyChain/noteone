@@ -1,6 +1,6 @@
 import Foundation
 
-struct ChatMessage: Codable, Identifiable, Sendable {
+struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     let id: UUID
     var role: String
     var content: String

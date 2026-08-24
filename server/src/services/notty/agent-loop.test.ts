@@ -97,6 +97,21 @@ describe("runAgentLoop", () => {
     expect(secondBody.messages.some((m: any) => m.role === "tool")).toBe(true);
   });
 
+  it("runs unlimited rounds when no cap is set", async () => {
+    const rounds = 25; // beyond any historical cap (3/5/16)
+    const responses = Array.from({ length: rounds }, (_, i) =>
+      assistantMsg(`第${i + 1}步`, [toolCall(`c${i}`, "echo", { i })]));
+    responses.push(assistantMsg("done"));
+    scriptResponses(responses);
+
+    const reply = await runAgentLoop(baseMessages as any, tools, { echo: async () => "ok" }, {
+      llmConfig: { baseUrl: "http://test", apiKey: "sk-test", model: "test-model" } as any,
+    });
+
+    expect(reply).toBe("done");
+    expect(llmFetchMock).toHaveBeenCalledTimes(rounds + 1);
+  });
+
   it("injects a wrap-up instruction when the iteration budget is exhausted", async () => {
     const echo = vi.fn(async () => "ok");
     // Model keeps calling tools forever; budget is 2 rounds.

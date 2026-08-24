@@ -95,6 +95,7 @@ struct NottyView: View {
                             ChatBubble(message: msg) { url in
                                 send(L("用 learn-art 深入分析这个链接：", "Analyze this link with learn-art: ") + url)
                             }
+                            .equatable()
                             .id(msg.id)
                         }
                         if !liveActivities.isEmpty {
@@ -122,17 +123,14 @@ struct NottyView: View {
                 }
                 .onChange(of: messages.count) {
                     if let last = messages.last {
-                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                        // No withAnimation: animated scrollTo on a growing
+                        // LazyVStack can feed back into layout and spin the main thread.
+                        proxy.scrollTo(last.id, anchor: .bottom)
                     }
                 }
                 .onChange(of: liveActivities.count) {
                     if !liveActivities.isEmpty {
-                        withAnimation { proxy.scrollTo("activities", anchor: .bottom) }
-                    }
-                }
-                .onChange(of: isLoading) {
-                    if isLoading {
-                        withAnimation { proxy.scrollTo("loading", anchor: .bottom) }
+                        proxy.scrollTo("activities", anchor: .bottom)
                     }
                 }
             }
@@ -571,9 +569,16 @@ private struct SessionListPopover: View {
     }
 }
 
-private struct ChatBubble: View {
+private struct ChatBubble: View, Equatable {
     let message: ChatMessage
     var onLearnArtAnalyze: ((String) -> Void)? = nil
+
+    // Equality on message only (the closure is never comparable). Combined with
+    // .equatable() in the ForEach this skips body re-eval — and the synchronous
+    // markdown parse below — for unchanged bubbles while SSE events stream in.
+    nonisolated static func == (lhs: ChatBubble, rhs: ChatBubble) -> Bool {
+        lhs.message == rhs.message
+    }
 
     var isUser: Bool { message.role == "user" }
 
@@ -660,6 +665,10 @@ private struct ChatBubble: View {
     }
 
     private func markdownAttributed(_ text: String) -> AttributedString {
+        // AttributedString markdown parsing is slow on large/pathological input
+        // (heavy inline markers) and runs synchronously on the main thread —
+        // skip it for huge payloads so one bad message can't beachball the app.
+        guard text.count < 8_000 else { return AttributedString(text) }
         let opts = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         if let attr = try? AttributedString(markdown: text, options: opts) {
             return attr

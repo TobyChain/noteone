@@ -165,9 +165,6 @@ export async function processSessionMessage(
   const intermediateMessages: Array<{ role: string; content: string | null; tool_calls?: any[]; tool_call_id?: string }> = [];
   const reply = await runAgentLoop(llmMessages, tools, handlers, {
     llmConfig: chatConfig,
-    // Multi-step workflows (fetch → parse → verify → add feed …) legitimately
-    // need 6-10 tool rounds; 5 cut them off mid-task.
-    maxIterations: 16,
     signal,
     onIntermediateMessage: (msg) => {
       intermediateMessages.push(msg);
