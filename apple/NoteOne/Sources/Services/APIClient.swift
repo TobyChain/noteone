@@ -68,6 +68,8 @@ private struct ServerErrorResponse: Decodable {
 enum ChatStreamEvent {
     case toolStart(name: String, argsSummary: String?)
     case toolEnd(name: String, durationMs: Int, preview: String)
+    /// Mid-reply assistant text emitted between tool rounds ("我先看看页面源码…").
+    case intermediate(content: String)
     case message(ChatResponseMessage)
     case failure(String)
 }
@@ -420,6 +422,7 @@ actor APIClient {
         struct ToolStart: Decodable { let name: String; let argsSummary: String? }
         struct ToolEnd: Decodable { let name: String; let durationMs: Int?; let preview: String? }
         struct ErrorPayload: Decodable { let error: String }
+        struct IntermediatePayload: Decodable { let content: String }
         switch name {
         case "tool_start":
             guard let p = try? JSONDecoder().decode(ToolStart.self, from: data) else { return nil }
@@ -427,6 +430,10 @@ actor APIClient {
         case "tool_end":
             guard let p = try? JSONDecoder().decode(ToolEnd.self, from: data) else { return nil }
             return .toolEnd(name: p.name, durationMs: p.durationMs ?? 0, preview: p.preview ?? "")
+        case "intermediate":
+            guard let p = try? JSONDecoder().decode(IntermediatePayload.self, from: data),
+                  !p.content.isEmpty else { return nil }
+            return .intermediate(content: p.content)
         case "message":
             guard let m = try? JSONDecoder().decode(ChatResponseMessage.self, from: data) else { return nil }
             return .message(m)

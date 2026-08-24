@@ -104,6 +104,7 @@ export async function processSessionMessage(
   message: string,
   signal?: AbortSignal,
   onToolActivity?: (event: ToolActivityEvent) => void,
+  onIntermediateText?: (text: string) => void,
 ): Promise<ProcessedMessage | null> {
   const start = Date.now();
   const session = await findSession(userId, sessionId);
@@ -164,9 +165,17 @@ export async function processSessionMessage(
   const intermediateMessages: Array<{ role: string; content: string | null; tool_calls?: any[]; tool_call_id?: string }> = [];
   const reply = await runAgentLoop(llmMessages, tools, handlers, {
     llmConfig: chatConfig,
-    maxIterations: 5,
+    // Multi-step workflows (fetch → parse → verify → add feed …) legitimately
+    // need 6-10 tool rounds; 5 cut them off mid-task.
+    maxIterations: 16,
     signal,
-    onIntermediateMessage: (msg) => intermediateMessages.push(msg),
+    onIntermediateMessage: (msg) => {
+      intermediateMessages.push(msg);
+      // Mid-reply text ("我先看看页面源码…") streams to the client live.
+      if (msg.role === "assistant" && msg.content) {
+        onIntermediateText?.(msg.content);
+      }
+    },
     onToolStart: (name, args) => onToolActivity?.({ type: "start", name, argsSummary: summarizeArgs(args) }),
     onToolEnd: (name, result, durationMs) => onToolActivity?.({
       type: "end",

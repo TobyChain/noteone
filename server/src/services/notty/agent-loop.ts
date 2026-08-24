@@ -93,6 +93,15 @@ function agentLog(msg: string) {
   } catch {}
 }
 
+/** Remove any DSML markup blocks from content, keeping the surrounding text. */
+function stripDSMLBlock(content: string): string {
+  const P = "[\\uFF5C|]";
+  let r = content.replace(new RegExp(`<${P}+DSML${P}+tool_calls>[\\s\\S]*?</${P}+DSML${P}+tool_calls>`, "g"), "");
+  r = r.replace(new RegExp(`<${P}+DSML${P}+[^>]*>[\\s\\S]*?</${P}+DSML${P}+[^>]*>`, "g"), "");
+  r = r.replace(new RegExp(`<${P}+DSML${P}+[^>]*/?>`, "g"), "");
+  return r.trim();
+}
+
 /**
  * Parse DSML tool-call markup that some models (e.g. DeepSeek) emit in the
  * content field instead of the OpenAI tool_calls field. The markup looks like:
@@ -137,7 +146,7 @@ export async function runAgentLoop(
   tools: ToolDefinition[],
   toolHandlers: Record<string, ToolHandler>,
   optsOrConfig?: AgentLoopOptions | LLMConfig,
-  maxIterations = 3,
+  maxIterations = 12,
   onIntermediateMessage?: (msg: IntermediateMessage) => void,
 ): Promise<string> {
   // Support both old positional signature and new options-object signature
@@ -183,8 +192,11 @@ export async function runAgentLoop(
       agentLog(`DSML_PARSE content_len=${choice.message.content.length} includes_DSML=${choice.message.content.includes("DSML")} parsed=${dsmlCalls ? dsmlCalls.length + " calls" : "null"}`);
       if (dsmlCalls) {
         choice.message.tool_calls = dsmlCalls;
-        choice.message.content = null;
-        console.log(`[llm] DSML tool_calls parsed from content: ${dsmlCalls.length} call(s)`);
+        // Keep any text the model wrote before the DSML block ("我先看看页面源码…")
+        // so mid-replies survive instead of being discarded wholesale.
+        const residual = stripDSMLBlock(choice.message.content);
+        choice.message.content = residual.length > 0 ? residual : null;
+        console.log(`[llm] DSML tool_calls parsed from content: ${dsmlCalls.length} call(s), residualText=${residual.length} chars`);
       }
     }
 
@@ -192,13 +204,16 @@ export async function runAgentLoop(
       const replyPreview = (choice.message.content ?? "").slice(0, 120).replace(/\n/g, "\\n");
       console.log(`[llm] FINAL-REPLY iter=${i} content="${replyPreview}" hasDSML=${(choice.message.content ?? "").includes("DSML")}`);
       agentLog(`FINAL_REPLY hasDSML=${(choice.message.content ?? "").includes("DSML")} content=${JSON.stringify((choice.message.content ?? "").slice(0, 500))}`);
-      return choice.message.content ?? "";
+      // A final reply may still contain DSML markup the parser rejected (malformed);
+      // strip it so the UI never renders raw markup.
+      return stripDSMLBlock(choice.message.content ?? "");
     }
 
     conversationMessages.push(choice.message);
-    const emitMsg = choice.message.tool_calls?.length ? { ...choice.message, content: null } : choice.message;
-    console.log(`[llm] emit iter=${i} role=assistant content=${emitMsg.content === null ? "NULL(nulled-for-tool-calls)" : `"${(emitMsg.content ?? "").slice(0, 80).replace(/\n/g, "\\n")}"`} tool_calls=${emitMsg.tool_calls?.length ?? 0}`);
-    emit?.(emitMsg);
+    // Emit with content intact: intermediate text ("我先看看…") is a visible
+    // mid-reply, and tool_calls consumers read the tool_calls field anyway.
+    console.log(`[llm] emit iter=${i} role=assistant content="${(choice.message.content ?? "").slice(0, 80).replace(/\n/g, "\\n")}" tool_calls=${choice.message.tool_calls?.length ?? 0}`);
+    emit?.(choice.message);
 
     // Parse all tool calls first
     const pending: PendingToolCall[] = [];
@@ -332,8 +347,17 @@ export async function runAgentLoop(
 
   if (signal?.aborted) return "请求已取消。";
 
+  // Iteration budget exhausted mid-task. A bare follow-up call lets the model
+  // trail off mid-sentence ("让我看看…：") because it can no longer call tools.
+  // Force an explicit wrap-up instead: summarize progress and remaining steps.
+  console.log(`[llm] iteration-budget-exhausted maxIter=${maxIter} toolCalls=${toolCallCount}`);
+  conversationMessages.push({
+    role: "system",
+    content: `本轮工具调用已达上限（${maxIter} 次）。请不要再调用工具，基于已获得的信息向用户总结：目前完成了什么、拿到了哪些结果、还剩什么没做。`,
+  });
   const finalData = await llmFetch(`${cfg.baseUrl}/chat/completions`, cfg, {
     model: cfg.model, messages: conversationMessages, temperature: 0.3,
   });
-  return finalData.choices[0].message.content ?? "";
+  const finalReply = stripDSMLBlock(finalData.choices[0].message.content ?? "");
+  return finalReply || "本轮工具调用已达上限，我先停在这里。可以继续对话，我会接着处理剩余步骤。";
 }

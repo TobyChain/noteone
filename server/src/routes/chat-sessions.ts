@@ -28,14 +28,15 @@ router.post("/", async (req: AuthRequest, res) => {
   res.status(201).json(session);
 });
 
-/** Strip DSML tool-call markup from message content so it never reaches the UI. */
-function stripDSML(content: string | null): string | null {
-  if (!content || !content.includes("DSML")) return content;
+/** Strip DSML tool-call markup from message content so it never reaches the UI.
+ *  Returns "" (never null) — the Swift client decodes content as non-optional. */
+function stripDSML(content: string | null): string {
+  if (!content || !content.includes("DSML")) return content ?? "";
   const P = "[\\uFF5C|]";
   let r = content.replace(new RegExp(`<${P}+DSML${P}+tool_calls>[\\s\\S]*?</${P}+DSML${P}+tool_calls>`, "g"), "");
   r = r.replace(new RegExp(`<${P}+DSML${P}+[^>]*>[\\s\\S]*?</${P}+DSML${P}+[^>]*>`, "g"), "");
   r = r.replace(new RegExp(`<${P}+DSML${P}+[^>]*/?>`, "g"), "");
-  return r.trim() || null;
+  return r.trim();
 }
 
 router.get("/:id", async (req: AuthRequest, res) => {
@@ -96,6 +97,9 @@ router.post("/:id/messages", async (req: AuthRequest, res) => {
             send("tool_end", { name: activity.name, durationMs: activity.durationMs, preview: activity.preview });
           }
         },
+        // Mid-reply text ("我先看看页面源码…") streams before tool results come back,
+        // so the user sees progress while Notty keeps working.
+        (text) => send("intermediate", { content: stripDSML(text) }),
       );
       if (!result) {
         send("error", { error: "Not found" });

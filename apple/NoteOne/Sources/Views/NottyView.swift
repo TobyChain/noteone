@@ -264,8 +264,9 @@ struct NottyView: View {
     }
 
     /// Rebuilds the chat flow from persisted messages: intermediate assistant tool_calls and
-    /// their tool results are folded into ToolActivity rows attached to Notty's final reply,
-    /// instead of showing up as raw JSON bubbles.
+    /// their tool results are folded into ToolActivity rows attached to the next assistant
+    /// text bubble, instead of showing up as raw JSON bubbles. Assistant messages that carry
+    /// BOTH text and tool_calls ("我先看看…", then tools) render their text as its own bubble.
     static func mapHistory(_ serverMessages: [ServerChatMessage]) -> [ChatMessage] {
         var result: [ChatMessage] = []
         var pending: [ToolActivity] = []
@@ -273,6 +274,12 @@ struct NottyView: View {
 
         for msg in serverMessages {
             if msg.role == "assistant", let calls = msg.toolCalls, !calls.isEmpty {
+                if !msg.content.isEmpty {
+                    // Mid-reply text: flush the previous segment's activities into its bubble.
+                    result.append(ChatMessage(role: msg.role, content: msg.content, toolActivities: pending))
+                    pending.removeAll()
+                    pendingIndexByCallId.removeAll()
+                }
                 for call in calls {
                     var activity = ToolActivity(name: call.function.name, argsSummary: summarizeArgsJSON(call.function.arguments))
                     activity.isRunning = false
@@ -353,6 +360,12 @@ struct NottyView: View {
                             liveActivities[idx].durationMs = durationMs
                             liveActivities[idx].resultPreview = preview
                         }
+                    case .intermediate(let content):
+                        // Mid-reply: bubble up the text with the tools run so far,
+                        // then keep collecting activities for the next segment.
+                        for i in liveActivities.indices { liveActivities[i].isRunning = false }
+                        messages.append(ChatMessage(role: "assistant", content: content, toolActivities: liveActivities))
+                        liveActivities = []
                     case .message(let response):
                         gotFinalMessage = true
                         for i in liveActivities.indices { liveActivities[i].isRunning = false }
