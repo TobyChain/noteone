@@ -2,6 +2,14 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { config } from "../config.js";
 
+function safeRequestTarget(req: Request): string {
+  const url = new URL(req.originalUrl, "http://localhost");
+  for (const key of ["token", "auth-key", "api_key", "access_token"]) {
+    if (url.searchParams.has(key)) url.searchParams.set(key, "[redacted]");
+  }
+  return url.pathname + url.search;
+}
+
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   if (req.path === "/health") { next(); return; }
 
@@ -21,7 +29,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
   res.on("finish", () => {
     const duration = Date.now() - start;
     console.log(
-      `[request] ${req.method} ${req.originalUrl} userId=${userId} → ${res.statusCode} ${duration}ms`,
+      `[request] ${req.method} ${safeRequestTarget(req)} userId=${userId} → ${res.statusCode} ${duration}ms`,
     );
   });
 

@@ -5,7 +5,7 @@
  * defined once in .ascan/config.schema.json (formerly the Python
  * ascan/config.schema.json; the Python pipeline has been removed).
  */
-import { readFile, writeFile } from "fs/promises";
+import { chmod, readFile, writeFile } from "fs/promises";
 import { readFileSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, resolve, join } from "path";
@@ -241,7 +241,8 @@ export async function updateConfig(updates: Partial<AscanConfig>): Promise<Ascan
     if (err?.code !== "ENOENT") throw err;
   }
   const updated = updateEnvFile(content, updates);
-  await writeFile(ASCAN_ENV, updated, "utf-8");
+  await writeFile(ASCAN_ENV, updated, { encoding: "utf-8", mode: 0o600 });
+  await chmod(ASCAN_ENV, 0o600);
   return getConfig();
 }
 

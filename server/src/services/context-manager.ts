@@ -73,40 +73,44 @@ export function trimToTokenBudget(messages: ContextMessage[]): ContextMessage[] 
  * always discarded.
  */
 export function sanitizeToolMessageGroups(messages: ContextMessage[]): ContextMessage[] {
-  const result: ContextMessage[] = [];
+  const toolMessagesById = new Map<string, ContextMessage[]>();
+  for (const message of messages) {
+    if (message.role === "tool" && message.tool_call_id) {
+      const queue = toolMessagesById.get(message.tool_call_id) ?? [];
+      queue.push(message);
+      toolMessagesById.set(message.tool_call_id, queue);
+    }
+  }
+  const consumedById = new Map<string, number>();
 
-  for (let i = 0; i < messages.length;) {
-    const message = messages[i];
+  const result: ContextMessage[] = [];
+  for (const message of messages) {
     if (message.role === "tool") {
-      i++;
       continue;
     }
 
     if (message.role !== "assistant" || !message.tool_calls?.length) {
       result.push(message);
-      i++;
       continue;
     }
 
-    const expected = new Set(message.tool_calls.map((call: any) => call.id));
-    const toolMessages: ContextMessage[] = [];
-    let j = i + 1;
-    while (j < messages.length && messages[j].role === "tool") {
-      const toolMessage = messages[j];
-      if (toolMessage.tool_call_id && expected.has(toolMessage.tool_call_id)) {
-        toolMessages.push(toolMessage);
-      }
-      j++;
+    const withinGroupCount = new Map<string, number>();
+    const toolMessages = message.tool_calls.map((call: any) => {
+      const used = consumedById.get(call.id) ?? 0;
+      const offset = withinGroupCount.get(call.id) ?? 0;
+      withinGroupCount.set(call.id, offset + 1);
+      return toolMessagesById.get(call.id)?.[used + offset];
+    }).filter((toolMessage): toolMessage is ContextMessage => Boolean(toolMessage));
+    const complete = toolMessages.length === message.tool_calls.length;
+    for (const [id, count] of withinGroupCount) {
+      const available = toolMessagesById.get(id)?.length ?? 0;
+      consumedById.set(id, Math.min(available, (consumedById.get(id) ?? 0) + count));
     }
-
-    const found = new Set(toolMessages.map((toolMessage) => toolMessage.tool_call_id));
-    const complete = expected.size === found.size && [...expected].every((id) => found.has(id));
     if (complete) {
       result.push(message, ...toolMessages);
     } else {
       result.push({ ...message, tool_calls: undefined });
     }
-    i = j;
   }
 
   return result;

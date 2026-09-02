@@ -91,6 +91,10 @@ final class ServerLauncher {
         try? FileManager.default.createDirectory(at: dataDir, withIntermediateDirectories: true)
         let logURL = dataDir.appendingPathComponent("server.log")
         FileManager.default.createFile(atPath: logURL.path, contents: nil)
+        try? FileManager.default.setAttributes(
+            [.posixPermissions: 0o600],
+            ofItemAtPath: logURL.path
+        )
         if let handle = try? FileHandle(forWritingTo: logURL) {
             handle.seekToEndOfFile()
             p.standardOutput = handle

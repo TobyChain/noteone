@@ -36,4 +36,22 @@ describe("sanitizeToolMessageGroups", () => {
       { role: "user", content: "hello" },
     ])).toEqual([{ role: "user", content: "hello" }]);
   });
+
+  it("repairs legacy groups whose equal timestamps put tool results before the assistant", () => {
+    const assistant = { role: "assistant", content: "checking", tool_calls: [call("a"), call("b")] };
+    const toolA = { role: "tool", content: "A", tool_call_id: "a" };
+    const toolB = { role: "tool", content: "B", tool_call_id: "b" };
+
+    expect(sanitizeToolMessageGroups([toolB, assistant, toolA])).toEqual([assistant, toolA, toolB]);
+  });
+
+  it("matches repeated legacy tool-call ids by occurrence", () => {
+    const firstAssistant = { role: "assistant", content: "first", tool_calls: [call("same")] };
+    const secondAssistant = { role: "assistant", content: "second", tool_calls: [call("same")] };
+    const firstTool = { role: "tool", content: "one", tool_call_id: "same" };
+    const secondTool = { role: "tool", content: "two", tool_call_id: "same" };
+
+    expect(sanitizeToolMessageGroups([firstTool, firstAssistant, secondTool, secondAssistant]))
+      .toEqual([firstAssistant, firstTool, secondAssistant, secondTool]);
+  });
 });

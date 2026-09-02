@@ -122,6 +122,7 @@ export async function processSessionMessage(
   const intermediateMessages: Array<{ role: string; content: string | null; tool_calls?: any[]; tool_call_id?: string }> = [];
   const reply = await runAgentLoop(llmMessages, tools, handlers, {
     llmConfig: chatConfig,
+    cacheScope: userId,
     signal,
     onIntermediateMessage: (msg) => {
       intermediateMessages.push(msg);
@@ -141,14 +142,17 @@ export async function processSessionMessage(
 
   // Persist intermediate tool messages and final reply atomically
   const assistantId = await db.transaction(async (tx) => {
+    const latestHistoryTime = allMessages.at(-1)?.createdAt?.getTime() ?? 0;
+    const persistenceBase = Math.max(Date.now(), latestHistoryTime + 1);
     if (intermediateMessages.length > 0) {
       await tx.insert(chatMessages).values(
-        intermediateMessages.map((msg) => ({
+        intermediateMessages.map((msg, index) => ({
           sessionId: session.id,
           role: msg.role,
           content: msg.content || "",
           toolCalls: msg.tool_calls,
           toolCallId: msg.tool_call_id,
+          createdAt: new Date(persistenceBase + index),
         })),
       );
     }
@@ -156,6 +160,7 @@ export async function processSessionMessage(
       sessionId: session.id,
       role: "assistant",
       content: reply,
+      createdAt: new Date(persistenceBase + intermediateMessages.length),
     }).returning({ id: chatMessages.id });
     return assistant.id;
   });
@@ -165,8 +170,12 @@ export async function processSessionMessage(
     .where(eq(chatSessions.id, session.id));
 
   if (needsCompaction(allMessages.length + 2)) {
-    compactSession(session.id, chatConfig).catch(console.error);
     console.log(`[chat] session=${session.id.slice(0, 8)} compaction=triggered msgCount=${allMessages.length + 2}`);
+    try {
+      await compactSession(session.id, chatConfig);
+    } catch (error) {
+      console.error(`[chat] session=${session.id.slice(0, 8)} compaction=failed`, error);
+    }
   }
 
   console.log(`[chat] message-processed session=${session.id.slice(0, 8)} duration=${Date.now() - start}ms noteCount=${noteIndex.allNotes.length} historyMsgs=${allMessages.length}`);

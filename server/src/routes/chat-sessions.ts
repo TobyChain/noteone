@@ -11,6 +11,7 @@ import { isLLMConfigured } from "../services/llm.js";
 const router = Router();
 
 const LLM_NOT_CONFIGURED_MSG = "AI 模型未配置，请先在设置中配置 API Key";
+const activeSessionRequests = new Set<string>();
 
 router.get("/", async (req: AuthRequest, res) => {
   const sessions = await db.query.chatSessions.findMany({
@@ -72,53 +73,64 @@ router.post("/:id/messages", async (req: AuthRequest, res) => {
     return;
   }
 
+  const requestKey = `${req.userId}:${String(req.params.id)}`;
+  if (activeSessionRequests.has(requestKey)) {
+    res.status(409).json({ error: "该会话正在处理上一条消息，请稍后再试" });
+    return;
+  }
+  activeSessionRequests.add(requestKey);
+
   const controller = new AbortController();
-  req.on("close", () => controller.abort());
+  res.on("close", () => {
+    if (!res.writableEnded) controller.abort();
+  });
 
   const wantsSSE = (req.headers.accept || "").includes("text/event-stream");
 
-  if (wantsSSE) {
-    res.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    });
-    const send = (event: string, data: unknown) => {
-      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-    };
+  try {
+    if (wantsSSE) {
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      });
+      const send = (event: string, data: unknown) => {
+        if (!res.destroyed) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      };
 
-    try {
-      const result = await processSessionMessage(
-        req.userId!, req.params.id as string, parsed.data.message, controller.signal,
-        (activity) => {
-          if (activity.type === "start") {
-            send("tool_start", { name: activity.name, argsSummary: activity.argsSummary });
-          } else {
-            send("tool_end", { name: activity.name, durationMs: activity.durationMs, preview: activity.preview });
-          }
-        },
-        // Mid-reply text ("我先看看页面源码…") streams before tool results come back,
-        // so the user sees progress while Notty keeps working.
-        (text) => send("intermediate", { content: stripDSML(text) }),
-      );
-      if (!result) {
-        send("error", { error: "Not found" });
-      } else {
-        send("message", { id: result.messageId, role: "assistant", content: stripDSML(result.reply) });
+      try {
+        const result = await processSessionMessage(
+          req.userId!, req.params.id as string, parsed.data.message, controller.signal,
+          (activity) => {
+            if (activity.type === "start") {
+              send("tool_start", { name: activity.name, argsSummary: activity.argsSummary });
+            } else {
+              send("tool_end", { name: activity.name, durationMs: activity.durationMs, preview: activity.preview });
+            }
+          },
+          (text) => send("intermediate", { content: stripDSML(text) }),
+        );
+        if (!result) {
+          send("error", { error: "Not found" });
+        } else {
+          send("message", { id: result.messageId, role: "assistant", content: stripDSML(result.reply) });
+        }
+      } catch (err) {
+        send("error", { error: err instanceof Error ? err.message : String(err) });
       }
-    } catch (err) {
-      send("error", { error: err instanceof Error ? err.message : String(err) });
+      if (!res.destroyed) res.end();
+      return;
     }
-    res.end();
-    return;
+
+    const result = await processSessionMessage(
+      req.userId!, req.params.id as string, parsed.data.message, controller.signal,
+    );
+    if (!result) { res.status(404).json({ error: "Not found" }); return; }
+
+    res.json({ message: { id: result.messageId, role: "assistant", content: stripDSML(result.reply) } });
+  } finally {
+    activeSessionRequests.delete(requestKey);
   }
-
-  const result = await processSessionMessage(
-    req.userId!, req.params.id as string, parsed.data.message, controller.signal,
-  );
-  if (!result) { res.status(404).json({ error: "Not found" }); return; }
-
-  res.json({ message: { id: result.messageId, role: "assistant", content: stripDSML(result.reply) } });
 });
 
 export { router as chatSessionsRouter };

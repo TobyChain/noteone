@@ -2,7 +2,9 @@
  * Agent loop: multi-turn LLM tool-calling with doom-loop detection,
  * tool concurrency scheduling, and abort support.
  */
-import { getDefaultLLMConfig, llmFetch, LLMConfig, assertConfigured } from "../llm.js";
+import { apiEndpoint, getDefaultLLMConfig, llmFetch, LLMConfig, assertConfigured } from "../llm.js";
+import { randomUUID } from "node:crypto";
+import { sanitizeToolMessageGroups } from "../context-manager.js";
 
 export interface ToolDefinition {
   type: "function";
@@ -29,17 +31,20 @@ export interface AgentLoopOptions {
   onIntermediateMessage?: (msg: IntermediateMessage) => void;
   onToolStart?: (name: string, args: Record<string, any>) => void;
   onToolEnd?: (name: string, result: string, durationMs: number) => void;
+  cacheScope?: string;
 }
 
-/** Tools that only read data can run concurrently; side-effecting tools run serially. */
-const EXCLUSIVE_TOOLS = new Set([
-  "run_command", "schedule_task", "cancel_scheduled_task",
-  "run_ascan_module", "merge_ascan_report",
-  "generate_study_report",
+/** Only explicitly read-only tools may run concurrently or use the result cache. */
+const READ_ONLY_TOOLS = new Set([
+  "read_note", "search_notes", "web_fetch", "discover_feed", "search_web",
+  "get_ascan_preferences", "list_ascan_reports", "get_ascan_report", "get_ascan_status",
+  "list_wechat_mps", "search_wechat_mp", "list_blog_sources", "get_ascan_config",
+  "get_study_report_status", "list_scheduled_tasks", "run_command", "search_files",
+  "list_files", "read_file",
 ]);
 
-function isExclusive(name: string): boolean {
-  return EXCLUSIVE_TOOLS.has(name);
+function isReadOnly(name: string): boolean {
+  return READ_ONLY_TOOLS.has(name);
 }
 
 // ── Tool result compression ───────────────────────────────────────────
@@ -59,38 +64,34 @@ function compressToolResult(text: string): string {
 const dedupCache = new Map<string, { result: string; ts: number }>();
 const DEDUP_TTL = 5 * 60 * 1000;
 
-function dedupKey(name: string, args: Record<string, any>): string {
-  return `${name}:${JSON.stringify(args)}`;
+function dedupKey(scope: string, name: string, args: Record<string, any>): string {
+  return `${scope}:${name}:${JSON.stringify(args)}`;
 }
 
-function tryDedup(name: string, args: Record<string, any>): string | null {
-  if (isExclusive(name)) return null; // only cache read-only tools
-  const key = dedupKey(name, args);
+function tryDedup(scope: string, name: string, args: Record<string, any>): string | null {
+  if (!isReadOnly(name)) return null;
+  const key = dedupKey(scope, name, args);
   const entry = dedupCache.get(key);
   if (entry && Date.now() - entry.ts < DEDUP_TTL) return entry.result;
   return null;
 }
 
-function recordDedup(name: string, args: Record<string, any>, result: string): void {
-  if (isExclusive(name)) return;
-  dedupCache.set(dedupKey(name, args), { result, ts: Date.now() });
+function recordDedup(scope: string, name: string, args: Record<string, any>, result: string): void {
+  if (!isReadOnly(name)) return;
+  dedupCache.set(dedupKey(scope, name, args), { result, ts: Date.now() });
+}
+
+function invalidateDedupScope(scope: string): void {
+  const prefix = `${scope}:`;
+  for (const key of dedupCache.keys()) {
+    if (key.startsWith(prefix)) dedupCache.delete(key);
+  }
 }
 
 interface PendingToolCall {
   id: string;
   name: string;
   args: Record<string, any>;
-}
-
-// File-based debug log — console.log goes nowhere when the server runs inside the
-// macOS app (no terminal). This writes to ~/noteone-agent-debug.log for diagnosis.
-function agentLog(msg: string) {
-  try {
-    const { appendFileSync } = require("fs");
-    const { join } = require("path");
-    const p = join(require("os").homedir(), "noteone-agent-debug.log");
-    appendFileSync(p, `[${new Date().toISOString()}] ${msg}\n`);
-  } catch {}
 }
 
 /** Remove any DSML markup blocks from content, keeping the surrounding text. */
@@ -133,7 +134,7 @@ function parseDSMLToolCalls(content: string): any[] | null {
       args[p[1]] = p[2].trim();
     }
     calls.push({
-      id: `call_dsml_${idx++}`,
+      id: `call_dsml_${randomUUID()}_${idx++}`,
       type: "function",
       function: { name, arguments: JSON.stringify(args) },
     });
@@ -141,20 +142,39 @@ function parseDSMLToolCalls(content: string): any[] | null {
   return calls.length > 0 ? calls : null;
 }
 
+function normalizeToolCalls(toolCalls: any[]): any[] {
+  const seen = new Set<string>();
+  return toolCalls.map((call, index) => {
+    let id = typeof call?.id === "string" && call.id ? call.id : `call_${randomUUID()}_${index}`;
+    if (seen.has(id)) id = `call_${randomUUID()}_${index}`;
+    seen.add(id);
+    const args = call?.function?.arguments;
+    return {
+      id,
+      type: "function",
+      function: {
+        name: String(call?.function?.name || ""),
+        arguments: typeof args === "string" ? args : JSON.stringify(args ?? {}),
+      },
+    };
+  });
+}
+
 export async function runAgentLoop(
   messages: Array<{ role: string; content: string | null; tool_calls?: any[]; tool_call_id?: string }>,
   tools: ToolDefinition[],
   toolHandlers: Record<string, ToolHandler>,
   optsOrConfig?: AgentLoopOptions | LLMConfig,
-  // Default: unlimited iterations — the model decides when it's done. Runaway
-  // loops are caught by doom-loop detection (identical/alternating repeats).
-  // Pass a finite number only when a hard budget is deliberately wanted.
-  maxIterations = Infinity,
+  // A generous hard ceiling protects against varying-call runaway loops that
+  // fingerprint-based doom detection cannot catch.
+  maxIterations = 32,
   onIntermediateMessage?: (msg: IntermediateMessage) => void,
 ): Promise<string> {
   // Support both old positional signature and new options-object signature
   let opts: AgentLoopOptions;
-  if (optsOrConfig && ("apiKey" in optsOrConfig || optsOrConfig === undefined)) {
+  if (!optsOrConfig) {
+    opts = { maxIterations, onIntermediateMessage };
+  } else if ("apiKey" in optsOrConfig) {
     opts = { llmConfig: optsOrConfig as LLMConfig | undefined, maxIterations, onIntermediateMessage };
   } else {
     opts = optsOrConfig as AgentLoopOptions;
@@ -164,8 +184,9 @@ export async function runAgentLoop(
   const signal = opts.signal;
   const maxIter = opts.maxIterations ?? maxIterations;
   const emit = opts.onIntermediateMessage;
+  const cacheScope = opts.cacheScope ?? "default";
 
-  const conversationMessages = [...messages];
+  const conversationMessages = sanitizeToolMessageGroups(messages);
   const totalStart = Date.now();
   let toolCallCount = 0;
   const recentFingerprints: string[] = [];
@@ -176,15 +197,18 @@ export async function runAgentLoop(
     if (signal?.aborted) return "请求已取消。";
 
     const iterStart = Date.now();
-    const data = await llmFetch(`${cfg.baseUrl}/chat/completions`, cfg, {
+    const data = await llmFetch(apiEndpoint(cfg.baseUrl, "chat/completions"), cfg, {
       model: cfg.model, messages: conversationMessages, tools, temperature: 0.3,
-    });
+    }, signal);
+    if (!Array.isArray(data?.choices) || !data.choices[0]?.message) {
+      const detail = data?.error?.message || data?.message || "missing choices[0].message";
+      throw new Error(`LLM API returned an invalid chat response: ${detail}`);
+    }
     const choice = data.choices[0];
     {
       const contentPreview = (choice.message.content ?? "").slice(0, 120);
       const hasDSML = (choice.message.content ?? "").includes("DSML");
       console.log(`[llm] iter=${i} model=${cfg.model} dur=${Date.now() - iterStart}ms tool_calls=${choice.message.tool_calls?.length ?? 0} hasDSML=${hasDSML} content="${contentPreview.replace(/\n/g, "\\n")}"`);
-      agentLog(`iter=${i} tool_calls=${choice.message.tool_calls?.length ?? 0} hasDSML=${hasDSML} FULL_CONTENT=${JSON.stringify(choice.message.content ?? "")}`);
     }
 
     // Some models (e.g. DeepSeek) return tool calls as DSML markup in the content
@@ -192,7 +216,6 @@ export async function runAgentLoop(
     // executes them rather than leaking the raw markup as the reply.
     if ((!choice.message.tool_calls || choice.message.tool_calls.length === 0) && choice.message.content) {
       const dsmlCalls = parseDSMLToolCalls(choice.message.content);
-      agentLog(`DSML_PARSE content_len=${choice.message.content.length} includes_DSML=${choice.message.content.includes("DSML")} parsed=${dsmlCalls ? dsmlCalls.length + " calls" : "null"}`);
       if (dsmlCalls) {
         choice.message.tool_calls = dsmlCalls;
         // Keep any text the model wrote before the DSML block ("我先看看页面源码…")
@@ -202,11 +225,13 @@ export async function runAgentLoop(
         console.log(`[llm] DSML tool_calls parsed from content: ${dsmlCalls.length} call(s), residualText=${residual.length} chars`);
       }
     }
+    if (choice.message.tool_calls?.length) {
+      choice.message.tool_calls = normalizeToolCalls(choice.message.tool_calls);
+    }
 
     if (!choice.message.tool_calls || choice.message.tool_calls.length === 0) {
       const replyPreview = (choice.message.content ?? "").slice(0, 120).replace(/\n/g, "\\n");
       console.log(`[llm] FINAL-REPLY iter=${i} content="${replyPreview}" hasDSML=${(choice.message.content ?? "").includes("DSML")}`);
-      agentLog(`FINAL_REPLY hasDSML=${(choice.message.content ?? "").includes("DSML")} content=${JSON.stringify((choice.message.content ?? "").slice(0, 500))}`);
       // A final reply may still contain DSML markup the parser rejected (malformed);
       // strip it so the UI never renders raw markup.
       return stripDSMLBlock(choice.message.content ?? "");
@@ -263,80 +288,59 @@ export async function runAgentLoop(
       }
     }
 
-    // Execute tools with concurrency scheduling:
-    // shared (read-only) tools run concurrently, exclusive tools serialize after all shared.
-    const shared: PendingToolCall[] = [];
-    const exclusive: PendingToolCall[] = [];
-    for (const p of pending) {
-      (isExclusive(p.name) ? exclusive : shared).push(p);
-    }
-
     const results: Array<{ id: string; name: string; result: string }> = [];
-
-    // Run shared tools concurrently
-    if (shared.length > 0) {
-      const sharedResults = await Promise.all(
-        shared.map(async (p) => {
-          if (signal?.aborted) return { id: p.id, name: p.name, result: "请求已取消。" };
-          opts.onToolStart?.(p.name, p.args);
-          const fnStart = Date.now();
-          let result: string;
-          const cached = tryDedup(p.name, p.args);
-          if (cached) {
-            result = cached;
-            console.log(`[llm] tool-dedup-hit name=${p.name}`);
-          } else {
-            const handler = toolHandlers[p.name];
-            if (handler) {
-              try {
-                result = await handler(p.args);
-              } catch (err) {
-                result = `Error executing tool "${p.name}": ${err instanceof Error ? err.message : String(err)}`;
-                console.error(`[llm] tool-exec-error name=${p.name} error=${result}`);
-              }
-            } else {
-              result = `Error: unknown tool "${p.name}"`;
-            }
-            result = compressToolResult(result);
-            recordDedup(p.name, p.args, result);
-          }
-          const dur = Date.now() - fnStart;
-          console.log(`[llm] tool-exec name=${p.name} duration=${dur}ms args=${JSON.stringify(p.args).slice(0, 80)} result="${result.slice(0, 120).replace(/\n/g, "\\n")}"`);
-          opts.onToolEnd?.(p.name, result, dur);
-          toolCallCount++;
-          return { id: p.id, name: p.name, result };
-        }),
-      );
-      results.push(...sharedResults);
-    }
-
-    // Run exclusive tools serially (after all shared complete)
-    for (const p of exclusive) {
-      if (signal?.aborted) {
-        results.push({ id: p.id, name: p.name, result: "请求已取消。" });
-        continue;
-      }
+    const executeOne = async (p: PendingToolCall) => {
+      if (signal?.aborted) return { id: p.id, name: p.name, result: "请求已取消。" };
       opts.onToolStart?.(p.name, p.args);
       const fnStart = Date.now();
-      const handler = toolHandlers[p.name];
       let result: string;
-      if (handler) {
-        try {
-          result = await handler(p.args);
-        } catch (err) {
-          result = `Error executing tool "${p.name}": ${err instanceof Error ? err.message : String(err)}`;
-          console.error(`[llm] tool-exec-error name=${p.name} error=${result}`);
-        }
+      const cached = tryDedup(cacheScope, p.name, p.args);
+      if (cached) {
+        result = cached;
+        console.log(`[llm] tool-dedup-hit name=${p.name}`);
       } else {
-        result = `Error: unknown tool "${p.name}"`;
+        const handler = toolHandlers[p.name];
+        if (handler) {
+          try {
+            result = await handler(p.args);
+          } catch (err) {
+            result = `Error executing tool "${p.name}": ${err instanceof Error ? err.message : String(err)}`;
+            console.error(`[llm] tool-exec-error name=${p.name} error=${result}`);
+          }
+        } else {
+          result = `Error: unknown tool "${p.name}"`;
+        }
+        result = compressToolResult(result);
+        recordDedup(cacheScope, p.name, p.args, result);
       }
-      result = compressToolResult(result);
       const dur = Date.now() - fnStart;
-      console.log(`[llm] tool-exec name=${p.name} duration=${dur}ms`);
+      console.log(`[llm] tool-exec name=${p.name} duration=${dur}ms args=${JSON.stringify(p.args).slice(0, 80)} result="${result.slice(0, 120).replace(/\n/g, "\\n")}"`);
       opts.onToolEnd?.(p.name, result, dur);
       toolCallCount++;
-      results.push({ id: p.id, name: p.name, result });
+      return { id: p.id, name: p.name, result };
+    };
+
+    // Preserve model-declared order. Consecutive read-only calls may run as one
+    // parallel batch; every state-changing call is an ordering barrier.
+    let readBatch: PendingToolCall[] = [];
+    const flushReadBatch = async () => {
+      if (readBatch.length === 0) return;
+      const sharedResults = await Promise.all(
+        readBatch.map(executeOne),
+      );
+      results.push(...sharedResults);
+      readBatch = [];
+    };
+    for (const p of pending) {
+      if (isReadOnly(p.name)) {
+        readBatch.push(p);
+      } else {
+        await flushReadBatch();
+        invalidateDedupScope(cacheScope);
+        results.push(await executeOne(p));
+      }
     }
+    await flushReadBatch();
 
     // Push results in original order
     const resultMap = new Map(results.map((r) => [r.id, r]));
@@ -358,9 +362,13 @@ export async function runAgentLoop(
     role: "system",
     content: `本轮工具调用已达上限（${maxIter} 次）。请不要再调用工具，基于已获得的信息向用户总结：目前完成了什么、拿到了哪些结果、还剩什么没做。`,
   });
-  const finalData = await llmFetch(`${cfg.baseUrl}/chat/completions`, cfg, {
+  const finalData = await llmFetch(apiEndpoint(cfg.baseUrl, "chat/completions"), cfg, {
     model: cfg.model, messages: conversationMessages, temperature: 0.3,
-  });
+  }, signal);
+  if (!Array.isArray(finalData?.choices) || !finalData.choices[0]?.message) {
+    const detail = finalData?.error?.message || finalData?.message || "missing choices[0].message";
+    throw new Error(`LLM API returned an invalid chat response: ${detail}`);
+  }
   const finalReply = stripDSMLBlock(finalData.choices[0].message.content ?? "");
   return finalReply || "本轮工具调用已达上限，我先停在这里。可以继续对话，我会接着处理剩余步骤。";
 }
