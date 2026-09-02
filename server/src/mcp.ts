@@ -288,9 +288,10 @@ server.tool(
       status.recentLog ? `最新日志: ${status.recentLog}` : null,
       status.lockAge ? `锁文件时长: ${status.lockAge}` : null,
     ].filter(Boolean);
-    const health = await checkWechatHealth();
+    const health = await checkWechatHealth(await getUserId());
     const healthLabel = {
       ready: `已登录（${health.nickname || ""}，有效期至 ${health.expiresAt || "?"}）`,
+      rate_limited: `已登录，但文章接口频率限制中（${health.message || "请稍后重试"}）`,
       auth_expired: "登录已过期，请重新扫码登录",
       unconfigured: "尚未扫码登录",
       unreachable: `无法连接：${health.message || ""}`,
@@ -302,12 +303,13 @@ server.tool(
 
 server.tool(
   "check_wechat_health",
-  "检查微信公众号登录状态。当登录过期时会提示重新扫码登录。返回状态：ready（已登录）、auth_expired（登录已过期）、unconfigured（未配置）、unreachable（无法连接）。",
+  "检查微信公众号登录及文章接口状态。返回状态：ready（已就绪）、rate_limited（文章接口限流）、auth_expired（登录已过期）、unconfigured（未配置）、unreachable（无法连接）。",
   {},
   async () => {
-    const health = await checkWechatHealth();
+    const health = await checkWechatHealth(await getUserId());
     const labels = {
       ready: `微信公众号登录正常（${health.nickname || ""}，有效期至 ${health.expiresAt || "?"}）`,
+      rate_limited: `微信公众号已登录，但文章接口频率限制中：${health.message || "请稍后重试"}`,
       auth_expired: "微信公众号登录已过期，请重新扫码登录（打开服务端 /wechat/ 页面重新扫码）",
       unconfigured: "微信公众号尚未扫码登录，请打开服务端 /wechat/ 页面扫码登录",
       unreachable: `微信公众号无法连接：${health.message || "未知错误"}`,
@@ -350,11 +352,13 @@ server.tool(
     const r = await runModule(module, date, llmConfig, userId);
     let text = `${module} 模块${r.ok ? "完成" : "失败"}：${r.chars} 字符${r.error ? "；错误：" + r.error : ""}`;
     if (module === "wechat") {
-      const health = await checkWechatHealth();
+      const health = await checkWechatHealth(userId);
       if (health.status === "auth_expired") {
         text += `\n⚠️ 微信公众号登录已过期，请重新扫码登录（打开 /wechat/ 页面重新扫码）。`;
       } else if (health.status === "unconfigured") {
         text += `\n⚠️ 微信公众号尚未扫码登录，无法抓取文章。`;
+      } else if (health.status === "rate_limited") {
+        text += `\n⚠️ 微信公众号已登录，但文章接口频率限制中：${health.message || "请稍后重试"}`;
       }
     }
     return { content: [{ type: "text" as const, text }] };

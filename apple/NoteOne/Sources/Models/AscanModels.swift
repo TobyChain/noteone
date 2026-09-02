@@ -64,7 +64,7 @@ struct WechatMpId: Codable, Hashable {
 }
 
 struct WechatHealthResponse: Decodable {
-    let status: String  // unconfigured | ready | auth_expired | unreachable
+    let status: String  // unconfigured | ready | rate_limited | auth_expired | unreachable
     let mpCount: Int?
     let nickname: String?
     let expiresAt: String?

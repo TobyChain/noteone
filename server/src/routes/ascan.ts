@@ -176,8 +176,8 @@ ascanRouter.get("/docs-path", async (_req: AuthRequest, res) => {
   res.json({ path: getDocsPath() });
 });
 
-ascanRouter.get("/wechat-health", async (_req: AuthRequest, res) => {
-  res.json(await checkWechatHealth());
+ascanRouter.get("/wechat-health", async (req: AuthRequest, res) => {
+  res.json(await checkWechatHealth(req.userId));
 });
 
 ascanRouter.post("/summarize", async (req: AuthRequest, res) => {

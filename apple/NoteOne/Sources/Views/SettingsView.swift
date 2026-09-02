@@ -525,6 +525,10 @@ struct SettingsView: View {
                 Label(L("登录过期", "Login Expired"), systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
+            case "rate_limited":
+                Label(L("文章接口限流", "Article API Rate Limited"), systemImage: "clock.badge.exclamationmark")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
             case "unreachable":
                 Label(L("连接失败", "Connection Failed"), systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)

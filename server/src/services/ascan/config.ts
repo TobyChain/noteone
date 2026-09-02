@@ -64,6 +64,8 @@ export interface AscanConfig {
   wechat_mp_ids: Array<{ id: string; name: string }>;
   wechat_limit_per_mp: number;
   wechat_days_recent: number;
+  wechat_request_interval_seconds: number;
+  wechat_rate_limit_cooldown_minutes: number;
   // Output
   output_dir: string;
   log_level: string;

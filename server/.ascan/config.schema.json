@@ -34,6 +34,8 @@
     { "key": "wechat_mp_ids", "type": "mp_list", "default": [], "personal": true, "group": "wechat" },
     { "key": "wechat_limit_per_mp", "type": "int", "default": 20, "personal": true, "group": "wechat" },
     { "key": "wechat_days_recent", "type": "int", "default": 30, "personal": true, "group": "wechat" },
+    { "key": "wechat_request_interval_seconds", "type": "int", "default": 15, "group": "wechat" },
+    { "key": "wechat_rate_limit_cooldown_minutes", "type": "int", "default": 60, "group": "wechat" },
 
     { "key": "output_dir", "type": "string", "default": "./docs", "group": "output" },
     { "key": "log_level", "type": "string", "default": "INFO", "group": "output" }

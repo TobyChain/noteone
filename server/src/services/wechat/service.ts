@@ -10,9 +10,55 @@ import {
   removeSession,
   WechatSession,
 } from "./session-store.js";
-import { getConfig, updateConfig } from "../ascan/config.js";
+import { getConfig, getEffectiveConfig, updateConfig } from "../ascan/config.js";
 
 const MP_BASE = "https://mp.weixin.qq.com/cgi-bin";
+const FREQ_CONTROL_RET = 200013;
+let articleRequestQueue: Promise<void> = Promise.resolve();
+let lastArticleRequestAt = 0;
+let articleCooldownUntil = 0;
+
+function frequencyControlled(retryAfterSeconds: number) {
+  return {
+    base_resp: {
+      ret: FREQ_CONTROL_RET,
+      err_msg: "freq control",
+      retry_after_seconds: Math.max(1, Math.ceil(retryAfterSeconds)),
+    },
+  };
+}
+
+async function withArticleRequestGate<T>(task: () => Promise<T>): Promise<T> {
+  const previous = articleRequestQueue;
+  let release!: () => void;
+  articleRequestQueue = new Promise<void>((resolve) => { release = resolve; });
+  await previous;
+  try {
+    const config = await getConfig();
+    const now = Date.now();
+    if (articleCooldownUntil > now) {
+      return frequencyControlled((articleCooldownUntil - now) / 1000) as T;
+    }
+    const intervalMs = Math.max(1, config.wechat_request_interval_seconds) * 1000;
+    const waitMs = Math.max(0, lastArticleRequestAt + intervalMs - now);
+    if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+    const result: any = await task();
+    lastArticleRequestAt = Date.now();
+    if (result?.base_resp?.ret === FREQ_CONTROL_RET) {
+      const cooldownMs = Math.max(1, config.wechat_rate_limit_cooldown_minutes) * 60_000;
+      articleCooldownUntil = Date.now() + cooldownMs;
+      result.base_resp.retry_after_seconds = Math.ceil(cooldownMs / 1000);
+    }
+    return result as T;
+  } finally {
+    release();
+  }
+}
+
+export function getWechatArticleRateLimitState(): { limited: boolean; retryAfterSeconds: number } {
+  const retryAfterSeconds = Math.max(0, Math.ceil((articleCooldownUntil - Date.now()) / 1000));
+  return { limited: retryAfterSeconds > 0, retryAfterSeconds };
+}
 
 // ── 登录流程（浏览器 uuid cookie 透传） ──────────────────────────
 
@@ -173,44 +219,46 @@ export async function listArticles(
   size = 5,
   keyword = "",
 ): Promise<unknown> {
-  const session = await getSession(authKey);
-  if (!session) return EXPIRED_RESP;
-  const isSearching = !!keyword;
-  const response = await mpRequest({
-    endpoint: `${MP_BASE}/appmsgpublish`,
-    method: "GET",
-    query: {
-      sub: isSearching ? "search" : "list",
-      search_field: isSearching ? "7" : "null",
-      begin,
-      count: size,
-      query: keyword,
-      fakeid,
-      type: "101_1",
-      free_publish_type: 1,
-      sub_action: "list_ex",
-      token: session.token,
-      lang: "zh_CN",
-      f: "json",
-      ajax: 1,
-    },
-    cookie: cookieHeaderFrom(session.cookies),
+  return withArticleRequestGate(async () => {
+    const session = await getSession(authKey);
+    if (!session) return EXPIRED_RESP;
+    const isSearching = !!keyword;
+    const response = await mpRequest({
+      endpoint: `${MP_BASE}/appmsgpublish`,
+      method: "GET",
+      query: {
+        sub: isSearching ? "search" : "list",
+        search_field: isSearching ? "7" : "null",
+        begin,
+        count: size,
+        query: keyword,
+        fakeid,
+        type: "101_1",
+        free_publish_type: 1,
+        sub_action: "list_ex",
+        token: session.token,
+        lang: "zh_CN",
+        f: "json",
+        ajax: 1,
+      },
+      cookie: cookieHeaderFrom(session.cookies),
+    });
+    return response.json();
   });
-  return response.json();
 }
 
 // ── 健康检查（供 /api/ascan/wechat-health 进程内调用） ─────────
 
 export interface WechatHealth {
-  status: "unconfigured" | "ready" | "auth_expired" | "unreachable";
+  status: "unconfigured" | "ready" | "rate_limited" | "auth_expired" | "unreachable";
   mpCount: number;
   nickname?: string;
   expiresAt?: string;
   message?: string;
 }
 
-export async function checkWechatHealth(): Promise<WechatHealth> {
-  const config = await getConfig();
+export async function checkWechatHealth(userId?: string): Promise<WechatHealth> {
+  const config = await getEffectiveConfig(userId);
   const mpCount = config.wechat_mp_ids.length;
   const authKey = config.wechat_auth_key;
   if (!authKey) {
@@ -221,7 +269,16 @@ export async function checkWechatHealth(): Promise<WechatHealth> {
     if (info?.base_resp?.ret === 200003 || !info?.nick_name) {
       return { status: "auth_expired", mpCount, message: "登录已过期，请重新扫码" };
     }
-    return { status: "ready", mpCount, nickname: info.nick_name, expiresAt: info.expires_at };
+    const rateLimit = getWechatArticleRateLimitState();
+    return {
+      status: rateLimit.limited ? "rate_limited" : "ready",
+      mpCount,
+      nickname: info.nick_name,
+      expiresAt: info.expires_at,
+      message: rateLimit.limited
+        ? `文章接口频率限制中，建议 ${Math.ceil(rateLimit.retryAfterSeconds / 60)} 分钟后重试`
+        : undefined,
+    };
   } catch (err: any) {
     return { status: "unreachable", mpCount, message: String(err?.message || err) };
   }

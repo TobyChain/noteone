@@ -18,6 +18,13 @@ import { buildCachedPrompt, type ChatMessages } from "../prompts.js";
 import type { ModuleContext, ModuleResult } from "../types.js";
 
 const FAILED_ONE_LINER = "[分析失败]";
+const FREQ_CONTROL_RET = 200013;
+
+class WechatRateLimitError extends Error {
+  constructor(readonly retryAfterSeconds: number) {
+    super("WeChat article API is frequency limited");
+  }
+}
 
 // ── models (models.py) ────────────────────────────────────────
 
@@ -51,12 +58,15 @@ interface WeChatAnalysis {
  * publish_page parsed: { total_count, publish_list: [{publish_info: "<json string>"}] }
  * publish_info parsed: { appmsgex: [{title, author, link, ...}] }
  */
-function parseAppmsgpublish(respJson: any, log: (msg: string) => void): any[] {
+export function parseAppmsgpublish(respJson: any, log: (msg: string) => void): any[] {
   const baseResp = respJson?.base_resp || {};
   const ret = baseResp.ret;
   if (ret !== 0) {
     const errMsg = baseResp.err_msg || `ret=${ret}`;
     log(`wechat appmsgpublish non-zero ret: ${errMsg}`);
+    if (ret === FREQ_CONTROL_RET) {
+      throw new WechatRateLimitError(Number(baseResp.retry_after_seconds) || 3600);
+    }
     return [];
   }
 
@@ -199,6 +209,7 @@ async function fetchMpArticles(
       begin += articlesRaw.length;
       await sleep(400);
     } catch (e) {
+      if (e instanceof WechatRateLimitError) throw e;
       log(`wechat ${mpName || fakeid} begin=${begin} error: ${e}`);
       break;
     }
@@ -217,18 +228,35 @@ async function fetchAllMps(
   limit: number,
   daysRecent: number,
   log: (msg: string) => void,
-): Promise<WeChatArticle[]> {
+): Promise<{ articles: WeChatArticle[]; rateLimited: boolean; retryAfterSeconds: number }> {
   const allArticles: WeChatArticle[] = [];
   for (const mp of mpList) {
     const fakeid = mp?.id || "";
     const mpName = mp?.name || "";
     if (!fakeid) continue;
-    const articles = await fetchMpArticles(authKey, fakeid, mpName, limit, daysRecent, log);
-    allArticles.push(...articles);
-    await sleep(500);
+    try {
+      const articles = await fetchMpArticles(authKey, fakeid, mpName, limit, daysRecent, log);
+      allArticles.push(...articles);
+    } catch (e) {
+      if (e instanceof WechatRateLimitError) {
+        log(`WeChat 文章接口触发频率限制，停止本轮剩余 ${mpList.length - mpList.indexOf(mp) - 1} 个公众号请求`);
+        return { articles: allArticles, rateLimited: true, retryAfterSeconds: e.retryAfterSeconds };
+      }
+      throw e;
+    }
   }
   log(`Total WeChat articles fetched: ${allArticles.length} from ${mpList.length} MPs`);
-  return allArticles;
+  return { articles: allArticles, rateLimited: false, retryAfterSeconds: 0 };
+}
+
+export function rateLimitFragment(retryAfterSeconds: number, language: "zh" | "en"): { html: string; md: string } {
+  const minutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
+  if (language === "en") {
+    const text = `WeChat limited article-list requests. Retry after about ${minutes} minutes; severe limits may last longer.`;
+    return { html: `<p class="empty-state">${text}</p>`, md: `_${text}_` };
+  }
+  const text = `微信公众平台对文章列表实施了频率限制，建议约 ${minutes} 分钟后重试；严重频控可能持续更久。`;
+  return { html: `<p class="empty-state">${text}</p>`, md: `_${text}_` };
 }
 
 // ── DB repository (WeChatArticleRepository) ───────────────────
@@ -572,7 +600,12 @@ export async function run(ctx: ModuleContext): Promise<ModuleResult> {
   }
 
   log(`Fetching WeChat (in-process), ${mpList.length} MPs, days_recent=${daysRecent}, limit_per_mp=${limit}`);
-  let allArticles = await fetchAllMps(authKey, mpList, limit, daysRecent, log);
+  const fetchResult = await fetchAllMps(authKey, mpList, limit, daysRecent, log);
+  let allArticles = fetchResult.articles;
+  if (fetchResult.rateLimited && allArticles.length === 0) {
+    const fragment = rateLimitFragment(fetchResult.retryAfterSeconds, lang0);
+    return { ...fragment, count: 0 };
+  }
 
   // Cap total articles across all MPs
   if (allArticles.length > MAX_TOTAL_ARTICLES) {
