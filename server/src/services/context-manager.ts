@@ -65,6 +65,54 @@ export function trimToTokenBudget(messages: ContextMessage[]): ContextMessage[] 
 }
 
 /**
+ * Keep OpenAI tool-call protocol messages atomic. An assistant message with
+ * tool_calls is valid only when every declared call is immediately followed by
+ * its tool result. If trimming, an interrupted request, or legacy persistence
+ * leaves a partial group, retain only the assistant's readable text and drop
+ * every tool message from that incomplete group. Standalone tool messages are
+ * always discarded.
+ */
+export function sanitizeToolMessageGroups(messages: ContextMessage[]): ContextMessage[] {
+  const result: ContextMessage[] = [];
+
+  for (let i = 0; i < messages.length;) {
+    const message = messages[i];
+    if (message.role === "tool") {
+      i++;
+      continue;
+    }
+
+    if (message.role !== "assistant" || !message.tool_calls?.length) {
+      result.push(message);
+      i++;
+      continue;
+    }
+
+    const expected = new Set(message.tool_calls.map((call: any) => call.id));
+    const toolMessages: ContextMessage[] = [];
+    let j = i + 1;
+    while (j < messages.length && messages[j].role === "tool") {
+      const toolMessage = messages[j];
+      if (toolMessage.tool_call_id && expected.has(toolMessage.tool_call_id)) {
+        toolMessages.push(toolMessage);
+      }
+      j++;
+    }
+
+    const found = new Set(toolMessages.map((toolMessage) => toolMessage.tool_call_id));
+    const complete = expected.size === found.size && [...expected].every((id) => found.has(id));
+    if (complete) {
+      result.push(message, ...toolMessages);
+    } else {
+      result.push({ ...message, tool_calls: undefined });
+    }
+    i = j;
+  }
+
+  return result;
+}
+
+/**
  * Check if a session needs compaction.
  * Returns true if the message count exceeds the compaction threshold.
  */

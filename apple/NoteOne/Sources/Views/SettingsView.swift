@@ -444,8 +444,6 @@ struct SettingsView: View {
         } header: {
             Label(L("AI 模型（自带 API Key）", "AI Model (BYOK)"), systemImage: "cpu")
                 .sectionHeaderStyle()
-        } footer: {
-            Text(L("选择服务商可自动填充 Base URL 和模型名，也可手动修改。填写任一 OpenAI 兼容的 API（DashScope / OpenAI / 自部署 vLLM 等）启用 AI 功能。Base URL 填到版本号即可，系统会自动拼接 /chat/completions 和 /embeddings 端点（不要在 URL 末尾加 /chat/completions）。此 Key 同时用于闹闹聊天、自动打标、摘要和新知 pipeline，无需单独配置。", "Selecting a provider auto-fills the Base URL and model name; you can also edit manually. Enter any OpenAI-compatible API (DashScope / OpenAI / self-hosted vLLM, etc.) to enable AI features. Fill the Base URL up to the version number — the system will automatically append /chat/completions and /embeddings endpoints (do not add /chat/completions at the end of the URL). This key is shared across Notty chat, auto-tagging, summarization, and the NewSee pipeline — no separate configuration needed."))
         }
     }
 

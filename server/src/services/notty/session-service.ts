@@ -10,6 +10,7 @@ import { chatCompletion, type LLMConfig, isLLMConfigured } from "../llm.js";
 import { getUserChatConfig, getUserLanguage } from "../user-config.js";
 import {
   trimToTokenBudget,
+  sanitizeToolMessageGroups,
   needsCompaction,
   getProtectionZone,
   buildSummarizationPrompt,
@@ -22,50 +23,6 @@ import { buildNottyToolkit } from "./tools.js";
 // Per-process lock so a flurry of /messages requests can't trigger overlapping compactions
 // for the same session (which would risk duplicate summaries / half-deleted history).
 const compactingSessions = new Set<string>();
-
-/**
- * Sanitize the conversation history to prevent LLM 400 errors:
- * 1. Remove orphaned tool messages (role:"tool" without a preceding assistant
- *    tool_calls that includes their tool_call_id).
- * 2. Strip tool_calls from assistant messages whose tool results are missing
- *    (the LLM rejects tool_calls without matching tool results).
- */
-function sanitizeToolMessages(messages: ContextMessage[]): ContextMessage[] {
-  const result: ContextMessage[] = [];
-  let activeCallIds: Set<string> | null = null;
-
-  for (const msg of messages) {
-    if (msg.role === "assistant" && msg.tool_calls?.length) {
-      activeCallIds = new Set(msg.tool_calls.map((tc: any) => tc.id));
-      result.push(msg);
-    } else if (msg.role === "tool") {
-      if (activeCallIds && msg.tool_call_id && activeCallIds.has(msg.tool_call_id)) {
-        result.push(msg);
-        activeCallIds.delete(msg.tool_call_id);
-      }
-      // else: orphaned tool message, skip
-    } else {
-      activeCallIds = null;
-      result.push(msg);
-    }
-  }
-
-  // Post-process: strip tool_calls from assistants whose results are incomplete
-  for (let i = 0; i < result.length; i++) {
-    if (result[i].role === "assistant" && result[i].tool_calls?.length) {
-      const expected = new Set(result[i].tool_calls!.map((tc: any) => tc.id));
-      let found = 0;
-      for (let j = i + 1; j < result.length && result[j].role === "tool"; j++) {
-        if (expected.has(result[j].tool_call_id)) found++;
-      }
-      if (found < expected.size) {
-        result[i] = { ...result[i], tool_calls: undefined };
-      }
-    }
-  }
-
-  return result;
-}
 
 export async function findSession(userId: string, sessionId: string) {
   return db.query.chatSessions.findFirst({
@@ -153,7 +110,7 @@ export async function processSessionMessage(
     tool_call_id: m.toolCallId || undefined,
   }));
   const trimmedHistory = trimToTokenBudget(historyMessages);
-  const sanitizedHistory = sanitizeToolMessages(trimmedHistory);
+  const sanitizedHistory = sanitizeToolMessageGroups(trimmedHistory);
 
   const llmMessages = [
     { role: "system", content: systemPrompt },
