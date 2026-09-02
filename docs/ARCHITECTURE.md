@@ -110,11 +110,11 @@ test/                集成测试辅助(db.ts / setup.ts)
 > 所有 `/api/*` 需 `Authorization: Bearer <JWT>`（`middleware/auth.ts`）。`/auth/*` 公开。
 > 限流：`/auth/*` 20 次/15 分钟；`/api/*` 300 次/分钟。
 
-### Auth（公开）
+### 本地会话（公开）
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/auth/local` | 静默自动登录：复用首个用户（按 createdAt），无则按可选 name 建（兜底"本地用户"），发 30 天 JWT |
-| POST | `/auth/dev-token` | 按名字建/取用户（browser-extension 使用） |
+| POST | `/auth/local` | 打开本地数据空间：复用首个内部数据所有者，无则创建固定的“本地用户”，签发仅供 API 内部调用的 30 天 JWT；不接收用户身份 |
+| POST | `/auth/dev-token` | 按名字建/取数据所有者，仅保留用于开发兼容 |
 
 ### Notes
 | 方法 | 路径 | 说明 |
@@ -235,8 +235,8 @@ test/                集成测试辅助(db.ts / setup.ts)
 
 ### 8.1 文件清单
 - **Models/**：`Note`（含 `ContentType` / `NoteStatus`） · `Tag`(`TagDimension`) · `NoteTag` · `ChatMessage`(会话模型) · `NoteDragPayload`(Transferable 拖出) · `AuthModels`。
-- **Views/**：`ContentView`(根 split/tab + iOS 顶层 onDrop) · `CaptureView`(统一录入,图文+剪贴板+拖拽+离线兜底) · `NoteListView`(分时段分组+轮询+语义搜索+NoteRowView 可拖) · `NoteDetailView`(详情+AIProcessing/Failed/Trashed 三态 banner+FlowTags+懒分块) · `NottyView`(会话 UI+SessionListPopover+ChatBubble) · `SettingsView`(主题/账户/服务器/快捷键/LLM/统计/标签) · `TrashView`(恢复/永久删/清空) · `MCPInstallView`(macOS 一键装 MCP)。
-- **Services/**：`APIClient`(actor，全部 API) · `AuthService`(@MainActor，静默自动登录 /auth/local + 401 静默续登) · `SyncQueue`(actor，离线队列+消化 App Group 共享待传) · `DropPayloadStore`(actor，跨视图拖拽内存中转)。
+- **Views/**：`ContentView`(根 split/tab + iOS 顶层 onDrop) · `CaptureView`(统一录入,图文+剪贴板+拖拽+离线兜底) · `NoteListView`(分时段分组+轮询+语义搜索+NoteRowView 可拖) · `NoteDetailView`(详情+AIProcessing/Failed/Trashed 三态 banner+FlowTags+懒分块) · `NottyView`(会话 UI+SessionListPopover+ChatBubble) · `SettingsView`(主题/本地数据/服务器/快捷键/LLM/统计/标签) · `TrashView`(恢复/永久删/清空) · `MCPInstallView`(macOS 一键装 MCP)。
+- **Services/**：`APIClient`(actor，全部 API) · `LocalSessionService`(@MainActor，在服务健康后建立内部本地会话，失败可重试) · `SyncQueue`(actor，离线队列+消化 App Group 共享待传) · `DropPayloadStore`(actor，跨视图拖拽内存中转)。
 - **macOS/**：`HotkeyManager`(全局快捷键+选中文本/剪贴板图片/浏览器 meta 捕获) · `FloatingPanel`(非激活悬浮 NSPanel)。
 - **Theme/**：`Theme`(system/light/dark + 命名色板)。
 
@@ -283,7 +283,8 @@ test/                集成测试辅助(db.ts / setup.ts)
 
 ## 10. 安全（详）
 
-- **认证（本地单用户）**：无登录界面，App 启动静默调 `/auth/local` 复用/创建唯一用户并取 30 天 JWT（存 UserDefaults）；401 时静默续登。`requireAuth` 校验 Bearer JWT 挂 `req.userId`。
+- **本地会话（单用户）**：没有注册或登录流程。macOS App 先等待内嵌服务健康，再调 `/auth/local` 复用/创建唯一内部数据所有者。30 天 JWT 只保存在 App 进程内，用于保护 localhost API；401 时自动重建本地会话。
+- **本地监听与持久化**：内嵌服务只监听 `127.0.0.1`；PGlite、上传文件、JWT secret 与运行数据保存在 `~/Library/Application Support/NoteOne`。
 - **SSRF（`url-guard.ts`）**：拦 IPv4 私网/回环/CGNAT(100.64/10)/链路本地(含 169.254.169.254 元数据)/多播保留；IPv6 ::1 / fc00::/7 / fe80::/10 / IPv4-mapped；仅 http/https；DNS 全 A/AAAA 记录校验；每跳重定向复检。
 - **限流**：auth 20/15min，api 300/min（标准头开，legacy 头关）。
 - **HTTP**：helmet（CSP/HSTS/X-Frame-Options…）、关 x-powered-by、CORS 名单、10MB JSON 上限。
@@ -298,8 +299,8 @@ test/                集成测试辅助(db.ts / setup.ts)
 
 | 文件 | 覆盖 |
 |------|------|
-| `routes/auth.test.ts` | 本地登录：/auth/local 建/复用用户、/auth/dev-token 同名复用与默认名 |
-| `routes/integration.test.ts` | 标签多租户、账户硬删+清图、导出、MCP 建笔记（需 `TEST_DATABASE_URL`，缺省 skip） |
+| `routes/auth.test.ts` | 本地会话：/auth/local 创建固定默认数据所有者并复用已有数据、/auth/dev-token 开发兼容 |
+| `routes/integration.test.ts` | 标签数据隔离、清除本地数据+清图、导出、MCP 建笔记（需 `TEST_DATABASE_URL`，缺省 skip） |
 | `services/tagging.test.ts` | LLM 输出校验（非 JSON / 坏维度 / 空名） |
 | `services/prompt-tagging.test.ts` | source_app 规范化、幂等、长度截断 |
 | `services/web-fetch.test.ts` | HTML 解析、重定向、content-type 拒绝、截断 |

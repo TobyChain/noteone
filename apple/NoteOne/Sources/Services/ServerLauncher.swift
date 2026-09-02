@@ -23,16 +23,31 @@ final class ServerLauncher {
         return FileManager.default.fileExists(atPath: dir.appendingPathComponent("server.mjs").path)
     }
 
-    func ensureRunning() async {
+    enum LaunchError: LocalizedError {
+        case failedToStart(String)
+        case healthCheckTimedOut
+
+        var errorDescription: String? {
+            switch self {
+            case .failedToStart(let detail):
+                return L("本地服务启动失败：\(detail)", "The local service could not start: \(detail)")
+            case .healthCheckTimedOut:
+                return L("本地服务启动超时，请重试。", "The local service timed out while starting. Please retry.")
+            }
+        }
+    }
+
+    func ensureRunning() async throws {
         guard isEmbeddedBuild else { return }
         if await isHealthy() { return }
-        start()
+        try start()
         // Wait for the embedded server to come up (PGlite migration on first boot).
         for _ in 0..<40 {
             try? await Task.sleep(nanoseconds: 500_000_000)
             if await isHealthy() { return }
         }
         NSLog("[ServerLauncher] server did not become healthy in 20s")
+        throw LaunchError.healthCheckTimedOut
     }
 
     func terminate() {
@@ -52,8 +67,10 @@ final class ServerLauncher {
         }
     }
 
-    private func start() {
-        guard process == nil, let dir = serverResources else { return }
+    private func start() throws {
+        if let process, process.isRunning { return }
+        process = nil
+        guard let dir = serverResources else { return }
         let dataDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("NoteOne")
 
@@ -86,6 +103,7 @@ final class ServerLauncher {
             NSLog("[ServerLauncher] embedded server started pid=%d", p.processIdentifier)
         } catch {
             NSLog("[ServerLauncher] failed to start embedded server: %@", error.localizedDescription)
+            throw LaunchError.failedToStart(error.localizedDescription)
         }
     }
 }

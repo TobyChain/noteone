@@ -2,7 +2,8 @@ import SwiftUI
 
 @main
 struct NoteOneApp: App {
-    @StateObject private var authService = AuthService()
+    @StateObject private var localSession = LocalSessionService()
+    @State private var didStartBootstrap = false
     @AppStorage("appTheme") private var selectedTheme: String = AppTheme.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
     #if os(macOS)
@@ -16,7 +17,7 @@ struct NoteOneApp: App {
     }
 
     private func syncPending() async {
-        guard authService.isAuthenticated else { return }
+        guard localSession.state == .ready else { return }
         let synced = await SyncQueue.shared.flush()
         if synced > 0 {
             await MainActor.run {
@@ -42,14 +43,28 @@ struct NoteOneApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if authService.isAuthenticated {
+                switch localSession.state {
+                case .ready:
                     ContentView()
-                        .environmentObject(authService)
-                } else {
-                    // Auto-login is in flight (first launch or 401 refresh) —
-                    // there is no login screen anymore, just a brief spinner.
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .environmentObject(localSession)
+                case .starting:
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text(L("正在打开本地数据…", "Opening local data…"))
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .failed(let message):
+                    ContentUnavailableView {
+                        Label(L("无法启动壹识", "NoteOne Could Not Start"), systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text(message)
+                    } actions: {
+                        Button(L("重试", "Retry")) {
+                            Task { await bootstrap() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                 }
             }
             .applyTheme(theme)
@@ -62,15 +77,9 @@ struct NoteOneApp: App {
                 #endif
             })
             .task {
-                #if os(macOS)
-                await ServerLauncher.shared.ensureRunning()
-                #endif
-                await SyncQueue.shared.warmUp()
-                await syncPending()
-                #if os(macOS)
-                hotkeyManager.register()
-                Task { await checkForAppUpdate() }
-                #endif
+                guard !didStartBootstrap else { return }
+                didStartBootstrap = true
+                await bootstrap()
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
@@ -110,8 +119,29 @@ struct NoteOneApp: App {
         #if os(macOS)
         Settings {
             UnifiedSettingsView()
-                .environmentObject(authService)
+                .environmentObject(localSession)
         }
+        #endif
+    }
+
+    @MainActor
+    private func bootstrap() async {
+        #if os(macOS)
+        do {
+            try await ServerLauncher.shared.ensureRunning()
+        } catch {
+            localSession.reportStartupFailure(error.localizedDescription)
+            return
+        }
+        #endif
+
+        await localSession.prepareLocalSession()
+        guard localSession.state == .ready else { return }
+        await SyncQueue.shared.warmUp()
+        await syncPending()
+        #if os(macOS)
+        hotkeyManager.register()
+        Task { await checkForAppUpdate() }
         #endif
     }
 }

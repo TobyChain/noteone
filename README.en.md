@@ -136,7 +136,7 @@ npm run dev                # Default :3000
 npm test                   # Vitest
 ```
 
-No account needed: the app silently auto-logins at launch (`POST /auth/local` creates/reuses the single local user); `POST /auth/dev-token` picks a user by name if you prefer.
+No registration or login is required. The app starts its localhost service first, then calls `POST /auth/local` to open the installation's single local data space. The returned JWT only protects internal calls between the app and its localhost service. Notes, tags, chats, and settings persist under `~/Library/Application Support/NoteOne`.
 
 #### Apple client
 
@@ -148,8 +148,8 @@ open NoteOne.xcodeproj
 
 Requires Xcode 16 / iOS 17 / macOS 14 / Swift 6. See [apple/README.md](apple/README.md).
 
-- DEBUG defaults to `http://localhost:3000`, Release to `https://api.noteone.app`
-- DEBUG login page offers dev quick-login
+- The macOS app connects to its embedded service at `http://localhost:3000`
+- There is no account or login flow; startup opens the local data space automatically
 - macOS global hotkey requires Accessibility permission
 
 ### Usage
@@ -200,10 +200,10 @@ Tools: `list_notes` · `get_note` · `create_note` · `update_note` · `delete_n
 
 ### Security
 
-- **Auth**: local single-user mode — silent auto-login at launch (`POST /auth/local` creates/reuses the single user), JWT 30 days with silent refresh
+- **Local session**: no account is required; the embedded server binds to `127.0.0.1`, and the app opens the internal local data owner after the service becomes healthy. An in-memory JWT protects localhost API calls
 - **SSRF guard**: link fetch filters private/loopback/CGNAT/link-local/cloud-metadata
 - **Rate limit**: `/auth/*` 20 req/15 min; `/api/*` 300 req/min
-- **Multi-tenant**: all queries scoped by `user_id`
+- **Data ownership**: queries remain scoped by an internal `user_id`; the desktop app uses one local data owner
 - **Upload safety**: UUID naming + extension whitelist + path-traversal guard
 - **Production hardening**: weak `JWT_SECRET` rejected
 - **Notty terminal**: whitelist commands + restricted dirs (`~/Documents` `~/Desktop` `~/Downloads`) + shell metachar blocking
@@ -219,7 +219,7 @@ Tools: `list_notes` · `get_note` · `create_note` · `update_note` · `delete_n
 | AI | Any OpenAI-compatible API (chat temp 0.3, text-embedding-3-small 1536-d) |
 | NewSee | TypeScript pipeline (6 modules, in-process) |
 | MCP | @modelcontextprotocol/sdk (stdio) |
-| Auth | Local single-user (silent auto-login) + JWT (30 d) |
+| Local session | Single local data owner + internal JWT (30 d) |
 
 ### API Surface
 
@@ -227,7 +227,7 @@ All `/api/*` need `Authorization: Bearer <JWT>`.
 
 | Group | Endpoints |
 |-------|-----------|
-| Auth | `POST /auth/local` (silent auto-login) · `POST /auth/dev-token` (by name) |
+| Session | `POST /auth/local` (open local data space) · `POST /auth/dev-token` (development compatibility) |
 | Notes | `POST/GET /api/notes` · `GET/PATCH/DELETE /api/notes/:id` · `/restore` · `/permanent` · `/retry` · `/tags` · `GET /api/notes/trash` |
 | Tags | `POST/GET /api/tags` · `DELETE /api/tags/:id` |
 | Search | `POST /api/search` (pgvector) |

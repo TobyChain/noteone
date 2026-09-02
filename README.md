@@ -151,7 +151,7 @@ npm run dev                # 默认 :3000
 npm test                   # Vitest
 ```
 
-无需配置账号：App 启动自动静默登录（`POST /auth/local`，服务端自动创建/复用唯一本地用户）；也可用 `POST /auth/dev-token` 按名字指定用户。
+无需注册或登录账号。App 会先启动本机服务，再通过 `POST /auth/local` 打开唯一的本地数据空间；该接口返回的 JWT 仅用于保护 App 与 localhost 服务之间的内部调用。笔记、标签、对话和设置默认持久化在 `~/Library/Application Support/NoteOne`。
 
 #### Apple 客户端
 
@@ -163,8 +163,8 @@ open NoteOne.xcodeproj
 
 要求 Xcode 16 / iOS 17 / macOS 14 / Swift 6。详见 [apple/README.md](apple/README.md)。
 
-- DEBUG 默认连 `http://localhost:3000`，Release 连 `https://api.noteone.app`，可在设置中修改
-- 无登录界面：启动即自动登录本地用户
+- macOS App 固定连接内嵌的 `http://localhost:3000` 服务
+- 无账号和登录流程：启动时自动打开本地数据空间
 - macOS 全局快捷键捕获需辅助功能权限
 
 ### 使用
@@ -224,10 +224,10 @@ macOS 设置中可一键写入 Claude Code / Cursor 配置。手动配置示例�
 > 君子以思患而豫防之。
 > —— 《周易·既济》
 
-- **认证**：本地单用户模式——启动静默登录（`POST /auth/local` 自动创建/复用唯一用户），JWT 30 天，过期自动续登
+- **本地会话**：无需账号；内嵌服务仅监听 `127.0.0.1`，App 在服务健康后自动创建/复用内部本地数据所有者，并用进程内 JWT 保护 localhost API
 - **SSRF 防护**：链接抓取过滤私网 / 回环 / CGNAT / 链路本地 / 云元数据
 - **速率限制**：`/auth/*` 20 次/15 分；`/api/*` 300 次/分
-- **多租户隔离**：所有查询按 `user_id` 限定
+- **数据归属**：所有查询按内部 `user_id` 限定；单机 App 默认只使用一个本地数据所有者
 - **上传安全**：UUID 命名 + 扩展名白名单 + 路径穿越校验
 - **生产硬约束**：弱 `JWT_SECRET` 拒绝启动
 - **闹闹本地终端**：白名单命令 + 限定目录（`~/Documents` `~/Desktop` `~/Downloads`）+ 屏蔽 shell 元字符

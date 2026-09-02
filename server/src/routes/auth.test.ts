@@ -94,11 +94,13 @@ describe("POST /auth/local", () => {
     });
 
     it("creates a default user when none exists", async () => {
-        const res = await request(buildApp()).post("/auth/local").send({});
+        const res = await request(buildApp()).post("/auth/local").send({ name: "Ignored Name" });
         expect(res.status).toBe(200);
         expect(typeof res.body.token).toBe("string");
         expect(res.body.user.name).toBe("本地用户");
         expect(res.body.user.id).toBeTruthy();
+        expect(dbHoist.users[0].appleId).toBe("local-default");
+        expect(dbHoist.users[0].email).toBeNull();
     });
 
     it("reuses the first existing user instead of creating another", async () => {

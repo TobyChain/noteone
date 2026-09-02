@@ -9,7 +9,7 @@ import AppKit
 ///   - center : NoteDetailView, TrashView, Ascan views, or empty placeholder
 ///   - inspector: collapsible Notty drawer
 struct MainSplitView: View {
-    @EnvironmentObject var authService: AuthService
+    @EnvironmentObject var localSession: LocalSessionService
 
     @State private var selection: SidebarSelection = .empty
     @State private var notes: [Note] = []
@@ -98,7 +98,7 @@ struct MainSplitView: View {
         }
         .sheet(isPresented: $showMCPInstall) {
             MCPInstallView()
-                .environmentObject(authService)
+                .environmentObject(localSession)
         }
         .sheet(isPresented: $showCreateNote) {
             CaptureView(onDismiss: { showCreateNote = false })

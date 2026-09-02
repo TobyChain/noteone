@@ -39,7 +39,7 @@ enum APIError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL: return "Invalid URL"
-        case .unauthorized: return L("登录已过期，请重新登录", "Session expired, please re-login")
+        case .unauthorized: return L("本地会话已失效，正在重新连接", "The local session expired; reconnecting")
         case .notFound: return L("未找到资源", "Not found")
         case .serverError(let code):
             if code >= 500 {
@@ -97,13 +97,10 @@ actor APIClient {
         self.token = token
     }
 
-    // MARK: - Auth
+    // MARK: - Local Session
 
-    func localLogin(name: String) async throws -> AuthResponse {
-        struct Body: Encodable {
-            let name: String
-        }
-        return try await post("/auth/local", body: Body(name: name))
+    func openLocalSession() async throws -> LocalSessionResponse {
+        return try await post("/auth/local", body: EmptyBody())
     }
 
     // MARK: - Notes
@@ -255,11 +252,11 @@ actor APIClient {
         return try await post("/api/settings/test-llm", body: Body(apiKey: apiKey, baseUrl: baseUrl, model: model))
     }
 
-    // MARK: - Account
+    // MARK: - Local Data
 
-    /// Permanently delete the authenticated user and all their data. Returns once the
-    /// server replies 204; the caller is expected to clear local credentials.
-    func deleteAccount() async throws {
+    /// Permanently clears the data owned by this installation's internal local user.
+    /// The next local-session request creates a fresh, empty data owner.
+    func clearLocalData() async throws {
         guard let url = URL(string: "\(baseURL)/api/account") else { throw APIError.invalidURL }
         var req = URLRequest(url: url)
         req.httpMethod = "DELETE"

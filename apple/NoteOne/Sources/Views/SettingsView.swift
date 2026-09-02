@@ -27,7 +27,7 @@ let llmPresets: [LLMPreset] = [
 ]
 
 struct SettingsView: View {
-    @EnvironmentObject var authService: AuthService
+    @EnvironmentObject var localSession: LocalSessionService
     @AppStorage("appTheme") private var selectedTheme: String = AppTheme.system.rawValue
     @AppStorage("appLanguage") private var appLanguage = "zh"
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
@@ -54,9 +54,9 @@ struct SettingsView: View {
     @State private var importError: String?
     @State private var importSummary: String?
     @State private var showImportPicker = false
-    @State private var showDeleteConfirm = false
-    @State private var isDeletingAccount = false
-    @State private var deleteError: String?
+    @State private var showClearConfirm = false
+    @State private var isClearingLocalData = false
+    @State private var clearError: String?
     @State private var isCheckingUpdate = false
     @State private var updateMessage: String?
     @State private var updateInfo: UpdateInfo?
@@ -92,7 +92,7 @@ struct SettingsView: View {
             onboardingSection
             languageSection
             appearanceSection
-            accountSection
+            localDataSection
 
             #if os(macOS)
             Section {
@@ -116,11 +116,11 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .navigationTitle(L("设置", "Settings"))
-        .confirmationDialog(L("注销账号？", "Delete Account?"), isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button(L("永久注销", "Delete Permanently"), role: .destructive) { performDeleteAccount() }
+        .confirmationDialog(L("清除所有本地数据？", "Clear All Local Data?"), isPresented: $showClearConfirm, titleVisibility: .visible) {
+            Button(L("永久清除", "Clear Permanently"), role: .destructive) { performClearLocalData() }
             Button(L("取消", "Cancel"), role: .cancel) {}
         } message: {
-            Text(L("此操作不可撤销。所有笔记、标签、对话及上传的图片都会被永久删除。如需保留请先\"导出我的数据\"。", "This action cannot be undone. All notes, tags, conversations, and uploaded images will be permanently deleted. To keep your data, please \"Export My Data\" first."))
+            Text(L("此操作不可撤销。保存在本机的笔记、标签、对话、设置及上传图片都会被永久删除。如需保留，请先导出数据。", "This cannot be undone. Notes, tags, chats, settings, and uploaded images stored on this device will be permanently deleted. Export your data first if you want to keep it."))
         }
         .alert(L("发现新版本", "New Version Available"), isPresented: $showUpdateAlert, presenting: updateInfo) { info in
             Button(L("下载安装包", "Download")) {
@@ -311,11 +311,11 @@ struct SettingsView: View {
         }
     }
 
-    private var accountSection: some View {
+    private var localDataSection: some View {
         Section {
-            if let name = authService.userName {
-                Text(L("本地用户: ", "Local user: ") + name)
-            }
+            Text(L("无需账号。笔记、标签、对话和设置默认保存在这台设备上。", "No account is required. Notes, tags, chats, and settings are stored on this device by default."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             Button {
                 exportMyData()
@@ -372,23 +372,23 @@ struct SettingsView: View {
             }
 
             Button(role: .destructive) {
-                showDeleteConfirm = true
+                showClearConfirm = true
             } label: {
-                if isDeletingAccount {
+                if isClearingLocalData {
                     HStack {
                         ProgressView().controlSize(.small)
-                        Text(L("正在注销…", "Deleting…"))
+                        Text(L("正在清除…", "Clearing…"))
                     }
                 } else {
-                    Label(L("注销账号", "Delete Account"), systemImage: "person.crop.circle.badge.xmark")
+                    Label(L("清除所有本地数据", "Clear All Local Data"), systemImage: "externaldrive.badge.xmark")
                 }
             }
-            .disabled(isDeletingAccount)
-            if let deleteError = deleteError {
-                Text(deleteError).font(.caption).foregroundStyle(Color.danger)
+            .disabled(isClearingLocalData)
+            if let clearError {
+                Text(clearError).font(.caption).foregroundStyle(Color.danger)
             }
         } header: {
-            Label(L("账户", "Account"), systemImage: "person.circle")
+            Label(L("本地数据", "Local Data"), systemImage: "externaldrive")
                 .sectionHeaderStyle()
         }
     }
@@ -720,22 +720,22 @@ struct SettingsView: View {
         }
     }
 
-    private func performDeleteAccount() {
-        isDeletingAccount = true
-        deleteError = nil
+    private func performClearLocalData() {
+        isClearingLocalData = true
+        clearError = nil
         Task {
             do {
-                try await APIClient.shared.deleteAccount()
+                try await APIClient.shared.clearLocalData()
                 await MainActor.run {
-                    isDeletingAccount = false
+                    isClearingLocalData = false
                 }
-                // Account data is wiped server-side; silently start over with a
-                // fresh local user instead of dropping back to a login screen.
-                await authService.localLogin()
+                // Recreate the internal local owner and continue without any
+                // user-facing account or login step.
+                await localSession.prepareLocalSession()
             } catch {
                 await MainActor.run {
-                    isDeletingAccount = false
-                    deleteError = L("注销失败: ", "Delete failed: ") + error.localizedDescription
+                    isClearingLocalData = false
+                    clearError = L("清除失败：", "Clear failed: ") + error.localizedDescription
                 }
             }
         }

@@ -9,7 +9,7 @@ extension Notification.Name {
 
 struct ContentView: View {
     #if os(macOS)
-    @EnvironmentObject var authService: AuthService
+    @EnvironmentObject var localSession: LocalSessionService
     #else
     @State private var selectedTab = 0
     #endif
@@ -17,7 +17,7 @@ struct ContentView: View {
     var body: some View {
         #if os(macOS)
         MainSplitView()
-            .environmentObject(authService)
+            .environmentObject(localSession)
         #else
         TabView(selection: $selectedTab) {
             NavigationStack {

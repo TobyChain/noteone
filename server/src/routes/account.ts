@@ -8,9 +8,9 @@ import { removeUploadedImagesForNotes } from "../services/upload-cleanup.js";
 const router = Router();
 
 // DELETE /api/account
-// Hard-delete the authenticated user and all of their data. Apple App Review 5.1.1(v) and
-// GDPR both require an in-app "delete my account" path; this is intentionally irrevocable
-// so we don't leave a "soft" delete that would silently fail compliance audits.
+// Clear all data owned by this installation's internal local user. The route
+// name is retained for API compatibility; the app presents this as "Clear
+// Local Data", not as account deletion.
 //
 // Cascade:
 //   users (this row) → notes / tags / chat_sessions all use ON DELETE CASCADE,
@@ -37,7 +37,7 @@ router.delete("/", async (req: AuthRequest, res) => {
         return;
     }
 
-    console.log(`[account] hard-deleted user ${userId}, removed ${userImageNotes.length} image refs`);
+    console.log(`[local-data] cleared owner ${userId}, removed ${userImageNotes.length} image refs`);
     res.status(204).end();
 });
 

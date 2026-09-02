@@ -6,6 +6,8 @@ import { config } from "../config.js";
 import { eq, asc } from "drizzle-orm";
 
 const router = Router();
+const LOCAL_USER_NAME = "本地用户";
+const LOCAL_USER_IDENTITY = "local-default";
 
 function issueToken(userId: string): string {
   return jwt.sign({ userId }, config.jwtSecret, { expiresIn: "30d" });
@@ -32,25 +34,24 @@ router.post("/dev-token", async (req, res) => {
   }
 
   const token = issueToken(user.id);
-  console.log(`[auth] local-login status=ok userId=${user.id.slice(0, 8)} name=${name}`);
+  console.log(`[auth] dev-token status=ok userId=${user.id.slice(0, 8)} name=${name}`);
   res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
 });
 
 // POST /auth/local
-// Silent auto-login — no UI, no name required. Reuses the first existing user
-// (by createdAt) so the installation stays single-user regardless of the name
-// passed in later requests; creates one on first call. This is the path the app
-// hits at launch and on 401-refresh.
-router.post("/local", async (req, res) => {
+// Opens the internal session for this installation. This is not a user login:
+// NoteOne is single-user and local-first. The users row is retained as an
+// internal data owner because notes, tags, settings, and chats reference it.
+// Existing installations keep their first owner row; fresh installations get
+// one stable default owner. Request fields are intentionally ignored.
+router.post("/local", async (_req, res) => {
   let user = await db.query.users.findFirst({ orderBy: asc(users.createdAt) });
 
   if (!user) {
-    const name = (req.body?.name || "").trim() || "本地用户";
-    const appleId = "local-" + name.toLowerCase().replace(/\s+/g, "-");
     const [created] = await db.insert(users).values({
-      appleId,
-      email: `${appleId}@local`,
-      name,
+      appleId: LOCAL_USER_IDENTITY,
+      email: null,
+      name: LOCAL_USER_NAME,
     }).returning();
     user = created;
   }

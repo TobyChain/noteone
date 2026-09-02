@@ -102,12 +102,18 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 import { dbReady } from "./db/client.js";
 
 await dbReady();
-app.listen(config.port, () => {
-  console.log(`NoteOne server running on port ${config.port}${config.isEmbedded ? " (embedded)" : ""}`);
+const onListening = () => {
+  const address = config.isEmbedded ? `127.0.0.1:${config.port} (embedded)` : `port ${config.port}`;
+  console.log(`NoteOne server running on ${address}`);
   startTrashCleanup();
   seedReportIfNeeded();
   restoreTasks();
-});
+};
+if (config.isEmbedded) {
+  app.listen(config.port, "127.0.0.1", onListening);
+} else {
+  app.listen(config.port, onListening);
+}
 
 // Embedded watchdog: if the host app dies without terminating us (force quit),
 // we get reparented to launchd (ppid 1) — exit instead of lingering on the port.

@@ -1,75 +1,58 @@
 import SwiftUI
 
-@MainActor
-class AuthService: ObservableObject {
-    @Published var isAuthenticated = false
-    @Published var userName: String?
-    @Published var userId: String?
+enum LocalSessionState: Equatable {
+    case starting
+    case ready
+    case failed(String)
+}
 
-    // The JWT is stored in UserDefaults, not the Keychain. The app is ad-hoc
-    // signed, so every rebuild produces a new cdhash — the new binary can't
-    // silently read a Keychain item written by the old binary, which is what
-    // triggered the "wants to access confidential information" password prompt
-    // on every launch. For a single-user localhost app, UserDefaults is fine.
-    private let tokenKey = "jwt_token"
+/// Establishes the app's internal localhost session. NoteOne has no user-facing
+/// account or login: the token only protects calls between the app and its
+/// bundled local server, while all user data stays in Application Support.
+@MainActor
+class LocalSessionService: ObservableObject {
+    @Published private(set) var state: LocalSessionState = .starting
 
     init() {
-        if let token = UserDefaults.standard.string(forKey: tokenKey) {
-            self.userId = Self.decodeUserId(from: token)
-            Task {
-                await APIClient.shared.setToken(token)
-                self.isAuthenticated = true
-            }
-        } else {
-            Task { await localLogin() }
-        }
+        // Remove credentials persisted by v0.2.0 and earlier. Local session
+        // tokens are now process-only and are recreated on every launch.
+        UserDefaults.standard.removeObject(forKey: "jwt_token")
         NotificationCenter.default.addObserver(
             forName: .unauthorized, object: nil, queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                guard let self, self.isAuthenticated else { return }
-                // Token expired (30d) or the local user was wiped — silently
-                // re-login instead of bouncing back to a login screen.
-                await self.localLogin()
+                guard let self, self.state == .ready else { return }
+                await self.prepareLocalSession()
             }
         }
     }
 
-    private static func decodeUserId(from token: String) -> String? {
-        let parts = token.split(separator: ".")
-        guard parts.count >= 2 else { return nil }
-        var base64 = String(parts[1])
-            .replacingOccurrences(of: "-", with: "+")
-            .replacingOccurrences(of: "_", with: "/")
-        while base64.count % 4 != 0 { base64 += "=" }
-        guard let data = Data(base64Encoded: base64),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let userId = json["userId"] as? String
-        else { return nil }
-        return userId
-    }
+    /// Opens the single local data session after the bundled server is healthy.
+    /// A few short retries absorb transient startup delays without trapping the
+    /// app behind an endless spinner.
+    func prepareLocalSession() async {
+        state = .starting
 
-    /// Silent auto-login against POST /auth/local — no login UI. The server
-    /// reuses the first existing user, or creates one on first launch named
-    /// after the local macOS account.
-    func localLogin() async {
-        do {
-            let response = try await APIClient.shared.localLogin(name: Self.systemUserName())
-            UserDefaults.standard.set(response.token, forKey: tokenKey)
-            await APIClient.shared.setToken(response.token)
-            self.isAuthenticated = true
-            self.userName = response.user.name
-            self.userId = response.user.id
-        } catch {
-            print("Auto-login failed: \(error)")
+        var lastError: Error?
+        for attempt in 0..<3 {
+            do {
+                let response = try await APIClient.shared.openLocalSession()
+                await APIClient.shared.setToken(response.token)
+                state = .ready
+                return
+            } catch {
+                lastError = error
+                if attempt < 2 {
+                    try? await Task.sleep(for: .milliseconds(300 * (attempt + 1)))
+                }
+            }
         }
+
+        let detail = lastError?.localizedDescription ?? L("未知错误", "Unknown error")
+        state = .failed(L("无法打开本地数据：", "Could not open local data: ") + detail)
     }
 
-    private static func systemUserName() -> String {
-        #if os(macOS)
-        let name = NSFullUserName().trimmingCharacters(in: .whitespaces)
-        if !name.isEmpty { return name }
-        #endif
-        return "本地用户"
+    func reportStartupFailure(_ message: String) {
+        state = .failed(message)
     }
 }

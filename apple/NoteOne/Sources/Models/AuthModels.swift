@@ -1,11 +1,12 @@
 import Foundation
 
-struct AuthResponse: Codable, Sendable {
+struct LocalSessionResponse: Codable, Sendable {
     let token: String
-    let user: UserInfo
+    let user: LocalDataOwner
 }
 
-struct UserInfo: Codable, Sendable {
+/// Internal database owner for this installation. This is not an account.
+struct LocalDataOwner: Codable, Sendable {
     let id: String
     let name: String?
     let email: String?
