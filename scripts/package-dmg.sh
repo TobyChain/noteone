@@ -21,7 +21,7 @@ echo "==> 2/5 build macOS app (Release)"
 cd "$ROOT/apple"
 xcodegen generate --quiet
 xcodebuild -project NoteOne.xcodeproj -scheme NoteOne_macOS -configuration Release \
-  -derivedDataPath build CODE_SIGNING_ALLOWED=NO build | tail -2
+  -derivedDataPath build ARCHS=arm64 ONLY_ACTIVE_ARCH=NO CODE_SIGNING_ALLOWED=NO build | tail -2
 
 APP_SRC="$ROOT/apple/build/Build/Products/Release/$APP_NAME.app"
 [ -d "$APP_SRC" ] || { echo "app not found: $APP_SRC"; exit 1; }
@@ -46,8 +46,9 @@ fi
 cp "$NODE_BIN" "$RES/node"
 chmod +x "$RES/node"
 
-echo "==> 4/5 codesign (noteone-dev)"
-codesign --force --deep -s "noteone-dev" "$STAGE/$APP_NAME.app"
+SIGN_IDENTITY="${NOTEONE_SIGN_IDENTITY:--}"
+echo "==> 4/5 codesign ($SIGN_IDENTITY)"
+codesign --force --deep -s "$SIGN_IDENTITY" "$STAGE/$APP_NAME.app"
 
 echo "==> 5/5 create dmg"
 mkdir -p "$OUT_DIR"

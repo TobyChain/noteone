@@ -1,0 +1,94 @@
+name: Release macOS DMG
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_version="${GITHUB_REF_NAME#v}"
+          project_version="$(sed -n 's/.*MARKETING_VERSION: "\([^"]*\)".*/\1/p' apple/project.yml | head -1)"
+          test "$tag_version" = "$project_version" || {
+            echo "Tag $tag_version does not match project version $project_version" >&2
+            exit 1
+          }
+
+      - name: Install build tools
+        run: brew install xcodegen
+
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci --no-audit --no-fund --replace-registry-host=always --registry=https://registry.npmjs.org/
+
+      - name: Test server
+        working-directory: server
+        run: |
+          npm run build
+          npm run test:run
+
+      - name: Build DMG
+        env:
+          NOTEONE_SIGN_IDENTITY: "-"
+        run: bash scripts/package-dmg.sh dist
+
+      - name: Verify artifact
+        run: |
+          test -f dist/NoteOne.dmg
+          shasum -a 256 dist/NoteOne.dmg | tee dist/NoteOne.dmg.sha256
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: NoteOne ${{ github.ref_name }}
+          body: |
+            ## 修复
+
+            - 修复首次启动时内嵌服务尚未就绪，应用一直转圈的问题。
+            - 启动失败时显示明确错误和重试入口。
+            - 明确无账号、本地优先模式：自动打开唯一的本地数据空间。
+            - 内部会话令牌仅保存在当前进程，内嵌服务仅监听 `127.0.0.1`。
+            - 设置页将“账户/注销”调整为“本地数据/清除所有本地数据”。
+
+            数据仍保存在 `~/Library/Application Support/NoteOne`，覆盖安装不会删除已有数据。
+          files: |
+            dist/NoteOne.dmg
+            dist/NoteOne.dmg.sha256
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+
+      - name: Update Homebrew cask on main
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          sha256="$(shasum -a 256 dist/NoteOne.dmg | awk '{print $1}')"
+          git fetch origin main
+          git switch -C main origin/main
+          ruby - "$version" "$sha256" <<'RUBY'
+          path = "homebrew/Casks/noteone.rb"
+          version, sha256 = ARGV
+          content = File.read(path)
+          content.sub!(/version "[^"]+"/, "version \"#{version}\"")
+          content.sub!(/sha256 "[0-9a-f]+"/, "sha256 \"#{sha256}\"")
+          File.write(path, content)
+          RUBY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add homebrew/Casks/noteone.rb
+          git diff --cached --quiet || git commit -m "chore: update homebrew cask to ${GITHUB_REF_NAME}"
+          git push origin main

@@ -111,7 +111,7 @@ brew uninstall --cask noteone
 
 **自动更新：**
 
-App 启动后会自动检查 [GitHub Releases](https://github.com/TobyChain/noteone/releases) 的新版本，发现新版本时弹窗提示下载；也可在「设置 → 账户 → 检查更新」手动触发。更新只替换应用本体，不影响你的数据。
+App 启动后会自动检查 [GitHub Releases](https://github.com/TobyChain/noteone/releases) 的新版本，发现新版本时弹窗提示下载；也可在「设置 → 本地数据 → 检查更新」手动触发。更新只替换应用本体，不影响你的数据。
 
 > 数据存放在 `~/Library/Application Support/NoteOne`（PGlite 数据库，应用包之外），升级/重装不会丢失笔记、标签、对话与日报。
 
