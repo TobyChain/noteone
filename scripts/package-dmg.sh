@@ -21,7 +21,8 @@ echo "==> 2/5 build macOS app (Release)"
 cd "$ROOT/apple"
 xcodegen generate --quiet
 xcodebuild -project NoteOne.xcodeproj -scheme NoteOne_macOS -configuration Release \
-  -derivedDataPath build ARCHS=arm64 ONLY_ACTIVE_ARCH=NO CODE_SIGNING_ALLOWED=NO build | tail -2
+  -derivedDataPath build ARCHS=arm64 ONLY_ACTIVE_ARCH=NO CODE_SIGNING_ALLOWED=NO build \
+  | tee "$OUT_DIR/xcodebuild.log"
 
 APP_SRC="$ROOT/apple/build/Build/Products/Release/$APP_NAME.app"
 [ -d "$APP_SRC" ] || { echo "app not found: $APP_SRC"; exit 1; }
