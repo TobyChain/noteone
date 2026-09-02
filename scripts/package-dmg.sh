@@ -10,8 +10,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT_DIR="${1:-$ROOT/dist}"
+if [[ "$OUT_DIR" != /* ]]; then
+  OUT_DIR="$ROOT/$OUT_DIR"
+fi
 APP_NAME="NoteOne"
 STAGE="$OUT_DIR/stage"
+mkdir -p "$OUT_DIR"
 
 echo "==> 1/5 bundle server (esbuild)"
 cd "$ROOT/server"

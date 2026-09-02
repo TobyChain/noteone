@@ -1,5 +1,5 @@
 import Foundation
-import UserNotifications
+@preconcurrency import UserNotifications
 
 /// Manages daily report scheduling via local notifications.
 /// The notification fires at the user's preferred time (default 20:00).

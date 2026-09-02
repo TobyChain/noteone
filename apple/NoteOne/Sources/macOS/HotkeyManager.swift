@@ -77,7 +77,9 @@ class HotkeyManager: ObservableObject {
         closeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification, object: panel, queue: .main
         ) { [weak self] _ in
-            self?.panel = nil
+            Task { @MainActor [weak self] in
+                self?.panel = nil
+            }
         }
 
         // Capture the selection + browser context off the main thread (AppleScript and

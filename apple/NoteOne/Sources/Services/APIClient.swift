@@ -8,23 +8,20 @@ extension JSONDecoder.DateDecodingStrategy {
     /// Parses server ISO8601 timestamps that may or may not carry fractional seconds
     /// (e.g. "2026-06-12T03:14:00.000Z" or "2026-06-12T03:14:00Z"). The built-in
     /// `.iso8601` strategy rejects fractional seconds, so we try both formatters.
-    static let iso8601WithOptionalFractional: JSONDecoder.DateDecodingStrategy = {
+    static let iso8601WithOptionalFractional: JSONDecoder.DateDecodingStrategy = .custom { decoder in
+        let raw = try decoder.singleValueContainer().decode(String.self)
         let withFraction = ISO8601DateFormatter()
         withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let plain = ISO8601DateFormatter()
         plain.formatOptions = [.withInternetDateTime]
-
-        return .custom { decoder in
-            let raw = try decoder.singleValueContainer().decode(String.self)
-            if let date = withFraction.date(from: raw) ?? plain.date(from: raw) {
-                return date
-            }
-            throw DecodingError.dataCorrupted(.init(
-                codingPath: decoder.codingPath,
-                debugDescription: "Unrecognized ISO8601 date: \(raw)"
-            ))
+        if let date = withFraction.date(from: raw) ?? plain.date(from: raw) {
+            return date
         }
-    }()
+        throw DecodingError.dataCorrupted(.init(
+            codingPath: decoder.codingPath,
+            debugDescription: "Unrecognized ISO8601 date: \(raw)"
+        ))
+    }
 }
 
 enum APIError: Error, LocalizedError {

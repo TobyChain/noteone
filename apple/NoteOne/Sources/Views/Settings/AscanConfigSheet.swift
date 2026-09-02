@@ -28,7 +28,7 @@ struct AscanConfigWebContent: View {
                         .padding(.horizontal, 32)
                     Button(L("重试", "Retry")) {
                         self.loadError = nil
-                        loadURL()
+                        Task { await loadURL() }
                     }
                     .buttonStyle(.bordered)
                 }
@@ -43,11 +43,11 @@ struct AscanConfigWebContent: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .task { loadURL() }
+        .task { await loadURL() }
     }
 
-    private func loadURL() {
-        if let url = APIClient.shared.ascanConfigURL() {
+    private func loadURL() async {
+        if let url = await APIClient.shared.ascanConfigURL() {
             pageURL = url
             loadError = nil
         } else {
@@ -82,6 +82,7 @@ struct AscanConfigSheet: View {
     }
 }
 
+@MainActor
 private struct AscanConfigWebView {
     let url: URL
 

@@ -157,6 +157,7 @@ struct WechatConfigSheet: View {
     }
 }
 
+@MainActor
 private struct WechatWebView {
     let url: URL
 
