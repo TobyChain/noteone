@@ -6,6 +6,7 @@ struct NoteListView: View {
     @State private var pollTimer: Timer?
     @State private var filterType: ContentType?
     @State private var showCreateNote = false
+    @State private var errorMessage: String?
 
     #if os(macOS)
     @Binding var selectedNoteId: String?
@@ -154,7 +155,12 @@ struct NoteListView: View {
         .task { await loadNotes() }
         .refreshable { await loadNotes() }
         .overlay {
-            if !isLoading && filteredNotes.isEmpty && searchText.isEmpty {
+            if let errorMessage, filteredNotes.isEmpty {
+                ErrorStateView(message: errorMessage, retryTitle: L("重试", "Retry")) {
+                    self.errorMessage = nil
+                    Task { await loadNotes() }
+                }
+            } else if !isLoading && filteredNotes.isEmpty && searchText.isEmpty {
                 EmptyStateView(
                     icon: "note.text",
                     title: L("还没有笔记", "No Notes Yet"),
@@ -188,8 +194,9 @@ struct NoteListView: View {
         isLoading = true
         do {
             notes = try await APIClient.shared.listNotes()
+            errorMessage = nil
         } catch {
-            print("Load failed: \(error)")
+            errorMessage = error.localizedDescription
         }
         isLoading = false
         startPollingIfNeeded()
@@ -206,7 +213,7 @@ struct NoteListView: View {
                         let stillPending = updated.contains { $0.status == .pendingAi }
                         notes = updated
                         if !stillPending { stopPolling() }
-                    } catch {}
+                    } catch { errorMessage = error.localizedDescription }
                 }
             }
         }
@@ -226,7 +233,7 @@ struct NoteListView: View {
                     if selectedNoteId == note.id { selectedNoteId = nil }
                 }
             } catch {
-                print("Delete failed: \(error)")
+                errorMessage = error.localizedDescription
             }
         }
     }
@@ -258,7 +265,7 @@ struct NoteListView: View {
                     )
                 }
             } catch {
-                print("Search failed: \(error)")
+                errorMessage = error.localizedDescription
             }
         }
     }

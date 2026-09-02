@@ -4,6 +4,7 @@ import SwiftUI
 struct NoteOneApp: App {
     @StateObject private var localSession = LocalSessionService()
     @State private var didStartBootstrap = false
+    @State private var syncStatus: SyncStatus?
     @AppStorage("appTheme") private var selectedTheme: String = AppTheme.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
     #if os(macOS)
@@ -19,6 +20,7 @@ struct NoteOneApp: App {
     private func syncPending() async {
         guard localSession.state == .ready else { return }
         let synced = await SyncQueue.shared.flush()
+        syncStatus = await SyncQueue.shared.status()
         if synced > 0 {
             await MainActor.run {
                 NotificationCenter.default.post(name: .noteCreated, object: nil)
@@ -65,6 +67,23 @@ struct NoteOneApp: App {
                         }
                         .buttonStyle(.borderedProminent)
                     }
+                }
+                if let syncStatus, syncStatus.pendingCount > 0 {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .foregroundStyle(Color.accent)
+                    Text(L("待同步 \(syncStatus.pendingCount) 条", "\(syncStatus.pendingCount) pending sync"))
+                        .font(.caption)
+                    Spacer()
+                    Button(L("立即同步", "Sync Now")) {
+                        Task { await syncPending() }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.accent.opacity(0.08))
                 }
             }
             .applyTheme(theme)

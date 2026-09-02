@@ -11,6 +11,7 @@ struct NoteDetailView: View {
     @State private var showDeleteConfirm = false
     @State private var isDeleted = false
     @State private var pollTimer: Timer?
+    @State private var errorMessage: String?
 
     init(noteId: String, initialNote: Note? = nil) {
         self.noteId = noteId
@@ -39,6 +40,11 @@ struct NoteDetailView: View {
                     mdNoteView(note)
                 default:
                     textNoteView(note)
+                }
+            } else if let errorMessage {
+                ErrorStateView(message: errorMessage, retryTitle: L("重试", "Retry")) {
+                    self.errorMessage = nil
+                    Task { await loadNote() }
                 }
             } else {
                 ProgressView(L("加载中...", "Loading..."))
@@ -320,7 +326,7 @@ struct NoteDetailView: View {
                     NotificationCenter.default.post(name: .noteCreated, object: nil)
                 }
             } catch {
-                print("Save failed: \(error)")
+                await MainActor.run { errorMessage = error.localizedDescription }
             }
         }
     }
@@ -334,7 +340,7 @@ struct NoteDetailView: View {
                     NotificationCenter.default.post(name: .noteCreated, object: nil)
                 }
             } catch {
-                print("Delete failed: \(error)")
+                await MainActor.run { errorMessage = error.localizedDescription }
             }
         }
     }
@@ -348,7 +354,7 @@ struct NoteDetailView: View {
                     NotificationCenter.default.post(name: .noteCreated, object: nil)
                 }
             } catch {
-                print("Restore failed: \(error)")
+                await MainActor.run { errorMessage = error.localizedDescription }
             }
         }
     }
@@ -363,7 +369,7 @@ struct NoteDetailView: View {
                     NotificationCenter.default.post(name: .noteCreated, object: nil)
                 }
             } catch {
-                print("Retry failed: \(error)")
+                await MainActor.run { errorMessage = error.localizedDescription }
             }
         }
     }
@@ -377,7 +383,7 @@ struct NoteDetailView: View {
                     NotificationCenter.default.post(name: .noteCreated, object: nil)
                 }
             } catch {
-                print("Permanent delete failed: \(error)")
+                await MainActor.run { errorMessage = error.localizedDescription }
             }
         }
     }
@@ -391,7 +397,7 @@ struct NoteDetailView: View {
             do {
                 note = try await APIClient.shared.getNote(id: noteId)
             } catch {
-                print("Load note failed: \(error)")
+                errorMessage = error.localizedDescription
             }
         }
         if note?.status == .pendingAi {

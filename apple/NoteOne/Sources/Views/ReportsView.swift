@@ -28,6 +28,12 @@ struct ReportsView: View {
 
     private var reportListView: some View {
         VStack(spacing: 0) {
+            if let errorMessage {
+                InlineErrorBanner(message: errorMessage, retryTitle: L("重试", "Retry")) {
+                    self.errorMessage = nil
+                    Task { await loadReports() }
+                }
+            }
             // Generate today's report card
             generateCard
 
@@ -36,6 +42,11 @@ struct ReportsView: View {
                 Spacer()
                 ProgressView(L("加载中…", "Loading…"))
                 Spacer()
+            } else if let errorMessage {
+                ErrorStateView(message: errorMessage, retryTitle: L("重试", "Retry")) {
+                    self.errorMessage = nil
+                    Task { await loadReports() }
+                }
             } else if reports.isEmpty {
                 Spacer()
                 VStack(spacing: 12) {

@@ -16,6 +16,8 @@ actor SyncQueue {
     private let shareImagesDir: URL
     private var queue: [CreateNoteRequest] = []
     private var imageQueue: [PendingImage] = []
+    private var lastSyncError: String?
+    private var lastSyncedAt: Date?
 
     private init() {
         let fm = FileManager.default
@@ -78,6 +80,7 @@ actor SyncQueue {
     func flush() async -> Int {
         drainSharedPending()
         var synced = 0
+        lastSyncError = nil
 
         // 1) Image notes: upload the file, then create an image note; delete file on success.
         if !imageQueue.isEmpty {
@@ -99,6 +102,7 @@ actor SyncQueue {
                     try? FileManager.default.removeItem(at: fileURL)
                     synced += 1
                 } catch {
+                    lastSyncError = error.localizedDescription
                     remainingImages.append(item)
                 }
             }
@@ -113,6 +117,7 @@ actor SyncQueue {
                     _ = try await APIClient.shared.createNote(item)
                     synced += 1
                 } catch {
+                    lastSyncError = error.localizedDescription
                     failed.append(item)
                 }
             }
@@ -120,10 +125,15 @@ actor SyncQueue {
         }
 
         saveToDisk()
+        if synced > 0 { lastSyncedAt = Date() }
         return synced
     }
 
     var pendingCount: Int { queue.count + imageQueue.count }
+
+    func status() -> SyncStatus {
+        SyncStatus(pendingCount: pendingCount, lastError: lastSyncError, lastSyncedAt: lastSyncedAt)
+    }
 
     private func loadFromDisk() {
         if let data = try? Data(contentsOf: fileURL) {
@@ -138,4 +148,10 @@ actor SyncQueue {
         try? JSONEncoder().encode(queue).write(to: fileURL)
         try? JSONEncoder().encode(imageQueue).write(to: imageQueueURL)
     }
+}
+
+struct SyncStatus: Sendable {
+    let pendingCount: Int
+    let lastError: String?
+    let lastSyncedAt: Date?
 }

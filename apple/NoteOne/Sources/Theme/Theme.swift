@@ -138,6 +138,57 @@ struct EmptyStateView: View {
     }
 }
 
+struct InlineErrorBanner: View {
+    let message: String
+    let retryTitle: String?
+    let retry: (() -> Void)?
+
+    var body: some View {
+        HStack(spacing: DG.sp8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.danger)
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(Color.inkSecondary)
+                .lineLimit(2)
+            Spacer()
+            if let retryTitle, let retry {
+                Button(retryTitle, action: retry)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
+        }
+        .padding(.horizontal, DG.sp12)
+        .padding(.vertical, DG.sp8)
+        .background(Color.danger.opacity(0.08))
+    }
+}
+
+/// Inline failure state shared by data-driven screens. Every recoverable
+/// request failure should be visible and offer a retry path.
+struct ErrorStateView: View {
+    let message: String
+    let retryTitle: String
+    let retry: () -> Void
+
+    var body: some View {
+        VStack(spacing: DG.sp8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.title2)
+                .foregroundStyle(Color.danger)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(Color.inkSecondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(4)
+            Button(retryTitle, action: retry)
+                .buttonStyle(.bordered)
+        }
+        .padding(DG.sp16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 // MARK: - Reusable Tag Pill
 
 struct TagPill: View {

@@ -416,9 +416,17 @@ struct NottyView: View {
                         .font(.caption)
                         .foregroundStyle(Color.success)
                     if !supp.failedModules.isEmpty {
-                        Text(L("\(supp.failedModules.count) 个模块失败（已跳过）", "\(supp.failedModules.count) module(s) failed (skipped)"))
+                        let failed = supp.failedModules.map { $0.label }.joined(separator: "、")
+                        Text(L("失败：\(failed)", "Failed: \(failed)"))
                             .font(.caption2)
-                            .foregroundStyle(Color.inkTertiary)
+                            .foregroundStyle(Color.danger)
+                            .lineLimit(2)
+                        if let detail = supp.failedModules.compactMap({ $0.error }).first {
+                            Text(detail)
+                                .font(.caption2)
+                                .foregroundStyle(Color.inkTertiary)
+                                .lineLimit(2)
+                        }
                     }
                 } else {
                     Text(L("新知补充出错", "NewSee Update Error"))
@@ -445,6 +453,12 @@ struct NottyView: View {
                 }
                 .buttonStyle(.plain)
                 .help(L("打断", "Abort"))
+            } else if supp.phase == "failed" || !supp.failedModules.isEmpty {
+                Button(L("重试", "Retry")) {
+                    Task { try? await APIClient.shared.triggerAscan(date: supp.date) }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
         }
         .padding(.horizontal)

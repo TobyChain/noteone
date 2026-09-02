@@ -4,11 +4,17 @@ struct TrashView: View {
     @State private var notes: [Note] = []
     @State private var isLoading = false
     @State private var showEmptyConfirm = false
+    @State private var errorMessage: String?
 
     var body: some View {
         Group {
             if isLoading && notes.isEmpty {
                 ProgressView(L("加载中...", "Loading..."))
+            } else if let errorMessage {
+                ErrorStateView(message: errorMessage, retryTitle: L("重试", "Retry")) {
+                    self.errorMessage = nil
+                    Task { await loadTrash() }
+                }
             } else if notes.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "trash")
@@ -49,8 +55,9 @@ struct TrashView: View {
         isLoading = true
         do {
             notes = try await APIClient.shared.listTrash()
+            errorMessage = nil
         } catch {
-            print("Load trash failed: \(error)")
+            errorMessage = error.localizedDescription
         }
         isLoading = false
     }
@@ -64,7 +71,7 @@ struct TrashView: View {
                     NotificationCenter.default.post(name: .noteCreated, object: nil)
                 }
             } catch {
-                print("Restore failed: \(error)")
+                await MainActor.run { errorMessage = error.localizedDescription }
             }
         }
     }
@@ -77,7 +84,7 @@ struct TrashView: View {
                     notes.removeAll { $0.id == note.id }
                 }
             } catch {
-                print("Permanent delete failed: \(error)")
+                await MainActor.run { errorMessage = error.localizedDescription }
             }
         }
     }
@@ -89,7 +96,7 @@ struct TrashView: View {
                 do {
                     try await APIClient.shared.permanentDeleteNote(id: note.id)
                     await MainActor.run { notes.removeAll { $0.id == note.id } }
-                } catch {}
+            } catch { await MainActor.run { errorMessage = error.localizedDescription } }
             }
         }
     }

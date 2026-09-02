@@ -57,6 +57,7 @@ struct SettingsView: View {
     @State private var showClearConfirm = false
     @State private var isClearingLocalData = false
     @State private var clearError: String?
+    @State private var settingsError: String?
     @State private var isCheckingUpdate = false
     @State private var updateMessage: String?
     @State private var updateInfo: UpdateInfo?
@@ -93,6 +94,12 @@ struct SettingsView: View {
             languageSection
             appearanceSection
             localDataSection
+            if let settingsError {
+                Section {
+                    ErrorStateView(message: settingsError, retryTitle: L("关闭", "Dismiss")) { self.settingsError = nil }
+                        .frame(minHeight: 120)
+                }
+            }
 
             #if os(macOS)
             Section {
@@ -168,7 +175,7 @@ struct SettingsView: View {
         }
         #endif
         .task {
-            do { stats = try await APIClient.shared.getStats() } catch {}
+            do { stats = try await APIClient.shared.getStats() } catch { settingsError = error.localizedDescription }
             do {
                 let settings = try await APIClient.shared.getSettings()
                 llmBaseUrl = settings.llm.baseUrl ?? ""
@@ -179,7 +186,7 @@ struct SettingsView: View {
                 } else {
                     selectedPreset = "custom"
                 }
-            } catch {}
+            } catch { settingsError = error.localizedDescription }
             await probeWechatHealth()
             #if !os(macOS)
             // Schedule report notification on first load if enabled
@@ -582,7 +589,7 @@ struct SettingsView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { llmSaved = false }
                 }
             } catch {
-                await MainActor.run { llmSaving = false }
+                await MainActor.run { llmSaving = false; settingsError = error.localizedDescription }
             }
         }
     }
@@ -612,6 +619,7 @@ struct SettingsView: View {
                     llmTesting = false
                     llmTestError = true
                     llmTestResult = L("测试失败：", "Test failed: ") + error.localizedDescription
+                    settingsError = error.localizedDescription
                 }
             }
         }
@@ -717,6 +725,7 @@ struct SettingsView: View {
                 await MainActor.run {
                     isImporting = false
                     importError = L("导入失败: ", "Import failed: ") + error.localizedDescription
+                    settingsError = error.localizedDescription
                 }
             }
         }

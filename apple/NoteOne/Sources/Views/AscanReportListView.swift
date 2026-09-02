@@ -11,6 +11,12 @@ struct AscanReportListView: View {
     @State private var isLoadingDetail = false
     @State private var errorMessage: String?
     @State private var readDates: Set<String> = UserDefaults.standard.readReportDates
+    @State private var reportFilter = ReportFilter.all
+    @State private var searchText = ""
+
+    private enum ReportFilter: String, CaseIterable {
+        case all, unread
+    }
 
     var body: some View {
         Group {
@@ -34,11 +40,20 @@ struct AscanReportListView: View {
     }
 
     private var todayReports: [AscanReportMeta] {
-        reports.filter { $0.date == todayString }
+        filteredReports.filter { $0.date == todayString }
     }
 
     private var pastReports: [AscanReportMeta] {
-        reports.filter { $0.date != todayString }
+        filteredReports.filter { $0.date != todayString }
+    }
+
+    private var filteredReports: [AscanReportMeta] {
+        reports.filter { report in
+            let matchesRead = reportFilter == .all || !readDates.contains(report.date)
+            let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let matchesSearch = query.isEmpty || report.date.localizedCaseInsensitiveContains(query) || report.summary.localizedCaseInsensitiveContains(query)
+            return matchesRead && matchesSearch
+        }
     }
 
     private var reportListView: some View {
@@ -70,6 +85,16 @@ struct AscanReportListView: View {
             }
         }
         .listStyle(.inset)
+        .searchable(text: $searchText, prompt: L("搜索日期或日报摘要", "Search date or summary"))
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Picker(L("筛选", "Filter"), selection: $reportFilter) {
+                    Text(L("全部", "All")).tag(ReportFilter.all)
+                    Text(L("未读", "Unread")).tag(ReportFilter.unread)
+                }
+                .pickerStyle(.menu)
+            }
+        }
         .safeAreaInset(edge: .top) {
             HStack(spacing: DG.sp8) {
                 Image(systemName: "sparkles")
@@ -100,6 +125,12 @@ struct AscanReportListView: View {
                     icon: "globe",
                     title: L("还没有新知日报", "No NewSee Reports Yet"),
                     subtitle: L("点击「运行」或跟闹闹说「补充今日新知」来生成。", "Click 'Run' or tell Notty 'supplement today's news' to generate one.")
+                )
+            } else if filteredReports.isEmpty {
+                EmptyStateView(
+                    icon: "line.3.horizontal.decrease.circle",
+                    title: L("没有匹配的日报", "No Matching Reports"),
+                    subtitle: L("尝试切换筛选条件或修改搜索词。", "Try another filter or search term.")
                 )
             }
         }

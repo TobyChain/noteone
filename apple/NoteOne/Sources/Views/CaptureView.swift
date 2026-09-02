@@ -18,6 +18,7 @@ struct CaptureView: View {
     @State private var showSuccess = false
     @State private var showEmptyHint = false
     @State private var captureError: String?
+    @State private var queuedForSync = false
     @State private var isDropTargeted = false
     @Environment(\.dismiss) private var dismiss
     var initialContent: String?
@@ -124,6 +125,15 @@ struct CaptureView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
                 .transition(.opacity)
+            }
+
+            if queuedForSync {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(Color.accent)
+                    Text(L("网络暂不可用，已加入离线队列，联网后自动同步", "Offline: queued for sync when the network returns"))
+                        .font(.caption).foregroundStyle(Color.inkSecondary)
+                }
+                .padding(.horizontal, 16).padding(.top, 4)
             }
 
             sourceUrlField
@@ -396,6 +406,7 @@ struct CaptureView: View {
         }
         isSaving = true
         captureError = nil
+        queuedForSync = false
         let caption = content
         let droppedImage = imageData
         let urlField = sourceUrl
@@ -431,7 +442,7 @@ struct CaptureView: View {
                     )
                     await SyncQueue.shared.enqueue(request)
                     await MainActor.run {
-                        captureError = L("网络不可用，已加入离线队列", "Network unavailable, queued for sync")
+                        queuedForSync = true
                     }
                 } else {
                     await MainActor.run {
@@ -441,7 +452,7 @@ struct CaptureView: View {
             }
             await MainActor.run {
                 isSaving = false
-                if captureError == nil || (droppedImage == nil) {
+                if captureError == nil && !queuedForSync || (droppedImage == nil && queuedForSync) {
                     withAnimation { showSuccess = true }
                     content = ""
                     sourceUrl = ""

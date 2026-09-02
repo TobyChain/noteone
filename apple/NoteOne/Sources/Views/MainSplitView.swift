@@ -32,6 +32,7 @@ struct MainSplitView: View {
     @State private var ascanRunStatus: AscanRunStatus?
     @State private var ascanPollTimer: Timer?
     @State private var ascanJustFinished = false
+    @State private var mainError: String?
 
     var body: some View {
         NavigationSplitView {
@@ -131,6 +132,12 @@ struct MainSplitView: View {
     @ViewBuilder
     private var centerPane: some View {
         VStack(spacing: 0) {
+            if let mainError {
+                InlineErrorBanner(message: mainError, retryTitle: L("重试", "Retry")) {
+                    self.mainError = nil
+                    Task { await initialLoad() }
+                }
+            }
             if showsAscanBanner {
                 ascanProgressBanner
             }
@@ -199,6 +206,17 @@ struct MainSplitView: View {
                 .padding(.horizontal, DG.sp16)
                 .padding(.vertical, DG.sp8)
                 .background(ascanHadError ? Color.danger.opacity(0.05) : Color.canvasSecondary)
+
+                if ascanHadError, let logs = ascanRunStatus?.recentLogs, !logs.isEmpty {
+                    Text(logs.suffix(2).joined(separator: "\n"))
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(Color.danger)
+                        .lineLimit(3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, DG.sp16)
+                        .padding(.bottom, DG.sp4)
+                        .background(Color.danger.opacity(0.05))
+                }
 
                 // Progress bar
                 if isRunning, let supplement = ascanRunStatus?.supplement, !supplement.modules.isEmpty {
@@ -345,7 +363,7 @@ struct MainSplitView: View {
         do {
             ascanReports = try await APIClient.shared.listAscanReports()
         } catch {
-            print("[main] load ascan reports failed: \(error)")
+            mainError = error.localizedDescription
         }
     }
 
@@ -355,7 +373,7 @@ struct MainSplitView: View {
             let resp = try await APIClient.shared.getAscanReport(date: date)
             ascanReportHTML[date] = resp.html
         } catch {
-            print("[main] load ascan report html failed: \(error)")
+            mainError = error.localizedDescription
         }
     }
 
@@ -367,7 +385,7 @@ struct MainSplitView: View {
             ascanLastError = nil
             startAscanPolling()
         } catch {
-            print("[main] trigger ascan failed: \(error)")
+            mainError = error.localizedDescription
         }
     }
 
@@ -380,7 +398,7 @@ struct MainSplitView: View {
             ascanLastError = nil
             stopAscanPolling()
         } catch {
-            print("[main] abort ascan failed: \(error)")
+            mainError = error.localizedDescription
         }
     }
 
@@ -432,7 +450,7 @@ struct MainSplitView: View {
         do {
             notes = try await APIClient.shared.listNotes()
         } catch {
-            print("[main] load notes failed: \(error)")
+            mainError = error.localizedDescription
         }
     }
 
@@ -460,7 +478,7 @@ struct MainSplitView: View {
                 )
             }
         } catch {
-            print("[main] search failed: \(error)")
+            mainError = error.localizedDescription
         }
     }
 
@@ -495,7 +513,7 @@ struct MainSplitView: View {
                     selection = .empty
                 }
             } catch {
-                print("[main] delete note failed: \(error)")
+                mainError = error.localizedDescription
             }
         }
     }
@@ -509,7 +527,7 @@ struct MainSplitView: View {
             }
             await loadAscanReports()
         } catch {
-            print("[main] delete ascan report failed: \(error)")
+            mainError = error.localizedDescription
         }
     }
 }
