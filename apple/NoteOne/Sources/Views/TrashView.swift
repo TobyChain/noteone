@@ -4,6 +4,7 @@ struct TrashView: View {
     @State private var notes: [Note] = []
     @State private var isLoading = false
     @State private var showEmptyConfirm = false
+    @State private var notePendingDeletion: Note?
     @State private var errorMessage: String?
 
     var body: some View {
@@ -26,7 +27,7 @@ struct TrashView: View {
             } else {
                 List {
                     ForEach(notes) { note in
-                        TrashRowView(note: note, onRestore: { restore(note) }, onDelete: { permanentDelete(note) })
+                        TrashRowView(note: note, onRestore: { restore(note) }, onDelete: { notePendingDeletion = note })
                     }
                 }
             }
@@ -47,6 +48,22 @@ struct TrashView: View {
             Button(L("取消", "Cancel"), role: .cancel) {}
         } message: {
             Text(L("此操作不可撤销，所有垃圾箱中的笔记将被永久删除", "This action cannot be undone. All notes in the trash will be permanently deleted."))
+        }
+        .confirmationDialog(
+            L("永久删除这条笔记？", "Delete This Note Permanently?"),
+            isPresented: Binding(
+                get: { notePendingDeletion != nil },
+                set: { if !$0 { notePendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(L("永久删除", "Delete Permanently"), role: .destructive) {
+                if let note = notePendingDeletion { permanentDelete(note) }
+                notePendingDeletion = nil
+            }
+            Button(L("取消", "Cancel"), role: .cancel) { notePendingDeletion = nil }
+        } message: {
+            Text(L("此操作不可撤销。", "This action cannot be undone."))
         }
         .task { await loadTrash() }
     }
@@ -90,13 +107,12 @@ struct TrashView: View {
     }
 
     private func emptyTrash() {
-        let toDelete = notes
         Task {
-            for note in toDelete {
-                do {
-                    try await APIClient.shared.permanentDeleteNote(id: note.id)
-                    await MainActor.run { notes.removeAll { $0.id == note.id } }
-            } catch { await MainActor.run { errorMessage = error.localizedDescription } }
+            do {
+                _ = try await APIClient.shared.emptyTrash()
+                await MainActor.run { notes.removeAll() }
+            } catch {
+                await MainActor.run { errorMessage = error.localizedDescription }
             }
         }
     }

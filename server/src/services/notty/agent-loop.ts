@@ -39,7 +39,7 @@ const READ_ONLY_TOOLS = new Set([
   "read_note", "search_notes", "web_fetch", "discover_feed", "search_web",
   "get_ascan_preferences", "list_ascan_reports", "get_ascan_report", "get_ascan_status",
   "list_wechat_mps", "search_wechat_mp", "list_blog_sources", "get_ascan_config",
-  "get_study_report_status", "list_scheduled_tasks", "run_command", "search_files",
+  "get_study_report_status", "list_scheduled_tasks", "search_files",
   "list_files", "read_file",
 ]);
 

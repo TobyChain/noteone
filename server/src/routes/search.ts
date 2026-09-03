@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { searchNotesByEmbedding } from "../services/note-search.js";
+import { searchNotes } from "../services/note-search.js";
 import { AuthRequest } from "../middleware/auth.js";
 
 const router = Router();
@@ -22,9 +22,9 @@ router.post("/", async (req: AuthRequest, res) => {
 
   try {
     const start = Date.now();
-    const results = await searchNotesByEmbedding(req.userId!, query, { limit, contentType });
-    console.log(`[search] queryLen=${query.length} duration=${Date.now() - start}ms results=${results.length}`);
-    res.json({ results });
+    const { results, mode } = await searchNotes(req.userId!, query, { limit, contentType });
+    console.log(`[search] mode=${mode} queryLen=${query.length} duration=${Date.now() - start}ms results=${results.length}`);
+    res.json({ results, mode });
   } catch (error: any) {
     console.error("[search] Error:", error);
     res.status(500).json({ error: "Search failed" });

@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { db } from "../db/client.js";
 import { notes, noteTags, tags } from "../db/schema.js";
-import { eq, and, desc, inArray, ne } from "drizzle-orm";
+import { eq, and, desc, inArray, ne, lt, or } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { z } from "zod";
 import { processNote } from "../services/pipeline.js";
+import { removeUploadedImagesForNotes } from "../services/upload-cleanup.js";
 
 const router = Router();
 
@@ -54,6 +55,9 @@ const updateNoteSchema = z.object({
   authorOrg: z.string().optional(),
   status: z.enum(["pending_ai", "active", "archived"]).optional(),
 });
+const noteStatusesSchema = z.object({
+  ids: z.array(z.string().uuid()).max(100),
+});
 
 // POST /api/notes
 router.post("/", async (req: AuthRequest, res) => {
@@ -82,19 +86,38 @@ router.post("/", async (req: AuthRequest, res) => {
 router.get("/", async (req: AuthRequest, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 100);
   const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+  let cursorFilter;
+  if (typeof req.query.cursor === "string" && req.query.cursor) {
+    try {
+      const decoded = JSON.parse(Buffer.from(req.query.cursor, "base64url").toString("utf8"));
+      const createdAt = new Date(decoded.createdAt);
+      if (!decoded.id || Number.isNaN(createdAt.getTime())) throw new Error("invalid cursor");
+      cursorFilter = or(
+        lt(notes.createdAt, createdAt),
+        and(eq(notes.createdAt, createdAt), lt(notes.id, decoded.id)),
+      );
+    } catch {
+      res.status(400).json({ error: "Invalid pagination cursor" });
+      return;
+    }
+  }
 
   const result = await db.query.notes.findMany({
     columns: NOTE_COLUMNS,
-    where: and(eq(notes.userId, req.userId!), ne(notes.status, "trashed")),
-    orderBy: desc(notes.createdAt),
+    where: and(eq(notes.userId, req.userId!), ne(notes.status, "trashed"), cursorFilter),
+    orderBy: [desc(notes.createdAt), desc(notes.id)],
     limit,
-    offset,
+    offset: cursorFilter ? 0 : offset,
   });
 
   const tagsByNote = await loadTagsForNotes(result.map(n => n.id));
   const notesWithTags = result.map(n => ({ ...n, tags: tagsByNote[n.id] || [] }));
 
-  res.json({ notes: notesWithTags, limit, offset });
+  const last = result.at(-1);
+  const nextCursor = result.length === limit && last
+    ? Buffer.from(JSON.stringify({ createdAt: last.createdAt.toISOString(), id: last.id })).toString("base64url")
+    : null;
+  res.json({ notes: notesWithTags, limit, offset, nextCursor });
 });
 
 // GET /api/notes/trash — must be before /:id so Express doesn't match "trash" as a UUID
@@ -106,6 +129,38 @@ router.get("/trash", async (req: AuthRequest, res) => {
   });
 
   res.json({ notes: result });
+});
+
+// POST /api/notes/statuses — refresh a bounded set of visible pending notes.
+router.post("/statuses", async (req: AuthRequest, res) => {
+  const parsed = noteStatusesSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  if (parsed.data.ids.length === 0) {
+    res.json({ notes: [] });
+    return;
+  }
+  const result = await db.query.notes.findMany({
+    columns: NOTE_COLUMNS,
+    where: and(eq(notes.userId, req.userId!), inArray(notes.id, parsed.data.ids)),
+  });
+  const tagsByNote = await loadTagsForNotes(result.map((note) => note.id));
+  res.json({ notes: result.map((note) => ({ ...note, tags: tagsByNote[note.id] || [] })) });
+});
+
+// DELETE /api/notes/trash — permanently remove all trashed notes for this user.
+router.delete("/trash", async (req: AuthRequest, res) => {
+  const trashed = await db.query.notes.findMany({
+    columns: { id: true, contentType: true, sourceUrl: true },
+    where: and(eq(notes.userId, req.userId!), eq(notes.status, "trashed")),
+  });
+  const deleted = await db.delete(notes)
+    .where(and(eq(notes.userId, req.userId!), eq(notes.status, "trashed")))
+    .returning({ id: notes.id });
+  await removeUploadedImagesForNotes(trashed);
+  res.json({ deleted: deleted.length });
 });
 
 // GET /api/notes/:id

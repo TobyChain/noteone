@@ -64,8 +64,12 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Uploaded images are served as static files (filenames are unguessable UUIDs).
-app.use("/uploads", express.static(UPLOAD_DIR));
+// Local clients can render uploaded images directly. Remote deployments require a JWT.
+if (config.isLoopbackHost || config.trustExternalLoopbackBinding) {
+  app.use("/uploads", express.static(UPLOAD_DIR));
+} else {
+  app.use("/uploads", requireAuth, express.static(UPLOAD_DIR));
+}
 
 app.use("/auth", authLimiter, authRouter);
 app.use("/api", apiLimiter);
@@ -109,11 +113,7 @@ const onListening = () => {
   seedReportIfNeeded();
   restoreTasks();
 };
-if (config.isEmbedded) {
-  app.listen(config.port, "127.0.0.1", onListening);
-} else {
-  app.listen(config.port, onListening);
-}
+app.listen(config.port, config.host, onListening);
 
 // Embedded watchdog: if the host app dies without terminating us (force quit),
 // we get reparented to launchd (ppid 1) — exit instead of lingering on the port.

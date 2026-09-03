@@ -7,6 +7,10 @@ struct NoteListView: View {
     @State private var filterType: ContentType?
     @State private var showCreateNote = false
     @State private var errorMessage: String?
+    @State private var hasMoreNotes = true
+    @State private var isLoadingMore = false
+    @State private var nextCursor: String?
+    private let pageSize = 50
 
     #if os(macOS)
     @Binding var selectedNoteId: String?
@@ -79,6 +83,15 @@ struct NoteListView: View {
                 } header: {
                     Text(LDateGroup(section.0))
                 }
+            }
+            if hasMoreNotes && searchText.isEmpty {
+                HStack {
+                    Spacer()
+                    if isLoadingMore { ProgressView().controlSize(.small) }
+                    else { Text(L("加载更多", "Load More")).font(.caption).foregroundStyle(.secondary) }
+                    Spacer()
+                }
+                .onAppear { Task { await loadMoreNotes() } }
             }
         }
         .navigationTitle(L("往事", "OldScene"))
@@ -193,7 +206,10 @@ struct NoteListView: View {
     private func loadNotes() async {
         isLoading = true
         do {
-            notes = try await APIClient.shared.listNotes()
+            let page = try await APIClient.shared.listNotesPage(limit: pageSize)
+            notes = page.notes
+            nextCursor = page.nextCursor
+            hasMoreNotes = page.nextCursor != nil
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -209,9 +225,12 @@ struct NoteListView: View {
             pollTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
                 Task { @MainActor in
                     do {
-                        let updated = try await APIClient.shared.listNotes()
+                        let pendingIds = notes.filter { $0.status == .pendingAi }.map(\.id)
+                        let updated = try await APIClient.shared.getNoteStatuses(ids: pendingIds)
+                        for note in updated {
+                            if let index = notes.firstIndex(where: { $0.id == note.id }) { notes[index] = note }
+                        }
                         let stillPending = updated.contains { $0.status == .pendingAi }
-                        notes = updated
                         if !stillPending { stopPolling() }
                     } catch { errorMessage = error.localizedDescription }
                 }
@@ -222,6 +241,20 @@ struct NoteListView: View {
     private func stopPolling() {
         pollTimer?.invalidate()
         pollTimer = nil
+    }
+
+    private func loadMoreNotes() async {
+        guard hasMoreNotes, !isLoadingMore, searchText.isEmpty else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let page = try await APIClient.shared.listNotesPage(limit: pageSize, cursor: nextCursor)
+            notes = NotePagination.appending(page.notes, to: notes)
+            nextCursor = page.nextCursor
+            hasMoreNotes = page.nextCursor != nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     private func deleteNote(_ note: Note) {
@@ -264,6 +297,8 @@ struct NoteListView: View {
                         updatedAt: r.updatedAt
                     )
                 }
+                hasMoreNotes = false
+                nextCursor = nil
             } catch {
                 errorMessage = error.localizedDescription
             }

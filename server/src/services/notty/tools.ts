@@ -6,7 +6,7 @@
 import { db } from "../../db/client.js";
 import { notes, noteTags, tags, users } from "../../db/schema.js";
 import { eq, and } from "drizzle-orm";
-import { searchNotesByEmbedding } from "../note-search.js";
+import { searchNotes } from "../note-search.js";
 import { fetchUrlContent } from "../web-fetch.js";
 import { searchWeb } from "../web-search.js";
 import { ascanToolDefinitions, makeAscanHandlers } from "../ascan/tools.js";
@@ -44,7 +44,7 @@ const noteToolDefinitions: ToolDefinition[] = [
     type: "function",
     function: {
       name: "search_notes",
-      description: "基于向量相似度语义检索用户的笔记，返回最相关的若干条（标题+摘要+id）。定位到笔记后用 read_note 读取正文。",
+      description: "检索用户笔记；优先语义检索，不可用时自动全文检索。返回标题、摘要和 id，定位后用 read_note 读取正文。",
       parameters: {
         type: "object",
         properties: {
@@ -182,10 +182,11 @@ function makeNoteHandlers(userId: string, allNotes: NoteIndexEntry[]): Record<st
     search_notes: async (args: Record<string, any>) => {
       const query = args.query as string;
       const limit = (args.limit as number) || 5;
-      const rows = await searchNotesByEmbedding(userId, query, { limit: Math.min(limit, 20) });
+      const llmConfig = await getUserChatConfig(userId);
+      const { results: rows } = await searchNotes(userId, query, { limit: Math.min(limit, 20), llmConfig });
       if (rows.length === 0) return "未找到相关笔记";
       return rows.map((r, i) =>
-        `${i + 1}. id=${r.id} | ${r.title || "无标题"} (相似度 ${(r.similarity * 100).toFixed(1)}%)\n   ${r.ai_summary || (r.content ? r.content.slice(0, 100) : "")}`
+        `${i + 1}. id=${r.id} | ${r.title || "无标题"}${r.similarity == null ? "" : ` (相似度 ${(r.similarity * 100).toFixed(1)}%)`}\n   ${r.ai_summary || (r.content ? r.content.slice(0, 100) : "")}`
       ).join("\n\n");
     },
   };

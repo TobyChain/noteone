@@ -5,6 +5,7 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
 import jwt from "jsonwebtoken";
+import AdmZip from "adm-zip";
 import { eq, and, inArray } from "drizzle-orm";
 
 import { integrationEnabled, getTestDb, closeTestDb, resetTables } from "../test/db.js";
@@ -30,6 +31,7 @@ import { config } from "../config.js";
 import { users, notes, tags, noteTags, chatSessions, chatMessages } from "../db/schema.js";
 import { accountRouter } from "./account.js";
 import { exportRouter } from "./export.js";
+import { importRouter } from "./import.js";
 import { tagsRouter } from "./tags.js";
 import { notesRouter } from "./notes.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -51,6 +53,7 @@ function buildApp() {
   app.use("/api/tags", requireAuth, tagsRouter);
   app.use("/api/account", requireAuth, accountRouter);
   app.use("/api/export", requireAuth, exportRouter);
+  app.use("/api/import", requireAuth, importRouter);
   return app;
 }
 
@@ -189,14 +192,69 @@ describe.skipIf(!integrationEnabled)("integration: tags multi-tenant + account +
       // ZIP magic number "PK\x03\x04"
       expect(body.slice(0, 4).toString("hex")).toBe("504b0304");
 
-      // Lightweight check: the JSON entry contains alpha but never bravo, and apiKey is gone.
-      const text = body.toString("latin1");
-      expect(text).toContain("noteone-export.json");
-      expect(text).toContain(`uploads/${VALID_PNG}`);
-      expect(text).not.toContain("SHOULD-NOT-LEAK");
-      // Note titles aren't unique per user but content strings are good enough here.
-      expect(text).toContain("alpha");
-      expect(text).not.toContain("bravo");
+      const zip = new AdmZip(body);
+      const names = zip.getEntries().map((entry) => entry.entryName);
+      expect(names).toContain("noteone-export.json");
+      expect(names).toContain(`uploads/${VALID_PNG}`);
+      const payload = JSON.parse(zip.readAsText("noteone-export.json"));
+      expect(JSON.stringify(payload)).not.toContain("SHOULD-NOT-LEAK");
+      expect(payload.notes.map((note: any) => note.content)).toContain("alpha");
+      expect(payload.notes.map((note: any) => note.content)).not.toContain("bravo");
+    });
+  });
+
+  describe("note pagination", () => {
+    it("uses a stable cursor when a newer note arrives between pages", async () => {
+      const [user] = await db.insert(users).values({ appleId: "it-page", name: "Page" }).returning();
+      const createdAt = new Date("2026-06-16T00:00:00Z");
+      await db.insert(notes).values([
+        { userId: user.id, content: "first", status: "active", createdAt },
+        { userId: user.id, content: "second", status: "active", createdAt },
+        { userId: user.id, content: "third", status: "active", createdAt },
+      ]);
+
+      const first = await request(buildApp()).get("/api/notes?limit=2")
+        .set("Authorization", makeAuthHeader(user.id));
+      expect(first.status).toBe(200);
+      expect(first.body.notes).toHaveLength(2);
+      expect(first.body.nextCursor).toBeTruthy();
+
+      await db.insert(notes).values({
+        userId: user.id, content: "newer", status: "active",
+        createdAt: new Date("2026-06-17T00:00:00Z"),
+      });
+      const second = await request(buildApp())
+        .get(`/api/notes?limit=2&cursor=${encodeURIComponent(first.body.nextCursor)}`)
+        .set("Authorization", makeAuthHeader(user.id));
+      expect(second.status).toBe(200);
+      expect(second.body.notes).toHaveLength(1);
+      const allIds = [...first.body.notes, ...second.body.notes].map((note: any) => note.id);
+      expect(new Set(allIds).size).toBe(3);
+      expect(second.body.notes[0].content).not.toBe("newer");
+    });
+  });
+
+  describe("POST /api/import", () => {
+    it("rejects an archive whose note id belongs to another user", async () => {
+      const [owner] = await db.insert(users).values({ appleId: "it-owner", name: "Owner" }).returning();
+      const [recipient] = await db.insert(users).values({ appleId: "it-recipient", name: "Recipient" }).returning();
+      const [existing] = await db.insert(notes).values({
+        userId: owner.id, content: "owner data", status: "active",
+      }).returning();
+      const zip = new AdmZip();
+      zip.addFile("noteone-export.json", Buffer.from(JSON.stringify({
+        schemaVersion: "1.2",
+        notes: [{ id: existing.id, content: "malicious replacement", contentType: "text" }],
+        tags: [], noteTags: [], chatSessions: [],
+      })));
+
+      const res = await request(buildApp()).post("/api/import")
+        .set("Authorization", makeAuthHeader(recipient.id))
+        .set("Content-Type", "application/zip")
+        .send(zip.toBuffer());
+      expect(res.status).toBe(409);
+      expect((await db.query.notes.findFirst({ where: eq(notes.id, existing.id) }))?.content)
+        .toBe("owner data");
     });
   });
 

@@ -33,6 +33,10 @@ struct MainSplitView: View {
     @State private var ascanPollTimer: Timer?
     @State private var ascanJustFinished = false
     @State private var mainError: String?
+    @State private var hasMoreNotes = true
+    @State private var isLoadingMoreNotes = false
+    @State private var nextNotesCursor: String?
+    private let notePageSize = 50
 
     var body: some View {
         NavigationSplitView {
@@ -44,6 +48,9 @@ struct MainSplitView: View {
                 onRefresh: { await refreshNotes(); await loadAscanReports() },
                 onDeleteNote: deleteNote,
                 onSearch: { q in await searchNotes(q) },
+                onLoadMore: { await loadMoreNotes() },
+                hasMoreNotes: hasMoreNotes,
+                isLoadingMore: isLoadingMoreNotes,
                 onShowTrash: { selection = .trash },
                 onShowConfig: { selection = .ascanConfig },
                 onDeleteAscanReport: { date in Task { await deleteAscanReport(date) } }
@@ -423,7 +430,7 @@ struct MainSplitView: View {
                             ascanJustFinished = true
                         }
                         let dateStr = ascanTodayString()
-                        try? await APIClient.shared.summarizeAscan(date: dateStr)
+                        _ = try? await APIClient.shared.summarizeAscan(date: dateStr)
                         await loadAscanReports()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                             ascanJustFinished = false
@@ -448,7 +455,10 @@ struct MainSplitView: View {
 
     private func refreshNotes() async {
         do {
-            notes = try await APIClient.shared.listNotes()
+            let page = try await APIClient.shared.listNotesPage(limit: notePageSize)
+            notes = page.notes
+            nextNotesCursor = page.nextCursor
+            hasMoreNotes = page.nextCursor != nil
         } catch {
             mainError = error.localizedDescription
         }
@@ -477,6 +487,8 @@ struct MainSplitView: View {
                     updatedAt: r.updatedAt
                 )
             }
+            hasMoreNotes = false
+            nextNotesCursor = nil
         } catch {
             mainError = error.localizedDescription
         }
@@ -489,9 +501,12 @@ struct MainSplitView: View {
             pollTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
                 Task { @MainActor in
                     do {
-                        let updated = try await APIClient.shared.listNotes()
+                        let pendingIds = notes.filter { $0.status == .pendingAi }.map(\.id)
+                        let updated = try await APIClient.shared.getNoteStatuses(ids: pendingIds)
+                        for note in updated {
+                            if let index = notes.firstIndex(where: { $0.id == note.id }) { notes[index] = note }
+                        }
                         let stillPending = updated.contains { $0.status == .pendingAi }
-                        notes = updated
                         if !stillPending {
                             pollTimer?.invalidate()
                             pollTimer = nil
@@ -499,6 +514,20 @@ struct MainSplitView: View {
                     } catch {}
                 }
             }
+        }
+    }
+
+    private func loadMoreNotes() async {
+        guard hasMoreNotes, !isLoadingMoreNotes else { return }
+        isLoadingMoreNotes = true
+        defer { isLoadingMoreNotes = false }
+        do {
+            let page = try await APIClient.shared.listNotesPage(limit: notePageSize, cursor: nextNotesCursor)
+            notes = NotePagination.appending(page.notes, to: notes)
+            nextNotesCursor = page.nextCursor
+            hasMoreNotes = page.nextCursor != nil
+        } catch {
+            mainError = error.localizedDescription
         }
     }
 

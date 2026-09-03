@@ -7,20 +7,20 @@ iOS + macOS SwiftUI 客户端，单工程双平台。
 - Xcode 16+
 - Swift 6（启用 strict concurrency）
 - 部署目标：iOS 17+ / macOS 14+
-- [Tuist](https://tuist.io)（用于从 `project.yml` 生成 `.xcodeproj`）或直接用已 commit 的 `NoteOne.xcodeproj`
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen)（用于从 `project.yml` 生成 `.xcodeproj`）或直接用已 commit 的 `NoteOne.xcodeproj`
 
 ## 生成工程文件
 
 ```bash
 cd apple
-# 如果装了 Tuist
-tuist generate
+# 如果安装了 XcodeGen
+xcodegen generate
 
 # 否则直接用仓库里已生成的 NoteOne.xcodeproj
 open NoteOne.xcodeproj
 ```
 
-工程文件由 `project.yml` 定义。如果增删了 Swift 文件，需要重新 `tuist generate` 或者手动编辑 `NoteOne.xcodeproj/project.pbxproj`。
+工程文件由 `project.yml` 定义。如果增删了 Swift 文件，需要重新运行 `xcodegen generate`。
 
 ## 构建
 
@@ -31,6 +31,12 @@ xcodebuild -project NoteOne.xcodeproj -scheme NoteOne_macOS -configuration Debug
 # iOS
 xcodebuild -project NoteOne.xcodeproj -scheme NoteOne_iOS -configuration Debug \
   -destination 'generic/platform=iOS Simulator' build
+
+# 单元测试
+xcodebuild test -project NoteOne.xcodeproj -scheme NoteOne_macOS \
+  -destination 'platform=macOS,arch=arm64' CODE_SIGNING_ALLOWED=NO
+xcodebuild test -project NoteOne.xcodeproj -scheme NoteOne_iOS \
+  -destination 'platform=iOS Simulator,name=iPhone 17' CODE_SIGNING_ALLOWED=NO
 ```
 
 ## 配置

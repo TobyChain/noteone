@@ -3,22 +3,22 @@ const API_BASE = "http://localhost:3000";
 // --- Token management ---
 
 async function getToken() {
-  let { token, expiresAt } = await chrome.storage.local.get(["token", "expiresAt"]);
+  let { tokenV2: token, tokenV2ExpiresAt: expiresAt } = await chrome.storage.local.get(["tokenV2", "tokenV2ExpiresAt"]);
   if (token && expiresAt && Date.now() < expiresAt) {
     return token;
   }
-  // Try dev-token (requires ENABLE_DEV_LOGIN=true on server)
+  // Open the same single-user local data space used by the desktop app.
   try {
-    const resp = await fetch(`${API_BASE}/auth/dev-token`, {
+    const resp = await fetch(`${API_BASE}/auth/local`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Browser Extension" }),
+      body: "{}",
     });
-    if (!resp.ok) throw new Error(`dev-token failed: ${resp.status}`);
+    if (!resp.ok) throw new Error(`local session failed: ${resp.status}`);
     const data = await resp.json();
     await chrome.storage.local.set({
-      token: data.token,
-      expiresAt: Date.now() + 29 * 24 * 3600 * 1000, // 29 days
+      tokenV2: data.token,
+      tokenV2ExpiresAt: Date.now() + 29 * 24 * 3600 * 1000, // 29 days
     });
     return data.token;
   } catch (e) {

@@ -16,6 +16,7 @@
 		10D7E5E046E729E33FFEE314 /* MainSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BCCCC76ED5579DC573ABA62 /* MainSidebar.swift */; };
 		10F0F2F51DCD8A5B64EFB8DE /* NoteOneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */; };
 		10F5263C8963D04F59AE8FEF /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A147139B5F8A558D8AB007CC /* APIClient.swift */; };
+		1227B7B1707770D59D514528 /* NotePaginationStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130B5BBA5A1DD8DA162CE49D /* NotePaginationStateTests.swift */; };
 		1247B34F985FEF5628352116 /* MCPInstallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF28AE8C3C361172D698542 /* MCPInstallView.swift */; };
 		1618DF935486DBE43FD7E509 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82FA9FA28AD13D36EB22561F /* Theme.swift */; };
 		16E3680BEE83F8BA9584A1C3 /* MainSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E875B6C24D11D9C0898293C /* MainSplitView.swift */; };
@@ -54,12 +55,15 @@
 		6AE477980D253F7C5E90C276 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CA362CA9A0DEF17406F4EB /* FloatingPanel.swift */; };
 		704AD0EFD6A50EF4E1FE7E24 /* NoteListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D0A97460BE3D35B5B5E39C /* NoteListView.swift */; };
 		71EEC1DDB69116CF9E39ED4C /* NoteDragPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83FCC5C0224750CD7B2821EC /* NoteDragPayload.swift */; };
+		73B1C52FDBBFACD3E76C00D5 /* NotePaginationStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130B5BBA5A1DD8DA162CE49D /* NotePaginationStateTests.swift */; };
 		752867F30AE0200A5275A792 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71CF96D60D564E9C8477248C /* ShareViewController.swift */; };
 		7900B47DAC5B115E6C8BC65D /* CaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73BC93FEB9429E19B23B5E29 /* CaptureView.swift */; };
+		7CF50FFB10637FD5F8ABB002 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA82DDB2655E511C2CDC7FA2 /* APIModels.swift */; };
 		8BF3A100A1EAFA95E9F52688 /* AscanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E762FC507022AF17F62E03 /* AscanView.swift */; };
 		8EF57FDC2D85A8B72B4E15ED /* NoteDragPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83FCC5C0224750CD7B2821EC /* NoteDragPayload.swift */; };
 		9B3AA753FA557CDA9E899BEA /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37F332F07FEEED5830F8D113 /* ShareSheet.swift */; };
 		A276D326307511A5192F6C58 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09BC0033D2386FF0223874AF /* AuthService.swift */; };
+		A4BE797F7A32B14AD74A65CC /* NotePaginationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B77746A832C5AD81D4B8D38 /* NotePaginationState.swift */; };
 		A799A0E95E29799214E6114B /* HotkeyRecorderField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04E851A2481E24C52DA0DF93 /* HotkeyRecorderField.swift */; };
 		A80FEA9ED8D0B7507FDBDB46 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A147139B5F8A558D8AB007CC /* APIClient.swift */; };
 		A8C198CD43D47FBCC7CF5CA5 /* ToolActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F6CBFD41C45C7C402AC49F9 /* ToolActivityView.swift */; };
@@ -90,7 +94,26 @@
 		ED95702218A9FF3F35F3495D /* SyncQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E6C7017395B182C0EB0733 /* SyncQueue.swift */; };
 		F070D55A3185B32FAF7835FA /* ServerLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E200FAAB3020409357DC43 /* ServerLauncher.swift */; };
 		FB6AEF4BCEB015BD1D56E3F0 /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8767928A7B1E5379A53FEB /* MarkdownRenderer.swift */; };
+		FC95F145F923820C42714DA3 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA82DDB2655E511C2CDC7FA2 /* APIModels.swift */; };
+		FE37641FAB97CBA967FBD5D3 /* NotePaginationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B77746A832C5AD81D4B8D38 /* NotePaginationState.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		3D3E6EB28BD084A9B3B34AD4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4FC5E1001D0B7BE0B61D3247 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B46F4A75CBD3813EAE2C0295;
+			remoteInfo = NoteOne_iOS;
+		};
+		C58DE2BEC24148324A365CDB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4FC5E1001D0B7BE0B61D3247 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3130E3A435458D823B24EDAD;
+			remoteInfo = NoteOne_macOS;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		04E851A2481E24C52DA0DF93 /* HotkeyRecorderField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderField.swift; sourceTree = "<group>"; };
@@ -100,16 +123,19 @@
 		0F652DB919B58BC615BE4B57 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0F6CBFD41C45C7C402AC49F9 /* ToolActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolActivityView.swift; sourceTree = "<group>"; };
 		1079E75DF4BD08C37A84A968 /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
+		130B5BBA5A1DD8DA162CE49D /* NotePaginationStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotePaginationStateTests.swift; sourceTree = "<group>"; };
 		14E6C7017395B182C0EB0733 /* SyncQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncQueue.swift; sourceTree = "<group>"; };
 		1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		22B779E3EEA5B5ACB09EF434 /* WechatConfigSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WechatConfigSheet.swift; sourceTree = "<group>"; };
 		299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		2BCCCC76ED5579DC573ABA62 /* MainSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainSidebar.swift; sourceTree = "<group>"; };
 		2FAA2A66EA75B7E100559FDA /* NoteOne.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = NoteOne.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		360D5A020C7F30B4B7438015 /* NoteOneTests_macOS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NoteOneTests_macOS.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		37B602EDB986B9E9A44D794F /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
 		37F332F07FEEED5830F8D113 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		41D0A97460BE3D35B5B5E39C /* NoteListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteListView.swift; sourceTree = "<group>"; };
 		490BB48DEEA279237A8A473B /* NoteDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteDetailView.swift; sourceTree = "<group>"; };
+		4B77746A832C5AD81D4B8D38 /* NotePaginationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotePaginationState.swift; sourceTree = "<group>"; };
 		4E61FD3FD2B408D9A8D7D8E0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		4E875B6C24D11D9C0898293C /* MainSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainSplitView.swift; sourceTree = "<group>"; };
 		57D0D4C30A3BC535056D7A10 /* AscanModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanModels.swift; sourceTree = "<group>"; };
@@ -127,6 +153,7 @@
 		A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthModels.swift; sourceTree = "<group>"; };
 		A90E817CE5C78342A6CC13B7 /* UnifiedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedSettingsView.swift; sourceTree = "<group>"; };
 		B53ED8E35D26CEB9AE6C9816 /* NoteOneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteOneApp.swift; sourceTree = "<group>"; };
+		BFFCA3FD076C93FCBBE8569B /* NoteOneTests_iOS.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = NoteOneTests_iOS.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4CA362CA9A0DEF17406F4EB /* FloatingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanel.swift; sourceTree = "<group>"; };
 		C5C40C18CBEE1BFC465F5798 /* AscanReportDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanReportDetailView.swift; sourceTree = "<group>"; };
 		CDF28AE8C3C361172D698542 /* MCPInstallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPInstallView.swift; sourceTree = "<group>"; };
@@ -134,6 +161,7 @@
 		D1E6049FD1E08FF125D9F2C7 /* ReportScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportScheduler.swift; sourceTree = "<group>"; };
 		E466F11801DBE484BAC936A3 /* AscanReportListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanReportListView.swift; sourceTree = "<group>"; };
 		E6E762FC507022AF17F62E03 /* AscanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanView.swift; sourceTree = "<group>"; };
+		EA82DDB2655E511C2CDC7FA2 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
 		EC8767928A7B1E5379A53FEB /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
 		F59E10FCF516F30C12BE3059 /* AscanConfigSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AscanConfigSheet.swift; sourceTree = "<group>"; };
 		F84A6A953D9085E34489D38F /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
@@ -150,15 +178,25 @@
 			path = NoteOneShareExtension/Sources;
 			sourceTree = "<group>";
 		};
+		11439189A43A19521B5D2310 /* NoteOneTests */ = {
+			isa = PBXGroup;
+			children = (
+				130B5BBA5A1DD8DA162CE49D /* NotePaginationStateTests.swift */,
+			);
+			path = NoteOneTests;
+			sourceTree = "<group>";
+		};
 		57015FD0069083C20F758DB0 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				EA82DDB2655E511C2CDC7FA2 /* APIModels.swift */,
 				57D0D4C30A3BC535056D7A10 /* AscanModels.swift */,
 				A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */,
 				37B602EDB986B9E9A44D794F /* ChatMessage.swift */,
 				096AC32613C23DFBA4FE9C76 /* DailyReport.swift */,
 				1079E75DF4BD08C37A84A968 /* Note.swift */,
 				83FCC5C0224750CD7B2821EC /* NoteDragPayload.swift */,
+				4B77746A832C5AD81D4B8D38 /* NotePaginationState.swift */,
 				76C21DFC46974BFDA55F2506 /* Tag.swift */,
 			);
 			path = Models;
@@ -189,6 +227,7 @@
 		AA1BAFAF4995D3CB20DDED4F = {
 			isa = PBXGroup;
 			children = (
+				11439189A43A19521B5D2310 /* NoteOneTests */,
 				CB0579F5E448CB083149806D /* Resources */,
 				B019C8BB961E3CA86E10EBC6 /* Sources */,
 				0A06950E5E9053C69B0BE69F /* Sources */,
@@ -271,6 +310,8 @@
 				2FAA2A66EA75B7E100559FDA /* NoteOne.app */,
 				FB061DC2E0E8A734A94854AE /* NoteOne.app */,
 				93ED8FC56B2194277F2CB7C7 /* NoteOneShareExtension.appex */,
+				BFFCA3FD076C93FCBBE8569B /* NoteOneTests_iOS.xctest */,
+				360D5A020C7F30B4B7438015 /* NoteOneTests_macOS.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -321,6 +362,24 @@
 			productReference = FB061DC2E0E8A734A94854AE /* NoteOne.app */;
 			productType = "com.apple.product-type.application";
 		};
+		4EF84CB062C66845BAD8E11B /* NoteOneTests_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 340618B02268B36ED1D361CB /* Build configuration list for PBXNativeTarget "NoteOneTests_iOS" */;
+			buildPhases = (
+				145A6464F95AA0796A7D6B89 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B61267B6821C7A0135AE79D7 /* PBXTargetDependency */,
+			);
+			name = NoteOneTests_iOS;
+			packageProductDependencies = (
+			);
+			productName = NoteOneTests_iOS;
+			productReference = BFFCA3FD076C93FCBBE8569B /* NoteOneTests_iOS.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		B46F4A75CBD3813EAE2C0295 /* NoteOne_iOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 1396DD97F5AF510B7322FBFB /* Build configuration list for PBXNativeTarget "NoteOne_iOS" */;
@@ -339,6 +398,24 @@
 			productReference = 2FAA2A66EA75B7E100559FDA /* NoteOne.app */;
 			productType = "com.apple.product-type.application";
 		};
+		E51C4043EAB69066C74BFAB3 /* NoteOneTests_macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 12C312A7A7B6E785E0852A57 /* Build configuration list for PBXNativeTarget "NoteOneTests_macOS" */;
+			buildPhases = (
+				80B607DC1D7B05E9E0130E5F /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				564C788FCD4417C16CA801A0 /* PBXTargetDependency */,
+			);
+			name = NoteOneTests_macOS;
+			packageProductDependencies = (
+			);
+			productName = NoteOneTests_macOS;
+			productReference = 360D5A020C7F30B4B7438015 /* NoteOneTests_macOS.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -354,7 +431,13 @@
 					3130E3A435458D823B24EDAD = {
 						DevelopmentTeam = "";
 					};
+					4EF84CB062C66845BAD8E11B = {
+						DevelopmentTeam = "";
+					};
 					B46F4A75CBD3813EAE2C0295 = {
+						DevelopmentTeam = "";
+					};
+					E51C4043EAB69066C74BFAB3 = {
 						DevelopmentTeam = "";
 					};
 				};
@@ -373,9 +456,11 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				1FE41A1429C43B5A2A729289 /* NoteOneShareExtension */,
 				B46F4A75CBD3813EAE2C0295 /* NoteOne_iOS */,
 				3130E3A435458D823B24EDAD /* NoteOne_macOS */,
+				1FE41A1429C43B5A2A729289 /* NoteOneShareExtension */,
+				E51C4043EAB69066C74BFAB3 /* NoteOneTests_macOS */,
+				4EF84CB062C66845BAD8E11B /* NoteOneTests_iOS */,
 			);
 		};
 /* End PBXProject section */
@@ -400,11 +485,20 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		145A6464F95AA0796A7D6B89 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				73B1C52FDBBFACD3E76C00D5 /* NotePaginationStateTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4028FCAA129162147CAEE92F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				10F5263C8963D04F59AE8FEF /* APIClient.swift in Sources */,
+				FC95F145F923820C42714DA3 /* APIModels.swift in Sources */,
 				4C9DB10F80CC8259D00D2485 /* AscanConfigSheet.swift in Sources */,
 				23E4E7BCE5EC5DFB1F995E43 /* AscanModels.swift in Sources */,
 				D066AA834CCD05574AD60493 /* AscanReportDetailView.swift in Sources */,
@@ -429,6 +523,7 @@
 				8EF57FDC2D85A8B72B4E15ED /* NoteDragPayload.swift in Sources */,
 				704AD0EFD6A50EF4E1FE7E24 /* NoteListView.swift in Sources */,
 				10F0F2F51DCD8A5B64EFB8DE /* NoteOneApp.swift in Sources */,
+				A4BE797F7A32B14AD74A65CC /* NotePaginationState.swift in Sources */,
 				3F0CCA0684CF8A06E2D1BA95 /* NottyView.swift in Sources */,
 				58F5346BC6D2D527DB1810AB /* ReportScheduler.swift in Sources */,
 				B53C64BD271955A8ED4CBC62 /* ReportsView.swift in Sources */,
@@ -455,11 +550,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		80B607DC1D7B05E9E0130E5F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1227B7B1707770D59D514528 /* NotePaginationStateTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AD0A1C15F29AE87A50678EB6 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				A80FEA9ED8D0B7507FDBDB46 /* APIClient.swift in Sources */,
+				7CF50FFB10637FD5F8ABB002 /* APIModels.swift in Sources */,
 				3B07BA01FBF61AFB50A070C3 /* AscanConfigSheet.swift in Sources */,
 				3FFB0395699513A12ED73F26 /* AscanModels.swift in Sources */,
 				60E4FDF6D02AC774D26991F1 /* AscanReportDetailView.swift in Sources */,
@@ -484,6 +588,7 @@
 				71EEC1DDB69116CF9E39ED4C /* NoteDragPayload.swift in Sources */,
 				2616763C45E756EEFFF3E380 /* NoteListView.swift in Sources */,
 				D2AB1E78DFD98BB543335A16 /* NoteOneApp.swift in Sources */,
+				FE37641FAB97CBA967FBD5D3 /* NotePaginationState.swift in Sources */,
 				339AF008D8024E6745D78291 /* NottyView.swift in Sources */,
 				BE542556499CAE7E9BEB758B /* ReportScheduler.swift in Sources */,
 				DC616C076ECDAADD95034C6C /* ReportsView.swift in Sources */,
@@ -503,6 +608,19 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		564C788FCD4417C16CA801A0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3130E3A435458D823B24EDAD /* NoteOne_macOS */;
+			targetProxy = C58DE2BEC24148324A365CDB /* PBXContainerItemProxy */;
+		};
+		B61267B6821C7A0135AE79D7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B46F4A75CBD3813EAE2C0295 /* NoteOne_iOS */;
+			targetProxy = 3D3E6EB28BD084A9B3B34AD4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		19E7257F5229CF92E31989DA /* Release */ = {
@@ -591,6 +709,23 @@
 			};
 			name = Debug;
 		};
+		58A82DCF5BF98EBBDAB8DCFA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.noteone.app.tests.ios;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NoteOne.app/NoteOne";
+			};
+			name = Release;
+		};
 		66352E41F10DB622EFD38052 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -639,6 +774,40 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.noteone.app.share;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C66F8EB12E5F295B3C5841DA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.noteone.app.tests.ios;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NoteOne.app/NoteOne";
+			};
+			name = Debug;
+		};
+		CF3FFF14153AFE2CE48794C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.noteone.app.tests.macos;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NoteOne.app/Contents/MacOS/NoteOne";
 			};
 			name = Debug;
 		};
@@ -740,6 +909,23 @@
 			};
 			name = Debug;
 		};
+		FFD74DE2D668D45397D184CF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.noteone.app.tests.macos;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NoteOne.app/Contents/MacOS/NoteOne";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -752,11 +938,29 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		12C312A7A7B6E785E0852A57 /* Build configuration list for PBXNativeTarget "NoteOneTests_macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CF3FFF14153AFE2CE48794C7 /* Debug */,
+				FFD74DE2D668D45397D184CF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		1396DD97F5AF510B7322FBFB /* Build configuration list for PBXNativeTarget "NoteOne_iOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				DAF4FB9011376DA98138BC1E /* Debug */,
 				19E7257F5229CF92E31989DA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		340618B02268B36ED1D361CB /* Build configuration list for PBXNativeTarget "NoteOneTests_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C66F8EB12E5F295B3C5841DA /* Debug */,
+				58A82DCF5BF98EBBDAB8DCFA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

@@ -4,6 +4,7 @@ import { db } from "../db/client.js";
 import { users } from "../db/schema.js";
 import { config } from "../config.js";
 import { eq, asc } from "drizzle-orm";
+import { timingSafeEqual } from "node:crypto";
 
 const router = Router();
 const LOCAL_USER_NAME = "本地用户";
@@ -13,10 +14,30 @@ function issueToken(userId: string): string {
   return jwt.sign({ userId }, config.jwtSecret, { expiresIn: "30d" });
 }
 
+function hasAccess(req: import("express").Request): boolean {
+  if (config.isLoopbackHost || config.trustExternalLoopbackBinding) {
+    const origin = req.header("origin");
+    return !origin || origin.startsWith("chrome-extension://");
+  }
+  const provided = req.header("x-noteone-access-token") || "";
+  if (!provided || !config.accessToken) return false;
+  const actual = Buffer.from(provided);
+  const expected = Buffer.from(config.accessToken);
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
 // POST /auth/dev-token
 // Name-based local login — the only auth method for self-hosted NoteOne.
 // No Apple Sign In, no multi-device sync: each installation is standalone.
 router.post("/dev-token", async (req, res) => {
+  if (!config.enableDevLogin) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  if (!hasAccess(req)) {
+    res.status(401).json({ error: "Invalid NoteOne access token" });
+    return;
+  }
   const name = (req.body?.name || "").trim() || "User";
   const appleId = "local-" + name.toLowerCase().replace(/\s+/g, "-");
 
@@ -44,8 +65,13 @@ router.post("/dev-token", async (req, res) => {
 // internal data owner because notes, tags, settings, and chats reference it.
 // Existing installations keep their first owner row; fresh installations get
 // one stable default owner. Request fields are intentionally ignored.
-router.post("/local", async (_req, res) => {
-  let user = await db.query.users.findFirst({ orderBy: asc(users.createdAt) });
+router.post("/local", async (req, res) => {
+  if (!hasAccess(req)) {
+    res.status(401).json({ error: "Invalid NoteOne access token" });
+    return;
+  }
+  let user = await db.query.users.findFirst({ where: eq(users.appleId, LOCAL_USER_IDENTITY) });
+  if (!user) user = await db.query.users.findFirst({ orderBy: asc(users.createdAt) });
 
   if (!user) {
     const [created] = await db.insert(users).values({

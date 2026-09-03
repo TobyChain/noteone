@@ -46,6 +46,16 @@ if (isProd && !isEmbedded && (jwtSecret === "change-me-in-production" || jwtSecr
   );
 }
 
+const host = process.env.HOST || "127.0.0.1";
+const isLoopbackHost = host === "127.0.0.1" || host === "::1" || host === "localhost";
+const accessToken = process.env.NOTEONE_ACCESS_TOKEN?.trim() || "";
+const trustExternalLoopbackBinding = process.env.TRUST_EXTERNAL_LOOPBACK_BINDING === "true";
+if (!isEmbedded && !isLoopbackHost && !trustExternalLoopbackBinding && accessToken.length < 16) {
+  throw new Error(
+    "[config] Binding NoteOne outside loopback requires NOTEONE_ACCESS_TOKEN (>= 16 chars)",
+  );
+}
+
 function list(name: string, fallback = ""): string[] {
   return (process.env[name] || fallback)
     .split(",")
@@ -59,6 +69,11 @@ export const config = {
   isEmbedded,
   dataDir,
   port: parseInt(process.env.PORT || "3000", 10),
+  host: isEmbedded ? "127.0.0.1" : host,
+  isLoopbackHost: isEmbedded || isLoopbackHost,
+  trustExternalLoopbackBinding,
+  accessToken,
+  enableDevLogin: process.env.ENABLE_DEV_LOGIN === "true",
   // Embedded mode uses PGlite under the data dir; DATABASE_URL is not needed.
   databaseUrl: isEmbedded ? (process.env.DATABASE_URL || "") : required("DATABASE_URL"),
   jwtSecret,

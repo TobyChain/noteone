@@ -112,6 +112,28 @@ actor APIClient {
         return response.notes
     }
 
+    func listNotesPage(limit: Int = 50, cursor: String? = nil) async throws -> NotesPage {
+        var components = URLComponents(string: "\(baseURL)/api/notes")!
+        var items = [URLQueryItem(name: "limit", value: String(limit))]
+        if let cursor { items.append(URLQueryItem(name: "cursor", value: cursor)) }
+        components.queryItems = items
+        guard let path = components.url?.absoluteString.replacingOccurrences(of: baseURL, with: "") else {
+            throw APIError.invalidURL
+        }
+        return try await get(path)
+    }
+
+    func getNoteStatuses(ids: [String]) async throws -> [Note] {
+        struct Body: Encodable { let ids: [String] }
+        var result: [Note] = []
+        for start in stride(from: 0, to: ids.count, by: 100) {
+            let end = min(start + 100, ids.count)
+            let response: NotesWrapper = try await post("/api/notes/statuses", body: Body(ids: Array(ids[start..<end])))
+            result.append(contentsOf: response.notes)
+        }
+        return result
+    }
+
     func getNote(id: String) async throws -> Note {
         let response: NoteWrapper = try await get("/api/notes/\(id)")
         return response.note
@@ -147,6 +169,12 @@ actor APIClient {
 
     func permanentDeleteNote(id: String) async throws {
         let _: DeleteWrapper = try await delete("/api/notes/\(id)/permanent")
+    }
+
+    func emptyTrash() async throws -> Int {
+        struct EmptyTrashResponse: Decodable { let deleted: Int }
+        let response: EmptyTrashResponse = try await delete("/api/notes/trash")
+        return response.deleted
     }
 
     // MARK: - Uploads
@@ -278,10 +306,10 @@ actor APIClient {
     }
 
     /// Download the user's full data export as a zip into a temporary file. Caller can
-    /// hand the resulting URL to a share sheet / file viewer. When `includeSecrets` is true
-    /// (the default for personal cross-device transfer) LLM apiKeys and pipeline tokens are
+    /// hand the resulting URL to a share sheet / file viewer. When `includeSecrets` is true,
+    /// LLM apiKeys and pipeline tokens are
     /// bundled so the target device can use them directly.
-    func exportData(includeSecrets: Bool = true) async throws -> URL {
+    func exportData(includeSecrets: Bool = false) async throws -> URL {
         var path = "/api/export"
         if includeSecrets { path += "?secrets=1" }
         guard let url = URL(string: "\(baseURL)\(path)") else { throw APIError.invalidURL }
@@ -454,6 +482,8 @@ actor APIClient {
         let chatSessions: Int
         let chatMessages: Int
         let images: Int
+        let dailyReports: Int?
+        let scheduledTasks: Int?
     }
 
     func importData(fileURL: URL) async throws -> ImportResult {
@@ -705,45 +735,3 @@ private struct NotesWrapper: Decodable { let notes: [Note] }
 private struct TagsWrapper: Decodable { let tags: [Tag] }
 private struct DeleteWrapper: Decodable { let deleted: Bool }
 private struct SearchWrapper: Decodable { let results: [SearchResult] }
-
-struct SearchResult: Codable, Identifiable, Sendable {
-    let id: String
-    var title: String?
-    var content: String
-    var contentType: String
-    var sourceUrl: String?
-    var sourceApp: String?
-    var author: String?
-    var authorOrg: String?
-    var aiSummary: String?
-    var similarity: Double?
-    var createdAt: Date
-    var updatedAt: Date
-}
-
-struct StatsResponse: Codable, Sendable {
-    let totalNotes: Int
-    let byContentType: [ContentTypeCount]
-    let topTags: [TagCount]
-}
-
-struct ContentTypeCount: Codable, Sendable {
-    let contentType: String
-    let count: Int
-}
-
-struct TagCount: Codable, Sendable {
-    let name: String
-    let dimension: String
-    let count: Int
-}
-
-struct SettingsResponse: Codable, Sendable {
-    let llm: LLMSettingsInfo
-}
-
-struct LLMSettingsInfo: Codable, Sendable {
-    let baseUrl: String?
-    let model: String?
-    let hasApiKey: Bool
-}

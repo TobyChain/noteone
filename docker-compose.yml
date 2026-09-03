@@ -14,9 +14,12 @@ services:
   api:
     build: ./server
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       NODE_ENV: ${NODE_ENV:-production}
+      HOST: 0.0.0.0
+      # Safe only because the published host port above is loopback-only.
+      TRUST_EXTERNAL_LOOPBACK_BINDING: "true"
       DATABASE_URL: postgres://${POSTGRES_USER:-noteone}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-noteone}
       # no insecure default — compose fails fast if JWT_SECRET is unset
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required (>= 16 chars)}

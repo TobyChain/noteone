@@ -100,11 +100,12 @@ export async function mergeReport(
 ): Promise<{ ok: boolean; date: string; html_path: string; md_path: string }> {
   const dateStr = date || todayDateStr();
   console.log(`[ascan] mergeReport date=${dateStr} (in-process)`);
-  const [prefs, language] = await Promise.all([
+  const [prefs, language, config] = await Promise.all([
     userId ? readUserPreferences(userId) : undefined,
     userId ? getUserLanguage(userId) : ("zh" as const),
+    getEffectiveConfig(userId),
   ]);
-  return mergePipelineReport(dateStr, prefs?.moduleOrder, language);
+  return mergePipelineReport(dateStr, prefs?.moduleOrder, language, enabledModuleNames(config));
 }
 
 // ── Non-blocking supplement ────────────────────────────────────────────
@@ -180,7 +181,7 @@ async function runSupplement(dateStr: string, llmConfig?: LLMOverride, userId?: 
   supplementProgress!.phase = "merging";
   supplementProgress!.currentModule = "merge";
   try {
-    const r = await mergePipelineReport(dateStr, prefs?.moduleOrder, language);
+    const r = await mergePipelineReport(dateStr, prefs?.moduleOrder, language, modulesToRun);
     supplementProgress!.phase = r.ok ? "done" : "failed";
     supplementProgress!.error = r.ok ? null : r.md_path;
     if (r.ok) {

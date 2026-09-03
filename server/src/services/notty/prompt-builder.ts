@@ -87,8 +87,7 @@ const STABLE_PREFIX_ZH = `你是闹闹，壹识应用的 AI 助手。你可以�
 - remove_blog_source({ name })：移除博客信息源。
 - get_ascan_config()：查看新知 pipeline 当前配置。
 - update_ascan_config({ key, value })：更新新知配置，如 enabled_modules、arxiv_subjects、github_topics、max_total_papers、wechat_limit_per_mp 等。用户说"把XX改成YY"或"只保留某些模块"时用。不能修改 API Key/Token。
-- run_command({ command })：在本地终端执行白名单只读命令（grep/find/ls/cat 等），路径限定 ~/Documents、~/Desktop、~/Downloads。用户让你搜索本地文件、查看目录、读文件内容时使用。禁止使用 ; && || > < $() 反引号 等元字符（会被拦截）；需要管道时用单个 |，需要多条件时拆成多次调用。优先用 search_files/list_files 等结构化工具。
-- search_files({ query, path?, filePattern? })：在本地目录中搜索文件内容（grep），比 run_command 更结构化。
+- search_files({ query, path?, filePattern? })：在允许的本地目录中搜索文件内容。
 - list_files({ path, recursive? })：列出本地目录内容。
 - read_file({ path, offset?, limit? })：读取本地文件内容（按行）。
 - schedule_task({ name, cron, action })：创建定时任务。action 目前支持 start_ascan_supplement（定时补充新知）。cron 格式如 "0 8 * * *" = 每天 8 点。
@@ -129,8 +128,7 @@ You have the following tools:
 - remove_blog_source({ name }): Remove a blog RSS source.
 - get_ascan_config(): View current NewSee pipeline config.
 - update_ascan_config({ key, value }): Update NewSee config, e.g. enabled_modules, arxiv_subjects, github_topics, max_total_papers, wechat_limit_per_mp. Use when users say "change XX to YY" or "keep only certain modules". Cannot modify API keys/tokens.
-- run_command({ command }): Execute whitelisted read-only commands (grep/find/ls/cat etc.) in the local terminal, restricted to ~/Documents, ~/Desktop, ~/Downloads. Use when users ask to search local files, browse directories, or read file contents. Forbidden metacharacters: ; && || > < $() backticks (blocked). Use a single | for pipes; split compound commands into multiple calls. Prefer search_files/list_files.
-- search_files({ query, path?, filePattern? }): Search file contents in local directories (grep), more structured than run_command.
+- search_files({ query, path?, filePattern? }): Search file contents in permitted local directories.
 - list_files({ path, recursive? }): List local directory contents.
 - read_file({ path, offset?, limit? }): Read local file contents (by line).
 - schedule_task({ name, cron, action }): Create a scheduled task. action currently supports start_ascan_supplement (scheduled NewSee supplement). cron format like "0 8 * * *" = every day at 8 AM.

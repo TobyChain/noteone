@@ -21,6 +21,9 @@ struct MainSidebar: View {
     var onRefresh: () async -> Void
     var onDeleteNote: (Note) -> Void
     var onSearch: (String) async -> Void
+    var onLoadMore: () async -> Void
+    var hasMoreNotes: Bool
+    var isLoadingMore: Bool
     var onShowTrash: () -> Void
     var onShowConfig: () -> Void
     var onDeleteAscanReport: (String) -> Void
@@ -177,6 +180,16 @@ struct MainSidebar: View {
                                     }
                                 }
                             }
+                        }
+                        if hasMoreNotes && searchText.isEmpty {
+                            HStack {
+                                Spacer()
+                                if isLoadingMore { ProgressView().controlSize(.small) }
+                                else { Text(L("加载更多", "Load More")).font(.caption2).foregroundStyle(.secondary) }
+                                Spacer()
+                            }
+                            .padding(.vertical, DG.sp8)
+                            .onAppear { Task { await onLoadMore() } }
                         }
                     }
                 }

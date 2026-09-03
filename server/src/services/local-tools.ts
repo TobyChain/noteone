@@ -1,17 +1,16 @@
 /**
- * Local tools for 闹闹 — whitelisted shell commands + restricted file access.
+ * Local tools for 闹闹 — structured, read-only file access.
  *
  * Security model:
- *  - Only read-only commands from an explicit whitelist
+ *  - No caller-provided shell command is executed
  *  - All paths must resolve within allowed directories (~/Documents, ~/Desktop, ~/Downloads)
- *  - Shell metacharacters (;, &&, ||, $(), ``, >, <) are blocked
- *  - find -exec/-delete blocked; xargs/env/eval blocked entirely
+ *  - Child processes use execFile with shell disabled and fixed executables
  *  - 30s timeout, 8KB output cap
  */
-import { exec } from "child_process";
-import { resolve, normalize, basename } from "path";
+import { execFile } from "child_process";
+import { resolve, basename } from "path";
 import { homedir } from "os";
-import { readdir, readFile, stat } from "fs/promises";
+import { readFile, realpath } from "fs/promises";
 import type { ToolDefinition } from "./notty/agent-loop.js";
 
 const HOME = homedir();
@@ -21,17 +20,6 @@ const ALLOWED_DIRS = [
   resolve(HOME, "Desktop"),
   resolve(HOME, "Downloads"),
 ];
-
-const ALLOWED_COMMANDS = new Set([
-  "grep", "rg", "find", "ls", "cat", "head", "tail", "wc",
-  "sort", "uniq", "diff", "file", "stat", "du", "pwd",
-  "which", "date", "echo", "tree", "basename", "dirname",
-  "realpath", "readlink", "md5", "shasum", "cal",
-]);
-
-const BLOCKED_FIND_FLAGS = new Set(["-exec", "-execdir", "-delete", "-ok", "-okdir"]);
-
-const BLOCKED_META = /[;]|\$\(|`|&&|\|\||>>?|</;
 
 function resolvePath(p: string): string {
   if (p.startsWith("~")) return resolve(HOME, p.slice(1).replace(/^\//, ""));
@@ -43,50 +31,18 @@ function isPathAllowed(p: string): boolean {
   return ALLOWED_DIRS.some((dir) => resolved === dir || resolved.startsWith(dir + "/"));
 }
 
-function validateCommand(cmd: string): { ok: boolean; error?: string } {
-  if (BLOCKED_META.test(cmd)) {
-    return { ok: false, error: "包含被禁止的 shell 元字符（; && || $() `` > <）" };
+async function allowedRealPath(input: string): Promise<string | null> {
+  try {
+    const target = await realpath(resolvePath(input));
+    return isPathAllowed(target) ? target : null;
+  } catch {
+    return null;
   }
-
-  const segments = cmd.split("|").map((s) => s.trim());
-  for (const seg of segments) {
-    const parts = seg.split(/\s+/).filter(Boolean);
-    if (parts.length === 0) continue;
-    const base = parts[0];
-
-    if (!ALLOWED_COMMANDS.has(base)) {
-      return { ok: false, error: `命令不在白名单: ${base}（允许: ${[...ALLOWED_COMMANDS].join(", ")}）` };
-    }
-
-    if (base === "find") {
-      for (const flag of parts) {
-        if (BLOCKED_FIND_FLAGS.has(flag)) {
-          return { ok: false, error: `find 禁止使用 ${flag}` };
-        }
-      }
-    }
-
-    for (const part of parts.slice(1)) {
-      if (part.startsWith("-")) continue;
-      if (part.startsWith('"') || part.startsWith("'")) continue;
-      if (/[*?[\]{}]/.test(part)) continue;
-      if (part.includes("/") || part.startsWith("~") || part.startsWith(".")) {
-        if (!isPathAllowed(part)) {
-          return { ok: false, error: `路径不在允许目录内: ${part}（允许: ~/Documents, ~/Desktop, ~/Downloads）` };
-        }
-      }
-    }
-  }
-
-  return { ok: true };
 }
 
-async function execCommand(cmd: string): Promise<string> {
-  const v = validateCommand(cmd);
-  if (!v.ok) return `⛔ ${v.error}`;
-
+async function runFile(command: string, args: string[]): Promise<string> {
   return new Promise((res) => {
-    exec(cmd, { timeout: 30_000, maxBuffer: 1024 * 1024, cwd: HOME }, (err, stdout, stderr) => {
+    execFile(command, args, { timeout: 30_000, maxBuffer: 1024 * 1024, cwd: HOME }, (err, stdout, stderr) => {
       if (err && !stdout) {
         res(`命令执行失败: ${err.message}`);
         return;
@@ -102,29 +58,31 @@ async function execCommand(cmd: string): Promise<string> {
 // ── Structured file tools (no shell) ──────────────────────────────────
 
 async function searchFiles(query: string, dir?: string, filePattern?: string, maxResults = 30): Promise<string> {
-  const searchDir = resolvePath(dir || "~/Documents");
-  if (!isPathAllowed(searchDir)) return `⛔ 路径不在允许目录内: ${searchDir}`;
-
-  const include = filePattern ? `--include=${filePattern}` : "";
-  const cmd = `grep -rn ${include} -- ${JSON.stringify(query)} ${JSON.stringify(searchDir)} | head -${maxResults}`;
-  return execCommand(cmd);
+  const searchDir = await allowedRealPath(dir || "~/Documents");
+  if (!searchDir) return "⛔ 路径不存在或不在允许目录内";
+  const safeMax = Math.min(Math.max(Number(maxResults) || 30, 1), 200);
+  const args = ["-rn"];
+  if (filePattern) args.push(`--include=${filePattern}`);
+  args.push("--", query, searchDir);
+  const output = await runFile("grep", args);
+  return output.split("\n").slice(0, safeMax).join("\n");
 }
 
 async function listFiles(dir: string, recursive = false): Promise<string> {
-  const target = resolvePath(dir);
-  if (!isPathAllowed(target)) return `⛔ 路径不在允许目录内: ${target}`;
+  const target = await allowedRealPath(dir);
+  if (!target) return "⛔ 路径不存在或不在允许目录内";
 
   try {
     const flag = recursive ? "-laR" : "-la";
-    return await execCommand(`ls ${flag} ${JSON.stringify(target)}`);
+    return await runFile("ls", [flag, "--", target]);
   } catch (e: any) {
     return `列出失败: ${e.message}`;
   }
 }
 
 async function readFileContent(path: string, offset = 0, limit = 200): Promise<string> {
-  const target = resolvePath(path);
-  if (!isPathAllowed(target)) return `⛔ 路径不在允许目录内: ${target}`;
+  const target = await allowedRealPath(path);
+  if (!target) return "⛔ 路径不存在或不在允许目录内";
 
   try {
     const content = await readFile(target, "utf-8");
@@ -143,23 +101,8 @@ export const localToolDefinitions: ToolDefinition[] = [
   {
     type: "function",
     function: {
-      name: "run_command",
-      description:
-        "在本地终端执行白名单命令（只读）。允许: grep/rg/find/ls/cat/head/tail/wc/sort/uniq/diff/file/stat/du/tree/date/echo 等。" +
-        "路径限定在 ~/Documents、~/Desktop、~/Downloads。禁止 rm/mv/cp/curl/sudo/python 等写入或执行类命令。" +
-        "示例: grep -rn 'TODO' ~/Documents/NoteOne | head -20",
-      parameters: {
-        type: "object",
-        properties: { command: { type: "string", description: "要执行的 shell 命令" } },
-        required: ["command"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
       name: "search_files",
-      description: "在指定目录中搜索文件内容（grep）。比 run_command 更安全、更结构化。",
+      description: "在指定的允许目录中搜索文件内容。",
       parameters: {
         type: "object",
         properties: {
@@ -209,7 +152,6 @@ export const localToolDefinitions: ToolDefinition[] = [
 
 export function makeLocalHandlers(): Record<string, (args: any) => Promise<string>> {
   return {
-    run_command: async ({ command }: any) => execCommand(command),
     search_files: async ({ query, path, filePattern, maxResults }: any) =>
       searchFiles(query, path, filePattern, maxResults),
     list_files: async ({ path, recursive }: any) => listFiles(path, recursive),

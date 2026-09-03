@@ -40,6 +40,16 @@ jobs:
         run: |
           npm run build
           npm run test:run
+          npm run test:integration
+
+      - name: Test Apple clients
+        working-directory: apple
+        run: |
+          xcodegen generate
+          xcodebuild -quiet test -project NoteOne.xcodeproj -scheme NoteOne_macOS \
+            -destination 'platform=macOS,arch=arm64' CODE_SIGNING_ALLOWED=NO
+          xcodebuild -quiet test -project NoteOne.xcodeproj -scheme NoteOne_iOS \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' CODE_SIGNING_ALLOWED=NO
 
       - name: Build DMG
         env:

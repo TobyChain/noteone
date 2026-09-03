@@ -332,7 +332,7 @@ struct WebViewMac: NSViewRepresentable {
 #endif
 
 class ExternalLinkCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
-    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
         if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url,
            url.scheme == "http" || url.scheme == "https" {
             #if os(macOS)

@@ -49,6 +49,7 @@ struct SettingsView: View {
     @State private var wechatHealth: WechatHealthResponse?
 
     @State private var isExporting = false
+    @State private var exportIncludesSecrets = false
     @State private var exportError: String?
     @State private var isImporting = false
     @State private var importError: String?
@@ -337,6 +338,19 @@ struct SettingsView: View {
                 }
             }
             .disabled(isExporting)
+            Toggle(
+                L("包含 API Key 与访问令牌", "Include API keys and access tokens"),
+                isOn: $exportIncludesSecrets
+            )
+            .tint(.orange)
+            if exportIncludesSecrets {
+                Text(L(
+                    "导出文件将包含可直接使用的密钥。请勿通过不可信渠道分享。",
+                    "The export will contain usable secrets. Do not share it through untrusted channels."
+                ))
+                .font(.caption)
+                .foregroundStyle(.orange)
+            }
             if let exportError = exportError {
                 Text(exportError).font(.caption).foregroundStyle(Color.danger)
             }
@@ -473,7 +487,7 @@ struct SettingsView: View {
             if newValue {
                 Task { await ReportScheduler.shared.schedule(hour: reportHour, minute: reportMinute) }
             } else {
-                ReportScheduler.shared.cancel()
+                Task { await ReportScheduler.shared.cancel() }
             }
         }
     }
@@ -663,7 +677,7 @@ struct SettingsView: View {
         exportError = nil
         Task {
             do {
-                let url = try await APIClient.shared.exportData()
+                let url = try await APIClient.shared.exportData(includeSecrets: exportIncludesSecrets)
                 await MainActor.run {
                     isExporting = false
                     #if os(macOS)
@@ -709,6 +723,12 @@ struct SettingsView: View {
                             "\(c.notes) 条笔记、\(c.tags) 个标签、\(c.chatSessions) 个对话",
                             "\(c.notes) notes, \(c.tags) tags, \(c.chatSessions) chats"
                         )]
+                        if let reports = c.dailyReports, reports > 0 {
+                            parts.append(L("\(reports) 份每日报告", "\(reports) daily reports"))
+                        }
+                        if let tasks = c.scheduledTasks, tasks > 0 {
+                            parts.append(L("\(tasks) 个定时任务", "\(tasks) scheduled tasks"))
+                        }
                         if result.configRestored == true {
                             parts.append(L("新知/微信配置已迁移", "NewSee/WeChat config migrated"))
                         }

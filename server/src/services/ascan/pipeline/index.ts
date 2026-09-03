@@ -33,6 +33,16 @@ export function moduleNames(): AscanModuleName[] {
   return Object.keys(MODULE_REGISTRY) as AscanModuleName[];
 }
 
+export function selectMergeModules(
+  moduleOrder?: AscanModuleName[],
+  activeModules?: string[],
+): AscanModuleName[] {
+  const ordered = moduleOrder?.length ? moduleOrder : moduleNames();
+  if (activeModules === undefined) return ordered;
+  const enabled = new Set(activeModules.filter((name) => moduleNames().includes(name as AscanModuleName)));
+  return ordered.filter((name) => enabled.has(name));
+}
+
 /** Modules enabled in config (intersected with the registry; empty config = all). */
 export function enabledModuleNames(config: { enabled_modules?: string[] }): string[] {
   const all = moduleNames() as string[];
@@ -159,8 +169,11 @@ export async function mergePipelineReport(
   dateCompact: string,
   moduleOrder?: AscanModuleName[],
   language: "zh" | "en" = "zh",
+  activeModules?: string[],
 ): Promise<MergeResult> {
-  const names = moduleOrder?.length ? moduleOrder : moduleNames();
+  // A report must only contain fragments produced by this run. Otherwise a
+  // module disabled in settings can reappear from a previous run's fragment.
+  const names = selectMergeModules(moduleOrder, activeModules);
   const loaded = await Promise.all(names.map((name) => loadFragment(dateCompact, name)));
   const fragments = Object.fromEntries(names.map((name, i) => [name, loaded[i]])) as Record<AscanModuleName, { html: string; md: string }>;
 

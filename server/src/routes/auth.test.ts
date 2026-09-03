@@ -31,6 +31,14 @@ const dbHoist = vi.hoisted(() => {
     };
 });
 const lastQueriedAppleId = vi.hoisted(() => ({ value: "" }));
+const testConfig = vi.hoisted(() => ({
+    jwtSecret: "test-secret-must-be-at-least-16-chars-long",
+    isProd: false,
+    isLoopbackHost: true,
+    trustExternalLoopbackBinding: false,
+    accessToken: "",
+    enableDevLogin: true,
+}));
 vi.mock("../db/client.js", () => ({ db: dbHoist.db }));
 
 // drizzle's `eq(users.appleId, value)` is opaque; intercept and stash the operand for findFirst.
@@ -46,10 +54,7 @@ vi.mock("drizzle-orm", async () => {
 });
 
 vi.mock("../config.js", () => ({
-    config: {
-        jwtSecret: "test-secret-must-be-at-least-16-chars-long",
-        isProd: false,
-    },
+    config: testConfig,
 }));
 
 import { authRouter } from "./auth.js";
@@ -64,6 +69,7 @@ function buildApp() {
 describe("POST /auth/dev-token", () => {
     beforeEach(() => {
         dbHoist.users.length = 0;
+        testConfig.enableDevLogin = true;
     });
 
     it("creates a new user and returns a JWT", async () => {
@@ -85,12 +91,22 @@ describe("POST /auth/dev-token", () => {
         expect(res.status).toBe(200);
         expect(res.body.user.name).toBe("User");
     });
+
+    it("is hidden unless explicitly enabled", async () => {
+        testConfig.enableDevLogin = false;
+        const res = await request(buildApp()).post("/auth/dev-token").send({ name: "Alice" });
+        expect(res.status).toBe(404);
+    });
 });
 
 describe("POST /auth/local", () => {
     beforeEach(() => {
         dbHoist.users.length = 0;
         lastQueriedAppleId.value = "";
+        testConfig.enableDevLogin = true;
+        testConfig.isLoopbackHost = true;
+        testConfig.trustExternalLoopbackBinding = false;
+        testConfig.accessToken = "";
     });
 
     it("creates a default user when none exists", async () => {
@@ -103,6 +119,18 @@ describe("POST /auth/local", () => {
         expect(dbHoist.users[0].email).toBeNull();
     });
 
+    it("rejects browser page origins from obtaining a localhost session", async () => {
+        const res = await request(buildApp()).post("/auth/local")
+            .set("Origin", "https://attacker.example").send({});
+        expect(res.status).toBe(401);
+    });
+
+    it("allows an installed browser extension to open the local session", async () => {
+        const res = await request(buildApp()).post("/auth/local")
+            .set("Origin", "chrome-extension://abcdefghijklmnop").send({});
+        expect(res.status).toBe(200);
+    });
+
     it("reuses the first existing user instead of creating another", async () => {
         const first = await request(buildApp()).post("/auth/dev-token").send({ name: "Alice" });
         const res = await request(buildApp()).post("/auth/local").send({ name: "Bob" });
@@ -111,5 +139,16 @@ describe("POST /auth/local", () => {
         // Existing user wins — the requested name must not create a second account.
         expect(res.body.user.name).toBe("Alice");
         expect(dbHoist.users).toHaveLength(1);
+    });
+
+    it("requires the bootstrap token when exposed beyond loopback", async () => {
+        testConfig.isLoopbackHost = false;
+        testConfig.accessToken = "0123456789abcdef";
+        const denied = await request(buildApp()).post("/auth/local").send({});
+        expect(denied.status).toBe(401);
+
+        const allowed = await request(buildApp()).post("/auth/local")
+            .set("X-NoteOne-Access-Token", testConfig.accessToken).send({});
+        expect(allowed.status).toBe(200);
     });
 });

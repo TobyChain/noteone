@@ -19,23 +19,30 @@ Required `.env` keys (validated at startup):
 |-----|-------|
 | `DATABASE_URL` | Postgres connection string with pgvector available |
 | `JWT_SECRET` | >= 16 chars; service refuses to start with the default placeholder in production |
-| `APPLE_CLIENT_IDS` | Comma list of bundle ids accepted as the audience of Apple identityTokens |
+| `HOST` | Bind address; defaults to `127.0.0.1` |
+| `NOTEONE_ACCESS_TOKEN` | Required when `HOST` is not loopback; send as `X-NoteOne-Access-Token` to `/auth/local` |
+| `TRUST_EXTERNAL_LOOPBACK_BINDING` | Container-only escape hatch when an outer port mapping is verifiably loopback-only |
 | `ENABLE_DEV_LOGIN` | `true` enables `POST /auth/dev-token` (never in production) |
 | `ALLOWED_ORIGINS` | Comma list of origins for the CORS allow-list |
 | `QWEN_API_KEY` / `QWEN_BASE_URL` / `QWEN_MODEL` | Default LLM credentials; users can override per account via `/api/settings` |
 
 ## Tests
 
-The test suite mixes deterministic unit tests (no external dependency) with optional
-integration tests that require a real Postgres + pgvector.
+The test suite includes deterministic unit tests and database integration tests. The
+integration command uses disposable embedded PGlite by default and can optionally target
+a dedicated Postgres + pgvector database.
 
 ```bash
 # Unit tests only — always works
 npm run test:run
 
-# With the integration suite (requires a Postgres + pgvector test DB you can wipe)
+# Integration suite against disposable embedded PGlite
+rm -rf /tmp/noteone-integration-pglite
+npm run test:integration
+
+# Or run against a Postgres + pgvector test DB you can wipe
 TEST_DATABASE_URL=postgres://user:pass@localhost:5432/noteone_test \
-  npm run db:migrate && npm run test:integration
+  npm run db:migrate && npm run test:integration:postgres
 ```
 
 Setup for the integration database (one time):
@@ -55,9 +62,10 @@ Coverage focus:
 - `services/web-fetch.test.ts` — redirect cap, content-type filter, body truncation
 - `services/tagging.test.ts` — model output schema validation
 - `services/upload-cleanup.test.ts` — UUID-only deletion, path-traversal refusal, batch
-- `routes/auth.test.ts` — Apple JWKS verification (signature/iss/aud), `dev-token` gate
+- `routes/auth.test.ts` — local-session bootstrap boundary and `dev-token` gate
 - `routes/integration.test.ts` (skips without `TEST_DATABASE_URL`) — tag tenant isolation,
-  account cascade + file cleanup, export contents
+- `routes/integration.test.ts` — tag tenant isolation, stable note pagination, import ownership,
+  account cascade + file cleanup, and export contents; runs against PGlite by default
 
 ## API
 
@@ -88,16 +96,15 @@ The server reads/writes its config in `.ascan/.env`（dev 模式；内嵌模式�
 
 闹闹 (Notty) chat sessions expose tools beyond basic chat:
 - **NewSee**: `start_ascan_supplement` (non-blocking), `get_ascan_status`, `list/get/delete_ascan_report`
-- **Local terminal**: `run_command` (whitelist: grep/find/ls/cat/wc/head/tail/stat/file/diff/which/echo + more), `search_files`, `list_files`, `read_file` — restricted to `~/Documents` `~/Desktop` `~/Downloads`, blocks shell metacharacters
+- **Local files**: `search_files`, `list_files`, `read_file` — structured operations without a shell, restricted to resolved paths under `~/Documents`, `~/Desktop`, and `~/Downloads`
 - **Scheduled tasks**: `schedule_task` (cron), `list_scheduled_tasks`, `cancel_scheduled_task` — DB-persisted, auto-restored on server boot via `node-cron`
 
 ### Compliance endpoints (both require auth)
 
 ### `DELETE /api/account`
 
-Permanently delete the authenticated user and all dependent rows (notes, tags, chat
-sessions, chat messages, note-tag links). Image and mixed notes' uploaded files are
-removed from disk. **Irrevocable.** Required by Apple App Review 5.1.1(v) and GDPR.
+Permanently delete all installation-local data: user-owned rows, NewSee history, WeChat
+sessions, reports, logs, configuration, and uploaded files. **Irrevocable.**
 
 Response: `204 No Content`.
 
@@ -105,9 +112,10 @@ Response: `204 No Content`.
 
 Streams a zip with the caller's full data export:
 
-- `noteone-export.json` — notes, tags, note-tag links, chat sessions + messages,
-  user profile (apiKey stripped from settings).
+- `noteone-export.json` — notes, tags, note-tag links, chats, daily reports, scheduled
+  tasks, NewSee deduplication history, and user settings. Secrets are excluded by default.
 - `uploads/<uuid>.<ext>` — image files referenced by image/mixed notes.
+- `ascan-reports/` — generated NewSee HTML, Markdown, and summary files.
 - `README.txt` — schema version + export timestamp.
 
 Response: `200 application/zip` with a friendly filename.

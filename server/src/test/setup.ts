@@ -3,6 +3,10 @@
 
 process.env.NODE_ENV ??= "test";
 process.env.JWT_SECRET ??= "test-secret-must-be-at-least-16-chars-long";
+if (process.env.TEST_PGLITE_DIR) {
+    process.env.NOTEONE_DATA_DIR = process.env.TEST_PGLITE_DIR;
+    process.env.ASCAN_SCHEMA_PATH ??= new URL("../../.ascan/config.schema.json", import.meta.url).pathname;
+}
 
 // When integration tests are enabled, point the application's `db` client at the test DB.
 // Must happen BEFORE any module that reads DATABASE_URL is imported.

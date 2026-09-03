@@ -114,7 +114,7 @@ struct ShareView: View {
                     }
                 } else if attachment.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
                     contentType = "image"
-                    if let data = try? await attachment.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) {
+                    if let data = try? await loadData(from: attachment, typeIdentifier: UTType.image.identifier) {
                         imageData = data
                     } else if let url = try? await attachment.loadItem(forTypeIdentifier: UTType.image.identifier) as? URL,
                               let data = try? Data(contentsOf: url) {
@@ -131,6 +131,20 @@ struct ShareView: View {
         }
 
         isLoading = false
+    }
+
+    private func loadData(from provider: NSItemProvider, typeIdentifier: String) async throws -> Data {
+        try await withCheckedThrowingContinuation { continuation in
+            provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let data {
+                    continuation.resume(returning: data)
+                } else {
+                    continuation.resume(throwing: CocoaError(.fileReadUnknown))
+                }
+            }
+        }
     }
 
     private func save() {

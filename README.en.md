@@ -6,7 +6,7 @@
 NoteOne is an AI-powered personal knowledge system.
 
 - **Capture → Organize**: Capture anything, AI silently tags / summarizes / embeds
-- **Notty (闹闹)**: Core agent — runs local terminal commands, schedules tasks, orchestrates the NewSee pipeline
+- **Notty (闹闹)**: Core agent — searches permitted local files, schedules tasks, and orchestrates the NewSee pipeline
 - **NewSee (新知)**: Daily scan of arXiv / GitHub / official blogs / conference papers / WeChat, curated HTML report
 - **MCP**: Claude / Cursor / Codex talk directly to your note database
 
@@ -124,6 +124,10 @@ docker compose up -d
 ```
 
 API listens on `127.0.0.1:3000`, Postgres on localhost only.
+The server listens on the container network internally, while Compose publishes it on host
+loopback only. If you bind `HOST` to a non-loopback address yourself, set a
+`NOTEONE_ACCESS_TOKEN` of at least 16 characters and send it as `X-NoteOne-Access-Token` when
+opening `/auth/local`. `/auth/dev-token` is disabled unless `ENABLE_DEV_LOGIN=true` is set.
 
 #### Local dev (no Docker)
 
@@ -206,7 +210,7 @@ Tools: `list_notes` · `get_note` · `create_note` · `update_note` · `delete_n
 - **Data ownership**: queries remain scoped by an internal `user_id`; the desktop app uses one local data owner
 - **Upload safety**: UUID naming + extension whitelist + path-traversal guard
 - **Production hardening**: weak `JWT_SECRET` rejected
-- **Notty terminal**: whitelist commands + restricted dirs (`~/Documents` `~/Desktop` `~/Downloads`) + shell metachar blocking
+- **Notty local file tools**: structured search/list/read operations without a shell; resolved paths are restricted to `~/Documents`, `~/Desktop`, and `~/Downloads`
 - **helmet** HTTP headers
 
 ### Tech Stack

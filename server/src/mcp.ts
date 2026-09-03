@@ -6,7 +6,7 @@ import { db } from "./db/client.js";
 import { notes, noteTags, tags, users } from "./db/schema.js";
 import { eq, and, desc, inArray, ne, asc } from "drizzle-orm";
 import { processNote } from "./services/pipeline.js";
-import { searchNotesByEmbedding } from "./services/note-search.js";
+import { searchNotes } from "./services/note-search.js";
 import { attachPromptTags } from "./services/prompt-tagging.js";
 import { listReports, getReport, deleteReport } from "./services/ascan/reports.js";
 import { getRunStatus, runModule, mergeReport } from "./services/ascan/runner.js";
@@ -216,9 +216,9 @@ server.tool(
   { query: z.string(), limit: z.number().optional() },
   async ({ query, limit = 10 }) => {
     const userId = await getUserId();
-    const rows = await searchNotesByEmbedding(userId, query, { limit: Math.min(limit, 50) });
+    const { results: rows } = await searchNotes(userId, query, { limit: Math.min(limit, 50) });
     const text = rows.map((r, i) =>
-      `${i + 1}. [${r.id}] ${r.title || "无标题"} (相似度: ${(r.similarity * 100).toFixed(1)}%)\n   ${r.ai_summary || r.content?.slice(0, 80)}`
+      `${i + 1}. [${r.id}] ${r.title || "无标题"}${r.similarity == null ? "" : ` (相似度: ${(r.similarity * 100).toFixed(1)}%)`}\n   ${r.ai_summary || r.content?.slice(0, 80)}`
     ).join("\n\n");
     return { content: [{ type: "text" as const, text: text || "未找到相关笔记" }] };
   }

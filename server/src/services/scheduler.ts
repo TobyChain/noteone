@@ -48,6 +48,15 @@ function stopJob(taskId: string) {
   }
 }
 
+export function stopAllJobs(): void {
+  for (const job of activeJobs.values()) job.stop();
+  activeJobs.clear();
+}
+
+export function stopJobs(taskIds: string[]): void {
+  for (const id of taskIds) stopJob(id);
+}
+
 export async function restoreTasks() {
   const tasks = await db.query.scheduledTasks.findMany({
     where: eq(scheduledTasks.enabled, true),

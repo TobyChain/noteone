@@ -4,16 +4,19 @@ import path from "node:path";
 import fs from "node:fs";
 import { db } from "../db/client.js";
 import {
-    users, notes, tags, noteTags, chatSessions, chatMessages,
+    users, notes, tags, noteTags, chatSessions, chatMessages, dailyReports, scheduledTasks,
+    ascanPapers, ascanGithubRepos, ascanOfficialItems, ascanBlogPosts,
+    ascanConferencePapers, ascanWechatArticles,
 } from "../db/schema.js";
 import { eq, asc, inArray } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { UPLOAD_DIR } from "./uploads.js";
 import { getEffectiveConfig, type AscanConfig } from "../services/ascan/config.js";
+import { ASCAN_DOCS } from "../services/ascan/config.js";
 
 const router = Router();
 
-const SCHEMA_VERSION = "1.1";
+const SCHEMA_VERSION = "1.2";
 const ALLOWED_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "heic", "heif"]);
 const UUID_BASENAME = /^[0-9a-fA-F-]{32,36}\.[a-z0-9]{1,8}$/;
 
@@ -107,6 +110,19 @@ router.get("/", async (req: AuthRequest, res) => {
         where: inArray(chatMessages.sessionId, sessionIds),
         orderBy: [asc(chatMessages.createdAt)],
     });
+    const reports = await db.query.dailyReports.findMany({
+        where: eq(dailyReports.userId, userId),
+        orderBy: [asc(dailyReports.createdAt)],
+    });
+    const tasks = await db.query.scheduledTasks.findMany({
+        where: eq(scheduledTasks.userId, userId),
+        orderBy: [asc(scheduledTasks.createdAt)],
+    });
+    const [papers, githubRepos, officialItems, blogPosts, conferencePapers, wechatArticles] = await Promise.all([
+        db.select().from(ascanPapers), db.select().from(ascanGithubRepos),
+        db.select().from(ascanOfficialItems), db.select().from(ascanBlogPosts),
+        db.select().from(ascanConferencePapers), db.select().from(ascanWechatArticles),
+    ]);
 
     const exportPayload = {
         schemaVersion: SCHEMA_VERSION,
@@ -138,6 +154,9 @@ router.get("/", async (req: AuthRequest, res) => {
                     createdAt: m.createdAt,
                 })),
         })),
+        dailyReports: reports,
+        scheduledTasks: tasks,
+        ascanHistory: { papers, githubRepos, officialItems, blogPosts, conferencePapers, wechatArticles },
     };
 
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -166,6 +185,12 @@ router.get("/", async (req: AuthRequest, res) => {
         if (!fs.existsSync(local)) continue;
         archive.file(local, { name: `uploads/${basename}` });
     }
+    if (fs.existsSync(ASCAN_DOCS)) {
+        for (const name of fs.readdirSync(ASCAN_DOCS)) {
+            if (!/^Ascan-\d{8}\.(html|md|summary)$/.test(name)) continue;
+            archive.file(path.join(ASCAN_DOCS, name), { name: `ascan-reports/${name}` });
+        }
+    }
 
     await archive.finalize();
 });
@@ -181,7 +206,7 @@ function buildReadme(payload: { schemaVersion: string; exportedAt: string; inclu
         `secrets:       ${hasSecrets ? "INCLUDED (LLM apiKey, tokens, WeChat auth key)" : "omitted (re-enter on import)"}`,
         "",
         "Files:",
-        "  noteone-export.json    Notes, tags, chat sessions, user settings, and NewSee/WeChat config.",
+        "  noteone-export.json    Notes, tags, chats, daily reports, scheduled tasks, user settings, and NewSee/WeChat config.",
         "  uploads/               Image files referenced by your image/mixed notes.",
         "  README.txt             This file.",
         "",

@@ -13,7 +13,7 @@ export async function enrichNote(
   const results = await Promise.allSettled([
     generateSummary(content, llmConfig),
     generateTitle(content, llmConfig),
-    generateEmbedding(content),
+    generateEmbedding(content, llmConfig),
   ]);
 
   const summary = results[0].status === "fulfilled" ? results[0].value : "";

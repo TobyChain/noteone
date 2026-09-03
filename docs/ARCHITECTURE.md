@@ -1,10 +1,14 @@
 # NoteOne 架构与实现现状（ARCHITECTURE）
 
-> 状态：实现现状权威文档 · 截至 2026-06-15（迭代 6 之后）
+> 状态：历史架构说明 · 最后全面核对于 2026-06-15（迭代 6 之后）
 > 本文档以**代码为准**，描述系统当前真实形态；产品愿景与决策背景见 [design/2026-06-08-noteone-design.md](design/2026-06-08-noteone-design.md)。
 > 文件路径均相对仓库根 `noteone/`。
 
 > **注**：2026-07 系列变更尚未全面回写本文档。主要差异：
+> - 运行时默认绑定 `127.0.0.1`；非回环部署必须配置初始化访问令牌，或由受控容器端口明确声明外层回环隔离
+> - 本地工具已移除通用 shell 命令，只保留无 shell 的结构化文件搜索、列目录和读取工具
+> - 搜索使用用户 LLM 配置生成向量，不可用或无结果时自动降级为全文检索
+> - 数据导出默认不含密钥，并覆盖每日报告、定时任务、NewSee 去重历史与报告文件
 > - 删除"记实"模块（Writer）—— 本文中涉及 记实/WriterView/WriterAssistantView/markdown 编辑器/writer-messages 路由的部分均已移除
 > - 微信抓取已内置于 server（`services/wechat/` + `/api/wechat` + `/wechat/` 配置页），不再依赖外部 wechat-article-exporter 部署
 > - 新知（NewSee）pipeline 已从 Python 移植为 TypeScript（`server/src/services/ascan/pipeline/`，单入口编排 6 模块，进程内运行），Python `ascan/` 目录已删除（配置 schema 迁至 `server/.ascan/config.schema.json`）
