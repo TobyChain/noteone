@@ -23,8 +23,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.noteone.app
-        MARKETING_VERSION: "0.2.2"
-        CURRENT_PROJECT_VERSION: "4"
+        MARKETING_VERSION: "0.2.3"
+        CURRENT_PROJECT_VERSION: "5"
         CODE_SIGN_ENTITLEMENTS: NoteOne/NoteOne.entitlements
     info:
       path: NoteOne/Info.plist
