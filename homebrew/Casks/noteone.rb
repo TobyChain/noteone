@@ -1,6 +1,6 @@
 cask "noteone" do
-  version "0.2.3"
-  sha256 "a657d754d6bcfb4604e8304fd7825bd8fe822407853bd05fd0dbbc93499fb4c0"
+  version "0.2.4"
+  sha256 "e4eedc5788fe20e4a4cb193fb186b744a6d48f64785c539c70c76cebaa9f3d1e"
 
   url "https://github.com/TobyChain/noteone/releases/download/v#{version}/NoteOne.dmg"
   name "NoteOne"
