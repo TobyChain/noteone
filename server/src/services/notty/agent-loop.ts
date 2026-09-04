@@ -37,8 +37,8 @@ export interface AgentLoopOptions {
 /** Only explicitly read-only tools may run concurrently or use the result cache. */
 const READ_ONLY_TOOLS = new Set([
   "read_note", "search_notes", "web_fetch", "discover_feed", "search_web",
-  "get_ascan_preferences", "list_ascan_reports", "get_ascan_report", "get_ascan_status",
-  "list_wechat_mps", "search_wechat_mp", "list_blog_sources", "get_ascan_config",
+  "get_newlore_preferences", "list_newlore_reports", "get_newlore_report", "get_newlore_status",
+  "list_wechat_mps", "search_wechat_mp", "list_blog_sources", "get_newlore_config",
   "get_study_report_status", "list_scheduled_tasks", "search_files",
   "list_files", "read_file",
 ]);

@@ -166,10 +166,10 @@ export const wechatSessions = pgTable("wechat_sessions", {
   index("wechat_sessions_expires_at_idx").on(table.expiresAt),
 ]);
 
-// --- Ascan pipeline tables (ported from the Python SQLAlchemy models; ---
+// --- NewLore pipeline tables (ported from the Python SQLAlchemy models; ---
 // --- table/column names kept identical so dev DBs reuse dedup history) ---
 
-export const ascanPapers = pgTable("papers", {
+export const newlorePapers = pgTable("papers", {
   id: serial("id").primaryKey(),
   arxivId: text("arxiv_id").notNull().unique(),
   title: text("title").notNull(),
@@ -180,6 +180,7 @@ export const ascanPapers = pgTable("papers", {
   doi: text("doi"),
   doiUrl: text("doi_url"),
   published: text("published"), // YYYY-MM-DD
+  firstSeenDate: text("first_seen_date"),
   bibtex: text("bibtex"),
   affiliations: jsonb("affiliations").default([]),
   primaryImageUrl: text("primary_image_url"),
@@ -197,9 +198,10 @@ export const ascanPapers = pgTable("papers", {
   updatedAt: timestamp("updated_at"),
 }, (table) => [
   index("papers_published_idx").on(table.published),
+  index("papers_first_seen_idx").on(table.firstSeenDate),
 ]);
 
-export const ascanGithubRepos = pgTable("github_repos", {
+export const newloreGithubRepos = pgTable("github_repos", {
   id: serial("id").primaryKey(),
   fullName: text("full_name").notNull().unique(),
   owner: text("owner").notNull(),
@@ -230,7 +232,7 @@ export const ascanGithubRepos = pgTable("github_repos", {
   index("github_repos_first_seen_idx").on(table.firstSeenDate),
 ]);
 
-export const ascanOfficialItems = pgTable("official_items", {
+export const newloreOfficialItems = pgTable("official_items", {
   id: serial("id").primaryKey(),
   source: text("source").notNull(),
   slug: text("slug").notNull().unique(),
@@ -256,7 +258,7 @@ export const ascanOfficialItems = pgTable("official_items", {
   index("official_items_source_idx").on(table.source),
 ]);
 
-export const ascanBlogPosts = pgTable("blog_posts", {
+export const newloreBlogPosts = pgTable("blog_posts", {
   id: serial("id").primaryKey(),
   source: text("source").notNull(),
   slug: text("slug").notNull().unique(),
@@ -279,7 +281,7 @@ export const ascanBlogPosts = pgTable("blog_posts", {
   index("blog_posts_source_idx").on(table.source),
 ]);
 
-export const ascanConferencePapers = pgTable("conference_papers", {
+export const newloreConferencePapers = pgTable("conference_papers", {
   id: serial("id").primaryKey(),
   paperKey: text("paper_key").notNull().unique(),
   title: text("title").notNull(),
@@ -313,7 +315,7 @@ export const ascanConferencePapers = pgTable("conference_papers", {
   index("conference_papers_venue_idx").on(table.venue),
 ]);
 
-export const ascanWechatArticles = pgTable("wechat_articles", {
+export const newloreWechatArticles = pgTable("wechat_articles", {
   id: serial("id").primaryKey(),
   articleId: text("article_id").notNull().unique(),
   title: text("title").notNull(),
@@ -337,4 +339,19 @@ export const ascanWechatArticles = pgTable("wechat_articles", {
   updatedAtTs: timestamp("updated_at_ts").defaultNow(),
 }, (table) => [
   index("wechat_articles_mp_id_idx").on(table.mpId),
+]);
+
+// --- FarView global trend snapshots ---
+// Trend data is installation-global. User preferences only re-rank the cached
+// result at read time and never mutate the underlying trend score.
+export const farviewSnapshots = pgTable("farview_snapshots", {
+  id: serial("id").primaryKey(),
+  weekStart: text("week_start").notNull().unique(),
+  status: text("status").notNull().default("completed"),
+  payload: jsonb("payload").notNull().default({}),
+  sourceThrough: text("source_through").notNull(),
+  generatedAt: timestamp("generated_at", { withTimezone: true }).defaultNow().notNull(),
+  errorMessage: text("error_message"),
+}, (table) => [
+  index("farview_snapshots_week_start_idx").on(table.weekStart),
 ]);

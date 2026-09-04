@@ -6,15 +6,15 @@ import AppKit
 #if os(macOS)
 /// macOS main shell: NavigationSplitView with three panes.
 ///   - sidebar: MainSidebar (notes list with search/filter)
-///   - center : NoteDetailView, TrashView, Ascan views, or empty placeholder
+///   - center : NoteDetailView, TrashView, NewLore views, or empty placeholder
 ///   - inspector: collapsible Notty drawer
 struct MainSplitView: View {
     @EnvironmentObject var localSession: LocalSessionService
 
-    @State private var selection: SidebarSelection = .empty
+    @State private var selection: SidebarSelection = .farView
     @State private var notes: [Note] = []
-    @State private var ascanReports: [AscanReportMeta] = []
-    @State private var ascanReportHTML: [String: String] = [:]
+    @State private var newloreReports: [NewLoreReportMeta] = []
+    @State private var newloreReportHTML: [String: String] = [:]
 
     // Right drawer
     @State private var drawerVisible: Bool = true
@@ -29,9 +29,9 @@ struct MainSplitView: View {
     @State private var showMCPInstall = false
     @State private var showCreateNote = false
     @State private var pollTimer: Timer?
-    @State private var ascanRunStatus: AscanRunStatus?
-    @State private var ascanPollTimer: Timer?
-    @State private var ascanJustFinished = false
+    @State private var newloreRunStatus: NewLoreRunStatus?
+    @State private var newlorePollTimer: Timer?
+    @State private var newloreJustFinished = false
     @State private var mainError: String?
     @State private var hasMoreNotes = true
     @State private var isLoadingMoreNotes = false
@@ -43,17 +43,17 @@ struct MainSplitView: View {
             MainSidebar(
                 selection: $selection,
                 notes: $notes,
-                ascanReports: $ascanReports,
+                newloreReports: $newloreReports,
                 onCreateNote: { showCreateNote = true },
-                onRefresh: { await refreshNotes(); await loadAscanReports() },
+                onRefresh: { await refreshNotes(); await loadNewLoreReports() },
                 onDeleteNote: deleteNote,
                 onSearch: { q in await searchNotes(q) },
                 onLoadMore: { await loadMoreNotes() },
                 hasMoreNotes: hasMoreNotes,
                 isLoadingMore: isLoadingMoreNotes,
                 onShowTrash: { selection = .trash },
-                onShowConfig: { selection = .ascanConfig },
-                onDeleteAscanReport: { date in Task { await deleteAscanReport(date) } }
+                onShowConfig: { selection = .newloreConfig },
+                onDeleteNewLoreReport: { date in Task { await deleteNewLoreReport(date) } }
             )
             .frame(minWidth: 240)
         } detail: {
@@ -145,76 +145,76 @@ struct MainSplitView: View {
                     Task { await initialLoad() }
                 }
             }
-            if showsAscanBanner {
-                ascanProgressBanner
+            if showsNewLoreBanner {
+                newloreProgressBanner
             }
             centerContent
         }
     }
 
-    private var showsAscanBanner: Bool {
+    private var showsNewLoreBanner: Bool {
         switch selection {
-        case .ascanReports, .ascanReport, .ascanConfig: return true
+        case .newloreReports, .newloreReport, .newloreConfig: return true
         default: return false
         }
     }
 
-    @State private var ascanHadError = false
-    @State private var ascanLastError: String?
+    @State private var newloreHadError = false
+    @State private var newloreLastError: String?
 
     @ViewBuilder
-    private var ascanProgressBanner: some View {
-        let isRunning = ascanRunStatus?.isRunning == true
-        if isRunning || ascanJustFinished || ascanHadError {
+    private var newloreProgressBanner: some View {
+        let isRunning = newloreRunStatus?.isRunning == true
+        if isRunning || newloreJustFinished || newloreHadError {
             VStack(spacing: 0) {
                 HStack(spacing: DG.sp8) {
                     if isRunning {
                         ProgressView()
                             .controlSize(.small)
 
-                        let supplement = ascanRunStatus?.supplement
+                        let supplement = newloreRunStatus?.supplement
                         let moduleLabel = moduleDisplayName(supplement?.currentLabel)
                         let doneCount = supplement?.doneCount ?? 0
                         let totalCount = supplement?.modules.count ?? 0
                         let progressText = totalCount > 0
                             ? L("正在运行 \(moduleLabel)… (\(doneCount)/\(totalCount))",
                                "Running \(moduleLabel)… (\(doneCount)/\(totalCount))")
-                            : (ascanRunStatus?.recentLog ?? L("正在运行 \(moduleLabel)…", "Running \(moduleLabel)…"))
+                            : (newloreRunStatus?.recentLog ?? L("正在运行 \(moduleLabel)…", "Running \(moduleLabel)…"))
 
                         Text(progressText)
                             .font(.caption)
                             .foregroundStyle(Color.inkSecondary)
                             .lineLimit(1)
                         Spacer()
-                        Button(L("打断", "Abort")) { Task { await abortAscan() } }
+                        Button(L("打断", "Abort")) { Task { await abortNewLore() } }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                             .tint(Color.danger)
-                    } else if ascanJustFinished {
+                    } else if newloreJustFinished {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(Color.success)
-                        Text(L("新知补充完成", "NewSee Update Complete"))
+                        Text(L("新知补充完成", "NewLore Update Complete"))
                             .font(.caption)
                             .foregroundStyle(Color.inkSecondary)
                         Spacer()
-                    } else if ascanHadError {
+                    } else if newloreHadError {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(Color.danger)
-                        Text(ascanLastError ?? L("运行出错", "Error"))
+                        Text(newloreLastError ?? L("运行出错", "Error"))
                             .font(.caption)
                             .foregroundStyle(Color.inkSecondary)
                             .lineLimit(2)
                         Spacer()
-                        Button(L("续跑", "Resume")) { Task { await triggerAscan() } }
+                        Button(L("续跑", "Resume")) { Task { await triggerNewLore() } }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                     }
                 }
                 .padding(.horizontal, DG.sp16)
                 .padding(.vertical, DG.sp8)
-                .background(ascanHadError ? Color.danger.opacity(0.05) : Color.canvasSecondary)
+                .background(newloreHadError ? Color.danger.opacity(0.05) : Color.canvasSecondary)
 
-                if ascanHadError, let logs = ascanRunStatus?.recentLogs, !logs.isEmpty {
+                if newloreHadError, let logs = newloreRunStatus?.recentLogs, !logs.isEmpty {
                     Text(logs.suffix(2).joined(separator: "\n"))
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(Color.danger)
@@ -226,7 +226,7 @@ struct MainSplitView: View {
                 }
 
                 // Progress bar
-                if isRunning, let supplement = ascanRunStatus?.supplement, !supplement.modules.isEmpty {
+                if isRunning, let supplement = newloreRunStatus?.supplement, !supplement.modules.isEmpty {
                     let doneCount = supplement.doneCount
                     let totalCount = supplement.modules.count
                     let progress = totalCount > 0 ? Double(doneCount) / Double(totalCount) : 0
@@ -237,7 +237,7 @@ struct MainSplitView: View {
                         .padding(.bottom, DG.sp4)
                 }
 
-                if isRunning, let logs = ascanRunStatus?.recentLogs, !logs.isEmpty {
+                if isRunning, let logs = newloreRunStatus?.recentLogs, !logs.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: DG.sp12) {
                             ForEach(Array(logs.enumerated()), id: \.offset) { _, line in
@@ -282,12 +282,12 @@ struct MainSplitView: View {
             NoteDetailView(noteId: id, initialNote: notes.first { $0.id == id })
         case .trash:
             TrashView()
-        case .ascanReports:
+        case .newloreReports:
             VStack(spacing: DG.sp12) {
                 Image(systemName: "globe")
                     .font(.system(size: 42))
                     .foregroundStyle(Color.inkTertiary)
-                Text(L("新知", "NewSee"))
+                Text(L("新知", "NewLore"))
                     .font(.headline)
                     .foregroundStyle(Color.inkSecondary)
                 Text(L("从左侧选择一份日报查看", "Select a report from the left to view"))
@@ -295,18 +295,20 @@ struct MainSplitView: View {
                     .foregroundStyle(Color.inkTertiary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-        case .ascanReport(let date):
-            if let html = ascanReportHTML[date] {
-                AscanReportDetailView(htmlContent: html, date: date) {
-                    selection = .ascanReports
+        case .newloreReport(let date):
+            if let html = newloreReportHTML[date] {
+                NewLoreReportDetailView(htmlContent: html, date: date) {
+                    selection = .newloreReports
                 }
             } else {
                 ProgressView(L("加载日报…", "Loading report…"))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .task { await loadAscanReportHTML(date: date) }
+                    .task { await loadNewLoreReportHTML(date: date) }
             }
-        case .ascanConfig:
+        case .newloreConfig:
             UnifiedSettingsView()
+        case .farView:
+            FarViewView()
         case .empty:
             emptyPlaceholder(L("从左侧选择笔记", "Select a note from the left"))
         }
@@ -340,100 +342,102 @@ struct MainSplitView: View {
     private func initialLoad() async {
         await seedExampleContent()
         async let n: () = refreshNotes()
-        async let a: () = loadAscanReports()
+        async let a: () = loadNewLoreReports()
         _ = await (n, a)
         startPollingIfNeeded()
         do {
-            let status = try await APIClient.shared.getAscanStatus()
-            ascanRunStatus = status
-            if status.isRunning { startAscanPolling() }
+            let status = try await APIClient.shared.getNewLoreStatus()
+            newloreRunStatus = status
+            if status.isRunning { startNewLorePolling() }
         } catch {}
     }
 
+    /// Seed a note only for an empty store and persist the decision without probing user folders.
     private func seedExampleContent() async {
-        // 往事: seed note (only on first launch, file-based flag persists across reinstalls)
-        let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("NoteOne", isDirectory: true)
-        try? FileManager.default.createDirectory(at: docsDir, withIntermediateDirectories: true)
-        let seedNoteFlag = docsDir.appendingPathComponent(".seed-note-created")
-        if !FileManager.default.fileExists(atPath: seedNoteFlag.path) {
-            do {
+        let seedNoteCreatedKey = "seedExampleNoteCreated"
+        guard !UserDefaults.standard.bool(forKey: seedNoteCreatedKey) else { return }
+
+        do {
+            let stats = try await APIClient.shared.getStats()
+            if stats.totalNotes == 0 {
                 _ = try await APIClient.shared.createNote(
                     CreateNoteRequest(content: "这是壹识的往事模块，用于收藏和管理你的笔记。\n\n你可以通过全局快捷键（默认 Cmd+Shift+O）或 iOS 分享扩展随手记录所见所闻，闹闹会自动为你打标、摘要和向量化。\n\n\"问渠那得清如许？为有源头活水来。\"")
                 )
-                try? "".write(to: seedNoteFlag, atomically: true, encoding: .utf8)
-            } catch {}
+            }
+            UserDefaults.standard.set(true, forKey: seedNoteCreatedKey)
+        } catch {
+            // Leave the flag unset so a transient local-server failure can retry next launch.
         }
     }
 
-    private func loadAscanReports() async {
+    private func loadNewLoreReports() async {
         do {
-            ascanReports = try await APIClient.shared.listAscanReports()
+            newloreReports = try await APIClient.shared.listNewLoreReports()
         } catch {
             mainError = error.localizedDescription
         }
     }
 
-    private func loadAscanReportHTML(date: String) async {
-        if ascanReportHTML[date] != nil { return }
+    private func loadNewLoreReportHTML(date: String) async {
+        if newloreReportHTML[date] != nil { return }
         do {
-            let resp = try await APIClient.shared.getAscanReport(date: date)
-            ascanReportHTML[date] = resp.html
+            let resp = try await APIClient.shared.getNewLoreReport(date: date)
+            newloreReportHTML[date] = resp.html
         } catch {
             mainError = error.localizedDescription
         }
     }
 
-    private func triggerAscan() async {
+    private func triggerNewLore() async {
         do {
-            _ = try await APIClient.shared.triggerAscan(date: nil)
-            ascanJustFinished = false
-            ascanHadError = false
-            ascanLastError = nil
-            startAscanPolling()
+            _ = try await APIClient.shared.triggerNewLore(date: nil)
+            newloreJustFinished = false
+            newloreHadError = false
+            newloreLastError = nil
+            startNewLorePolling()
         } catch {
             mainError = error.localizedDescription
         }
     }
 
-    private func abortAscan() async {
+    private func abortNewLore() async {
         do {
-            _ = try await APIClient.shared.abortAscan()
-            ascanRunStatus = nil
-            ascanJustFinished = false
-            ascanHadError = false
-            ascanLastError = nil
-            stopAscanPolling()
+            _ = try await APIClient.shared.abortNewLore()
+            newloreRunStatus = nil
+            newloreJustFinished = false
+            newloreHadError = false
+            newloreLastError = nil
+            stopNewLorePolling()
         } catch {
             mainError = error.localizedDescription
         }
     }
 
-    private func startAscanPolling() {
-        stopAscanPolling()
-        ascanPollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+    private func startNewLorePolling() {
+        stopNewLorePolling()
+        newlorePollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
             Task { @MainActor in
                 do {
-                    let status = try await APIClient.shared.getAscanStatus()
-                    ascanRunStatus = status
+                    let status = try await APIClient.shared.getNewLoreStatus()
+                    newloreRunStatus = status
                     if !status.isRunning {
-                        stopAscanPolling()
+                        stopNewLorePolling()
                         let logs = status.recentLogs
                         let hasError = logs.last?.contains("失败") == true
                             || logs.last?.contains("error") == true
                             || logs.last?.contains("Error") == true
                             || (status.recentLog?.contains("失败") == true)
                         if hasError {
-                            ascanHadError = true
-                            ascanLastError = status.recentLog ?? logs.last
+                            newloreHadError = true
+                            newloreLastError = status.recentLog ?? logs.last
                         } else {
-                            ascanJustFinished = true
+                            newloreJustFinished = true
                         }
-                        let dateStr = ascanTodayString()
-                        _ = try? await APIClient.shared.summarizeAscan(date: dateStr)
-                        await loadAscanReports()
+                        let dateStr = newloreTodayString()
+                        _ = try? await APIClient.shared.summarizeNewLore(date: dateStr)
+                        await loadNewLoreReports()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                            ascanJustFinished = false
+                            newloreJustFinished = false
                         }
                     }
                 } catch {}
@@ -441,16 +445,16 @@ struct MainSplitView: View {
         }
     }
 
-    private func ascanTodayString() -> String {
+    private func newloreTodayString() -> String {
         let f = DateFormatter()
         f.dateFormat = "yyyyMMdd"
-        f.timeZone = TimeZone(identifier: "Asia/Shanghai")
+        f.timeZone = .current
         return f.string(from: Date())
     }
 
-    private func stopAscanPolling() {
-        ascanPollTimer?.invalidate()
-        ascanPollTimer = nil
+    private func stopNewLorePolling() {
+        newlorePollTimer?.invalidate()
+        newlorePollTimer = nil
     }
 
     private func refreshNotes() async {
@@ -547,14 +551,14 @@ struct MainSplitView: View {
         }
     }
 
-    private func deleteAscanReport(_ date: String) async {
+    private func deleteNewLoreReport(_ date: String) async {
         do {
-            _ = try await APIClient.shared.deleteAscanReport(date: date)
-            ascanReports.removeAll { $0.date == date }
-            if case .ascanReport(let d) = selection, d == date {
-                selection = .ascanReports
+            _ = try await APIClient.shared.deleteNewLoreReport(date: date)
+            newloreReports.removeAll { $0.date == date }
+            if case .newloreReport(let d) = selection, d == date {
+                selection = .newloreReports
             }
-            await loadAscanReports()
+            await loadNewLoreReports()
         } catch {
             mainError = error.localizedDescription
         }

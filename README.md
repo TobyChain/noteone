@@ -7,7 +7,8 @@
 
 - **捕获 → 整理**：随手记下所见所闻，AI 静默打标、摘要、向量化
 - **闹闹（Notty）**：核心 Agent，可调度本地终端、定时任务、新知补充等工具
-- **新知（NewSee）**：每日扫遍 arXiv / GitHub / 官方博客 / 独立笔耕 / 会议论文 / 微信公众号，生成科技前沿日报
+- **新知（NewLore）**：每日扫遍 arXiv / GitHub / 官方博客 / 独立笔耕 / 会议论文 / 微信公众号，生成科技前沿日报
+- **高见（FarView）**：汇总多源内容，计算最近 7 天内热度最高的 10 个有效话题
 - **MCP**：让 Claude / Cursor 等外部 AI 直连你的笔记库
 
 [中文](README.md) · [English](README.en.md) · [License](#license)
@@ -23,9 +24,10 @@
 |---|---|
 | **顺手捕获** | macOS 全局快捷键悬浮窗 / iOS Share Extension / 拖拽。自动抓取 URL、标题、选中文本、剪贴板图片 |
 | **AI 静默整理** | 异步流水线：抓链接正文 → 生成标题与一句话摘要 → 四维度打标（format/topic/domain/module）→ 向量化入库 |
-| **往事（OldScene，笔记）** | 时间分组列表 + 语义搜索（不可用时全文降级）+ 标签筛选；完整分页加载；一键新建笔记；每条附 AI 摘要、来源、作者、标签 |
+| **往事（OldEcho，笔记）** | 时间分组列表 + 语义搜索（不可用时全文降级）+ 标签筛选；完整分页加载；一键新建笔记；每条附 AI 摘要、来源、作者、标签 |
 | **闹闹（Notty）** | 三层上下文管理 + doom-loop 检测 + 工具调用持久化 + Markdown 渲染。可调本地终端、定时任务、新知补充、联网检索等工具 |
-| **新知（NewSee）** | 每日 6 模块并发抓取（arXiv / GitHub / 官方 / 博客 / 会议 / 微信），LLM 筛选翻译，生成带大纲导航的 HTML 日报；闹闹可逐模块编排 |
+| **新知（NewLore）** | 每日 6 模块并发抓取（arXiv / GitHub / 官方 / 博客 / 会议 / 微信），LLM 筛选翻译，生成带大纲导航的 HTML 日报；闹闹可逐模块编排 |
+| **高见（FarView）** | 基于新知数据计算全局共享的最近 7 天话题热度榜；过滤通用噪声词，并展示来源构成和代表内容 |
 | **定时任务** | 闹闹通过自然语言创建 cron 任务（如"每天 8 点补充新知"），DB 持久化 + 服务启动自动恢复 |
 | **MCP Server** | Claude / Cursor / Codex 等 AI 直连笔记库：检索、读取、创建、更新、软删、恢复 |
 | **每日报告** | 闹闹读取当天笔记 → 联网检索 → 生成 4 风格 × 3 深度的 HTML 报告 |
@@ -42,8 +44,8 @@
   │                        客户端 (SwiftUI)                        │
   │                                                               │
   │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
-  │  │  往事    │  │  新知    │  │  记一条  │  │  闹闹    │     │
-  │  │  笔记    │  │  日报    │  │  捕获    │  │  对话    │     │
+  │  │  高见    │  │  新知    │  │  往事    │  │  记一条  │     │
+  │  │  热度    │  │  日报    │  │  笔记    │  │  捕获    │     │
   │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘     │
   │       └─────────────┴─────────────┴─────────────┘            │
   │                  设置 · 报告 · 垃圾箱                          │
@@ -54,7 +56,7 @@
   │                                                                │
   │  auth · notes · tags · search · chat-sessions · reports        │
   │  uploads · settings · account · export                         │
-  │  ascan (reports / config / run-module / merge / status)        │
+  │  newlore (reports / config / run-module / merge / status)       │
   │  sidecar (scheduler · local-tools)                             │
   │                                                                │
   │  ┌─────────────────────┐  ┌──────────────────────────────┐    │
@@ -63,9 +65,9 @@
   │  │  → 向量化            │  │  doom-loop 检测              │    │
   │  └─────────────────────┘  └──────────────────────────────┘    │
   │                                                                │
-  │  PGlite 内嵌 (WASM) / PostgreSQL 16   NewSee TS Pipeline         │
+  │  PGlite 内嵌 (WASM) / PostgreSQL 16   NewLore TS Pipeline         │
   │  notes · tags · chat · reports        arXiv · GitHub · 博客 ... │
-  │  scheduled_tasks · ascan_*                                      │
+  │  scheduled_tasks · NewLore content tables                       │
   └────────────────────────────────────────────────────────────────┘
                            │ stdio (MCP)
   ┌────────────────────────┴──────────────────────────────────────┐
@@ -107,7 +109,7 @@ brew uninstall --cask noteone
 
 从 [Releases](https://github.com/TobyChain/noteone/releases) 下载最新 `NoteOne.dmg`，拖入 Applications 双击即可。App 内嵌 Node 运行时与 PGlite 数据库，无需安装任何外部环境，首次启动自动建库迁移。
 
-> 首次打开若提示"无法验证开发者"，在「系统设置 → 隐私与安全性」中点击"仍要打开"（ad-hoc 签名，个人自用）。
+> DMG 采用 ad-hoc 签名（个人开源项目，无 Apple Developer 证书）。首次打开若提示“无法验证开发者”，在「系统设置 → 隐私与安全性」中点击“仍要打开”。
 
 **自动更新：**
 
@@ -119,7 +121,7 @@ App 启动后会自动检查 [GitHub Releases](https://github.com/TobyChain/note
 
 - **仅支持 Apple Silicon（arm64）**：当前 DMG 只构建了 darwin-arm64 架构，Intel Mac 暂不支持
 - **macOS 14+（Sonoma）**：App 使用了 SwiftUI 6 + WKWebView 等系统框架，需要 macOS 14 或更高版本
-- **首次启动 Gatekeeper 提示**：由于使用 ad-hoc 签名（非 Apple Developer 证书），首次打开可能提示"无法验证开发者"，在「系统设置 → 隐私与安全性」点击"仍要打开"即可
+- **首次启动 Gatekeeper 提示**：DMG 采用 ad-hoc 签名（无 Apple Developer 证书），首次打开可能提示“无法验证开发者”，在「系统设置 → 隐私与安全性」点击“仍要打开”即可
 - **Homebrew tap 是独立仓库**：`TobyChain/tap` 指向 `github.com/TobyChain/homebrew-tap`，与 noteone 主仓库分离，更新 Cask 版本时需要同步更新 tap 仓库
 - **版本更新**：`brew upgrade` 会自动下载新版 DMG 替换旧版，但不会迁移数据——数据存储在 `~/Library/Application Support/NoteOne`，与 App 二进制分离，升级不影响数据
 - **从 DMG 迁移到 Homebrew**：如果之前通过 DMG 安装过，先手动移除 `/Applications/NoteOne.app`，再执行 `brew install --cask noteone`，数据目录不受影响
@@ -169,7 +171,7 @@ open NoteOne.xcodeproj
 
 - macOS App 固定连接内嵌的 `http://localhost:3000` 服务
 - 无账号和登录流程：启动时自动打开本地数据空间
-- macOS 全局快捷键捕获需辅助功能权限
+- macOS 全局快捷键无需辅助功能权限；自动复制其他 App 的选中文本时才需要该权限。首次启动会说明用途，系统权限仅按需请求
 
 ### 使用
 
@@ -245,9 +247,9 @@ noteone/
 │   ├── NoteOne/Sources/        #   Models · Views · Services · Theme
 │   └── README.md               #   构建说明
 ├── server/                     # REST API + 内嵌 MCP（Express 5 + TS）
-│   ├── src/routes/             #   auth · notes · tags · search · chat-sessions · ascan · wechat · reports
-│   ├── src/services/           #   notty/ · llm · ascan/pipeline/（TS 新知 6 模块）· wechat/ · scheduler
-│   ├── .ascan/                 #   新知配置单一事实源（config.schema.json）+ dev 运行时数据
+│   ├── src/routes/             #   auth · notes · tags · search · chat-sessions · newlore · wechat · reports
+│   ├── src/services/           #   notty/ · llm · newlore/pipeline/（按模块组织）· wechat/ · scheduler
+│   ├── .newlore/                #   新知配置单一事实源（config.schema.json）+ dev 运行时数据
 │   └── README.md               #   后端说明
 ├── scripts/package-dmg.sh      # dmg 单体分发打包（内嵌 Node + PGlite，双击即用）
 ├── homebrew/Casks/noteone.rb   # Homebrew Cask 定义（brew tap TobyChain/tap）
@@ -266,20 +268,4 @@ noteone/
 
 ## License
 
-> 落红不是无情物，化作春泥更护花。
-> —— 龚自珍《己亥杂诗》
-
-[Apache License 2.0](LICENSE) © 2026 TobyChain
-
-壹识 NoteOne 全部代码（客户端、后端、NewSee pipeline、MCP servers、Schema、迁移、部署配置、浏览器扩展）均在 Apache 2.0 协议下开源。
-
-为什么选 Apache 2.0 而不是 MIT：
-- **专利保护**：明确授予专利权 + 报复条款，防止他人用代码后反诉专利侵权
-- **No endorsement**（Section 6）：未经书面同意，不得用 "NoteOne" / "壹识" / "TobyChain" 名号为衍生品背书
-- **贡献者协议**：PR 提交即自动授予专利权，避免后续扯皮
-- **保留 attribution**：fork / 修改 / 分发必须保留版权声明
-
-允许：商用 · 修改 · 分发 · 私用 · SaaS 部署
-要求：保留版权声明 · 列出修改 · 不用作者名号背书
-
-"NoteOne" / "壹识" 名称保留商标权，未经授权不得用于衍生品推广。
+本项目采用 [Apache License 2.0](LICENSE)。

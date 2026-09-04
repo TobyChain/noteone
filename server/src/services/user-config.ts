@@ -2,7 +2,7 @@ import { db } from "../db/client.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { LLMConfig, getDefaultLLMConfig } from "./llm.js";
-import type { AscanConfig } from "./ascan/config.js";
+import type { NewLoreConfig } from "./newlore/config.js";
 
 export interface UserLLMSettings {
   apiKey?: string;
@@ -45,29 +45,30 @@ export async function getUserLanguage(userId: string): Promise<"zh" | "en"> {
   return (user?.settings as any)?.language === "en" ? "en" : "zh";
 }
 
-export async function getUserAscanConfig(userId: string): Promise<Partial<AscanConfig> | undefined> {
+export async function getUserNewLoreConfig(userId: string): Promise<Partial<NewLoreConfig> | undefined> {
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
     columns: { settings: true },
   });
-  const cfg = (user?.settings as any)?.ascanConfig;
+  const settings = (user?.settings as any) ?? {};
+  const cfg = settings.newloreConfig ?? settings.newseeConfig ?? settings.ascanConfig;
   return cfg && typeof cfg === "object" ? cfg : undefined;
 }
 
-export async function setUserAscanConfig(
+export async function setUserNewLoreConfig(
   userId: string,
-  updates: Partial<AscanConfig>,
-): Promise<Partial<AscanConfig>> {
+  updates: Partial<NewLoreConfig>,
+): Promise<Partial<NewLoreConfig>> {
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
     columns: { settings: true },
   });
   const currentSettings = (user?.settings ?? {}) as any;
-  const currentAscan = currentSettings.ascanConfig ?? {};
-  const merged = { ...currentAscan, ...updates };
+  const currentNewLore = currentSettings.newloreConfig ?? currentSettings.newseeConfig ?? currentSettings.ascanConfig ?? {};
+  const merged = { ...currentNewLore, ...updates };
   await db.update(users)
     .set({
-      settings: { ...currentSettings, ascanConfig: merged },
+      settings: { ...currentSettings, newloreConfig: merged },
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));

@@ -8,6 +8,7 @@ import UIKit
 
 extension Notification.Name {
     static let noteCreated = Notification.Name("noteCreated")
+    static let captureEditorFocusRequested = Notification.Name("captureEditorFocusRequested")
 }
 
 struct CaptureView: View {
@@ -18,13 +19,16 @@ struct CaptureView: View {
     @State private var showSuccess = false
     @State private var showEmptyHint = false
     @State private var captureError: String?
+    @State private var captureNotice: String?
     @State private var queuedForSync = false
     @State private var isDropTargeted = false
+    @FocusState private var editorIsFocused: Bool
     @Environment(\.dismiss) private var dismiss
     var initialContent: String?
     var initialSourceUrl: String?
     var initialSourceTitle: String?
     var initialImageData: Data?
+    var initialNotice: String? = nil
     /// When false, the editor does NOT prefill from the system clipboard on appear.
     /// The hotkey panel sets this — its captured payload arrives asynchronously a beat
     /// after the view is visible, and an eager clipboard paste would win the race and
@@ -127,6 +131,30 @@ struct CaptureView: View {
                 .transition(.opacity)
             }
 
+            if let captureNotice {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(Color.warning)
+                    Text(captureNotice)
+                        .font(.caption)
+                        .foregroundStyle(Color.inkSecondary)
+                    Spacer()
+                    #if os(macOS)
+                    Button(L("打开权限设置", "Open Settings")) {
+                        PermissionCoordinator.shared.openAccessibilitySettings()
+                    }
+                    .buttonStyle(.link)
+                    #endif
+                    Button { self.captureNotice = nil } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(Color.inkTertiary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+            }
+
             if queuedForSync {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(Color.accent)
@@ -143,7 +171,6 @@ struct CaptureView: View {
             bottomBar
                 .padding(16)
         }
-        .padding(.top, 28)
         .padding(.bottom, 8)
         #if os(iOS)
         .padding(.horizontal, 4)
@@ -156,6 +183,9 @@ struct CaptureView: View {
         .onReceive(NotificationCenter.default.publisher(for: .droppedPayloadReady)) { _ in
             Task { await consumeDropPayload() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .captureEditorFocusRequested)) { _ in
+            editorIsFocused = true
+        }
     }
 
     // MARK: - Header
@@ -165,7 +195,7 @@ struct CaptureView: View {
             Image(systemName: "note.text.badge.plus")
                 .font(.system(size: 14))
                 .foregroundStyle(Color.accent)
-            Text(L("添加到往事", "Add to OldScene"))
+            Text(L("添加到往事", "Add to OldEcho"))
                 .font(.subheadline.bold())
                 .foregroundStyle(Color.ink)
             Spacer()
@@ -195,7 +225,24 @@ struct CaptureView: View {
 
     // MARK: - Text Editor
 
+    @ViewBuilder
     private var textEditorArea: some View {
+        #if os(macOS)
+        TextField(
+            "",
+            text: $content,
+            prompt: Text(L("粘贴链接、输入文本或拖拽内容到这里...", "Paste a URL, type text, or drag content here..."))
+                .foregroundStyle(Color.inkTertiary),
+            axis: .vertical
+        )
+        .focused($editorIsFocused)
+        .textFieldStyle(.plain)
+        .font(.body)
+        .lineLimit(5...10)
+        .frame(minHeight: 100, alignment: .topLeading)
+        .padding(10)
+        .background(textEditorBackground)
+        #else
         ZStack(alignment: .topLeading) {
             if content.isEmpty {
                 Text(L("粘贴链接、输入文本或拖拽内容到这里...", "Paste a URL, type text, or drag content here..."))
@@ -211,15 +258,18 @@ struct CaptureView: View {
                 .frame(minHeight: 100)
         }
         .padding(4)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.canvasSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(isDropTargeted ? Color.accent : Color.hairline,
-                        lineWidth: isDropTargeted ? 2 : 1)
-        )
+        .background(textEditorBackground)
+        #endif
+    }
+
+    private var textEditorBackground: some View {
+        RoundedRectangle(cornerRadius: 8)
+            .fill(Color.canvasSecondary.opacity(0.6))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isDropTargeted ? Color.accent : Color.hairline,
+                            lineWidth: isDropTargeted ? 2 : 1)
+            )
     }
 
     // MARK: - Source URL field
@@ -278,7 +328,7 @@ struct CaptureView: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 48))
                 .foregroundStyle(Color.success)
-            Text(L("已保存到往事", "Saved to OldScene"))
+            Text(L("已保存到往事", "Saved to OldEcho"))
                 .font(.headline)
                 .foregroundStyle(Color.ink)
         }
@@ -325,6 +375,7 @@ struct CaptureView: View {
     // MARK: - Actions
 
     private func handleInitialPayload() {
+        captureNotice = initialNotice
         if let data = initialImageData { imageData = data }
         if let text = initialContent, !text.isEmpty {
             content = text
@@ -336,6 +387,9 @@ struct CaptureView: View {
             content = "[\(title)]\n\n\(content)"
         }
         Task { await consumeDropPayload() }
+        #if os(macOS)
+        if allowsClipboardFallback { editorIsFocused = true }
+        #endif
     }
 
     private func consumeDropPayload() async {
@@ -346,6 +400,7 @@ struct CaptureView: View {
             if let data = pending.imageData { imageData = data }
             if let text = pending.text, !text.isEmpty, content.isEmpty { content = text }
             if let src = pending.sourceUrl, !src.isEmpty, sourceUrl.isEmpty { sourceUrl = src }
+            editorIsFocused = true
         }
     }
 

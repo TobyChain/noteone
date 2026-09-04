@@ -11,7 +11,7 @@ struct NottyView: View {
     @State private var sessionId: String?
     @State private var sessions: [ChatSession] = []
     @State private var showSessionList = false
-    @State private var supplement: AscanSupplementProgress?
+    @State private var supplement: NewLoreSupplementProgress?
     @State private var supplementTimer: Timer?
     @State private var studyReportNotified = false
     @State private var supplementDoneFlash = false
@@ -21,8 +21,8 @@ struct NottyView: View {
     var onClose: (() -> Void)? = nil
 
     private let promptSuggestions: [String] = [
-        L("帮我补充今日新知", "Help me supplement today's NewSee"),
-        L("每天 8 点自动补充新知", "Auto-supplement NewSee every day at 8 AM"),
+        L("帮我补充今日新知", "Help me supplement today's NewLore"),
+        L("每天 8 点自动补充新知", "Auto-supplement NewLore every day at 8 AM"),
         L("搜索本地文件里的 TODO", "Search for TODOs in local files"),
         L("列出桌面上的文件", "List files on the Desktop"),
     ]
@@ -390,7 +390,7 @@ struct NottyView: View {
     // MARK: - Supplement progress
 
     @ViewBuilder
-    private func supplementBanner(_ supp: AscanSupplementProgress) -> some View {
+    private func supplementBanner(_ supp: NewLoreSupplementProgress) -> some View {
         HStack(spacing: DG.sp8) {
             if supp.isRunning {
                 ProgressView()
@@ -405,14 +405,14 @@ struct NottyView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 if supp.isRunning {
-                    Text(L("新知补充", "NewSee Update") + " · \(supp.currentLabel)")
+                    Text(L("新知补充", "NewLore Update") + " · \(supp.currentLabel)")
                         .font(.caption)
                         .foregroundStyle(Color.ink)
                     Text("\(supp.doneCount)/\(supp.modules.count)")
                         .font(.caption2)
                         .foregroundStyle(Color.inkTertiary)
                 } else if supp.phase == "done" {
-                    Text(L("新知补充完成", "NewSee Update Complete"))
+                    Text(L("新知补充完成", "NewLore Update Complete"))
                         .font(.caption)
                         .foregroundStyle(Color.success)
                     if !supp.failedModules.isEmpty {
@@ -429,7 +429,7 @@ struct NottyView: View {
                         }
                     }
                 } else {
-                    Text(L("新知补充出错", "NewSee Update Error"))
+                    Text(L("新知补充出错", "NewLore Update Error"))
                         .font(.caption)
                         .foregroundStyle(Color.danger)
                     if let err = supp.error {
@@ -445,7 +445,7 @@ struct NottyView: View {
 
             if supp.isRunning {
                 Button {
-                    Task { try? await APIClient.shared.abortAscan() }
+                    Task { try? await APIClient.shared.abortNewLore() }
                 } label: {
                     Image(systemName: "stop.circle")
                         .font(.caption)
@@ -455,7 +455,7 @@ struct NottyView: View {
                 .help(L("打断", "Abort"))
             } else if supp.phase == "failed" || !supp.failedModules.isEmpty {
                 Button(L("重试", "Retry")) {
-                    Task { try? await APIClient.shared.triggerAscan(date: supp.date) }
+                    Task { try? await APIClient.shared.triggerNewLore(date: supp.date) }
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -471,7 +471,7 @@ struct NottyView: View {
         supplementTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
             Task { @MainActor in
                 do {
-                    let status = try await APIClient.shared.getAscanStatus()
+                    let status = try await APIClient.shared.getNewLoreStatus()
                     if let supp = status.supplement {
                         if supp.isRunning && supplement == nil {
                             supplement = supp
@@ -493,7 +493,7 @@ struct NottyView: View {
                             studyReportNotified = true
                             messages.append(ChatMessage(
                                 role: "assistant",
-                                content: L("学习报告已生成并保存到往事：", "Study report generated and saved to OldScene: ") + (sr.title ?? "")
+                                content: L("学习报告已生成并保存到往事：", "Study report generated and saved to OldEcho: ") + (sr.title ?? "")
                             ))
                             NotificationCenter.default.post(name: .noteCreated, object: nil)
                         } else if sr.phase == "failed", !studyReportNotified {

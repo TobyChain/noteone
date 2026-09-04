@@ -28,7 +28,7 @@ vi.mock("./uploads.js", async () => {
 
 import { db } from "../db/client.js";
 import { config } from "../config.js";
-import { users, notes, tags, noteTags, chatSessions, chatMessages } from "../db/schema.js";
+import { users, notes, tags, noteTags, chatSessions, chatMessages, farviewSnapshots } from "../db/schema.js";
 import { accountRouter } from "./account.js";
 import { exportRouter } from "./export.js";
 import { importRouter } from "./import.js";
@@ -134,6 +134,9 @@ describe.skipIf(!integrationEnabled)("integration: tags multi-tenant + account +
       const [bTag] = await db.insert(tags).values({
         userId: b.id, name: "Untouched", dimension: "topic",
       }).returning();
+      await db.insert(farviewSnapshots).values({
+        weekStart: "2026-08-31", sourceThrough: "2026-09-04", payload: { topics: [] },
+      });
 
       const res = await request(buildApp())
         .delete("/api/account")
@@ -147,6 +150,8 @@ describe.skipIf(!integrationEnabled)("integration: tags multi-tenant + account +
       const aNoteTags = await db.select().from(noteTags).where(eq(noteTags.noteId, aNote.id));
       expect(aNoteTags).toHaveLength(0);
       expect(await db.query.chatSessions.findFirst({ where: eq(chatSessions.userId, a.id) })).toBeUndefined();
+      // Global NewLore/FarView data remains while another local owner exists.
+      expect(await db.query.farviewSnapshots.findFirst()).toBeDefined();
       const aMsgs = await db.select().from(chatMessages).where(eq(chatMessages.sessionId, aSess.id));
       expect(aMsgs).toHaveLength(0);
 
@@ -155,6 +160,12 @@ describe.skipIf(!integrationEnabled)("integration: tags multi-tenant + account +
 
       // B's tag is still there.
       expect(await db.query.tags.findFirst({ where: eq(tags.id, bTag.id) })).toBeDefined();
+
+      const deleteLastOwner = await request(buildApp())
+        .delete("/api/account")
+        .set("Authorization", makeAuthHeader(b.id));
+      expect(deleteLastOwner.status).toBe(204);
+      expect(await db.query.farviewSnapshots.findFirst()).toBeUndefined();
     });
   });
 
@@ -175,6 +186,10 @@ describe.skipIf(!integrationEnabled)("integration: tags multi-tenant + account +
       const [bNote] = await db.insert(notes).values({
         userId: b.id, content: "bravo", contentType: "text", status: "active",
       }).returning();
+      await db.insert(farviewSnapshots).values({
+        weekStart: "2026-08-31", sourceThrough: "2026-09-04",
+        payload: { weekStart: "2026-08-31", topics: [] },
+      });
 
       const res = await request(buildApp())
         .get("/api/export")
@@ -200,6 +215,8 @@ describe.skipIf(!integrationEnabled)("integration: tags multi-tenant + account +
       expect(JSON.stringify(payload)).not.toContain("SHOULD-NOT-LEAK");
       expect(payload.notes.map((note: any) => note.content)).toContain("alpha");
       expect(payload.notes.map((note: any) => note.content)).not.toContain("bravo");
+      expect(payload.farviewSnapshots).toHaveLength(1);
+      expect(payload.farviewSnapshots[0].weekStart).toBe("2026-08-31");
     });
   });
 
@@ -235,6 +252,24 @@ describe.skipIf(!integrationEnabled)("integration: tags multi-tenant + account +
   });
 
   describe("POST /api/import", () => {
+    it("restores a valid FarView snapshot", async () => {
+      const [recipient] = await db.insert(users).values({ appleId: "it-farview-import", name: "Recipient" }).returning();
+      const zip = new AdmZip();
+      zip.addFile("noteone-export.json", Buffer.from(JSON.stringify({
+        schemaVersion: "1.3", notes: [], tags: [], noteTags: [], chatSessions: [],
+        farviewSnapshots: [{
+          weekStart: "2026-08-31", sourceThrough: "2026-09-04", status: "completed",
+          payload: { weekStart: "2026-08-31", topics: [] }, generatedAt: "2026-09-04T00:00:00Z",
+        }],
+      })));
+      const response = await request(buildApp()).post("/api/import")
+        .set("Authorization", makeAuthHeader(recipient.id))
+        .set("Content-Type", "application/zip").send(zip.toBuffer());
+      expect(response.status).toBe(200);
+      const restored = await db.query.farviewSnapshots.findFirst();
+      expect(restored?.weekStart).toBe("2026-08-31");
+    });
+
     it("rejects an archive whose note id belongs to another user", async () => {
       const [owner] = await db.insert(users).values({ appleId: "it-owner", name: "Owner" }).returning();
       const [recipient] = await db.insert(users).values({ appleId: "it-recipient", name: "Recipient" }).returning();

@@ -44,7 +44,8 @@ export async function resetTables() {
     if (!target) return;
     await dbReady();
     await target.execute(raw`
-    TRUNCATE TABLE chat_messages, chat_sessions, note_tags, notes, tags, users RESTART IDENTITY CASCADE
+    TRUNCATE TABLE farview_snapshots, wechat_articles, conference_papers, blog_posts, official_items, github_repos, papers,
+      chat_messages, chat_sessions, note_tags, notes, tags, users RESTART IDENTITY CASCADE
   `);
 }
 

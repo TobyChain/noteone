@@ -79,7 +79,7 @@ struct ToolActivityRow: View {
         switch activity.name {
         case "search_notes", "search_files", "search_web", "search_wechat_mp":
             return "magnifyingglass"
-        case "read_note", "read_file", "get_ascan_report", "list_ascan_reports":
+        case "read_note", "read_file", "get_newlore_report", "list_newlore_reports":
             return "doc.text"
         case "web_fetch":
             return "globe"
@@ -89,13 +89,13 @@ struct ToolActivityRow: View {
             return "folder"
         case "schedule_task", "list_scheduled_tasks", "cancel_scheduled_task":
             return "clock"
-        case "start_ascan_supplement", "run_ascan_modules", "get_ascan_status":
+        case "start_newlore_supplement", "run_newlore_modules", "get_newlore_status":
             return "sparkles"
         case "add_wechat_mp", "remove_wechat_mp", "list_wechat_mps":
             return "bubble.left.and.bubble.right"
         case "add_blog_source", "remove_blog_source", "list_blog_sources":
             return "dot.radiowaves.left.and.right"
-        case "get_ascan_config", "update_ascan_config", "get_ascan_preferences", "update_ascan_preferences":
+        case "get_newlore_config", "update_newlore_config", "get_newlore_preferences", "update_newlore_preferences":
             return "gearshape"
         default:
             return "wrench.and.screwdriver"
@@ -115,12 +115,12 @@ struct ToolActivityRow: View {
         case "schedule_task": return L("创建定时任务", "Schedule task")
         case "list_scheduled_tasks": return L("查看定时任务", "List scheduled tasks")
         case "cancel_scheduled_task": return L("取消定时任务", "Cancel scheduled task")
-        case "start_ascan_supplement": return L("补充新知", "Update NewSee")
-        case "run_ascan_modules": return L("运行新知模块", "Run NewSee modules")
-        case "get_ascan_status": return L("查看新知状态", "NewSee status")
-        case "list_ascan_reports": return L("新知报告列表", "List NewSee reports")
-        case "get_ascan_report": return L("读取新知报告", "Read NewSee report")
-        case "delete_ascan_report": return L("删除新知报告", "Delete NewSee report")
+        case "start_newlore_supplement": return L("补充新知", "Update NewLore")
+        case "run_newlore_modules": return L("运行新知模块", "Run NewLore modules")
+        case "get_newlore_status": return L("查看新知状态", "NewLore status")
+        case "list_newlore_reports": return L("新知报告列表", "List NewLore reports")
+        case "get_newlore_report": return L("读取新知报告", "Read NewLore report")
+        case "delete_newlore_report": return L("删除新知报告", "Delete NewLore report")
         case "list_wechat_mps": return L("公众号列表", "List WeChat accounts")
         case "search_wechat_mp": return L("搜索公众号", "Search WeChat accounts")
         case "add_wechat_mp": return L("添加公众号", "Add WeChat account")
@@ -128,10 +128,10 @@ struct ToolActivityRow: View {
         case "list_blog_sources": return L("博客源列表", "List blog sources")
         case "add_blog_source": return L("添加博客源", "Add blog source")
         case "remove_blog_source": return L("移除博客源", "Remove blog source")
-        case "get_ascan_config": return L("查看新知配置", "Get NewSee config")
-        case "update_ascan_config": return L("更新新知配置", "Update NewSee config")
-        case "get_ascan_preferences": return L("查看新知偏好", "Get NewSee preferences")
-        case "update_ascan_preferences": return L("更新新知偏好", "Update NewSee preferences")
+        case "get_newlore_config": return L("查看新知配置", "Get NewLore config")
+        case "update_newlore_config": return L("更新新知配置", "Update NewLore config")
+        case "get_newlore_preferences": return L("查看新知偏好", "Get NewLore preferences")
+        case "update_newlore_preferences": return L("更新新知偏好", "Update NewLore preferences")
         default: return activity.name
         }
     }

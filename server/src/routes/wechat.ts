@@ -4,7 +4,7 @@
  * Auth model (same as the original WAE):
  * - login endpoints rely on the WeChat uuid cookie round-trip, no JWT needed;
  * - mp endpoints authenticate with the auth-key (X-Auth-Key header or auth-key cookie),
- *   which also serves the Python ascan fetcher.
+ *   which also serves the NewLore WeChat module.
  */
 import { Router, Request, Response } from "express";
 import {

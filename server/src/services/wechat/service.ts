@@ -10,7 +10,7 @@ import {
   removeSession,
   WechatSession,
 } from "./session-store.js";
-import { getConfig, getEffectiveConfig, updateConfig } from "../ascan/config.js";
+import { getConfig, getEffectiveConfig, updateConfig } from "../newlore/config.js";
 
 const MP_BASE = "https://mp.weixin.qq.com/cgi-bin";
 const FREQ_CONTROL_RET = 200013;
@@ -147,7 +147,7 @@ export async function confirmLogin(browserCookie: string): Promise<LoginResult> 
   const session = await createSession({ token, setCookies });
   const info = await fetchMpInfo(session);
 
-  // 自动写入 ascan/.env，新知 wechat 模块（进程内）直接读取，免手工配置
+  // 自动写入 newlore/.env，新知 wechat 模块（进程内）直接读取，免手工配置
   await updateConfig({ wechat_auth_key: session.authKey });
 
   return {
@@ -247,7 +247,7 @@ export async function listArticles(
   });
 }
 
-// ── 健康检查（供 /api/ascan/wechat-health 进程内调用） ─────────
+// ── 健康检查（供 /api/newlore/wechat-health 进程内调用） ─────────
 
 export interface WechatHealth {
   status: "unconfigured" | "ready" | "rate_limited" | "auth_expired" | "unreachable";

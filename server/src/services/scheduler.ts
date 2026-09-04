@@ -1,13 +1,13 @@
 /**
  * Scheduler — persists and runs scheduled tasks using node-cron.
  * On boot, restores all enabled tasks. When a task fires, it executes the
- * associated action (currently only "start_ascan_supplement").
+ * associated action (currently only "start_newlore_supplement").
  */
 import * as cron from "node-cron";
 import { db } from "../db/client.js";
 import { scheduledTasks } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
-import { startAscanSupplement } from "./ascan/runner.js";
+import { startNewLoreSupplement } from "./newlore/runner.js";
 import { getUserChatConfig } from "./user-config.js";
 
 const activeJobs = new Map<string, cron.ScheduledTask>();
@@ -16,8 +16,8 @@ async function executeAction(task: typeof scheduledTasks.$inferSelect) {
   console.log(`[scheduler] firing task "${task.name}" (${task.action})`);
   try {
     const llmConfig = await getUserChatConfig(task.userId);
-    if (task.action === "start_ascan_supplement") {
-      await startAscanSupplement(undefined, llmConfig);
+    if (task.action === "start_newlore_supplement" || task.action === "start_ascan_supplement") {
+      await startNewLoreSupplement(undefined, llmConfig);
     } else {
       console.warn(`[scheduler] unknown action: ${task.action}`);
     }

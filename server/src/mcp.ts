@@ -8,8 +8,8 @@ import { eq, and, desc, inArray, ne, asc } from "drizzle-orm";
 import { processNote } from "./services/pipeline.js";
 import { searchNotes } from "./services/note-search.js";
 import { attachPromptTags } from "./services/prompt-tagging.js";
-import { listReports, getReport, deleteReport } from "./services/ascan/reports.js";
-import { getRunStatus, runModule, mergeReport } from "./services/ascan/runner.js";
+import { listReports, getReport, deleteReport } from "./services/newlore/reports.js";
+import { getRunStatus, runModule, mergeReport } from "./services/newlore/runner.js";
 import { getUserChatConfig } from "./services/user-config.js";
 import { checkWechatHealth } from "./services/wechat/service.js";
 

@@ -2,23 +2,25 @@
 import AppKit
 import SwiftUI
 
-class FloatingPanel: NSPanel {
+/// A floating standard window that remains visible while users drag content from another app.
+final class FloatingCaptureWindow: NSWindow {
     init(contentRect: NSRect) {
         super.init(
             contentRect: contentRect,
-            styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        isFloatingPanel = true
         level = .floating
-        titleVisibility = .hidden
-        titlebarAppearsTransparent = true
-        isMovableByWindowBackground = true
-        isOpaque = false
+        title = L("顺手记", "Quick Capture")
+        titleVisibility = .visible
+        titlebarAppearsTransparent = false
+        isMovableByWindowBackground = false
+        isOpaque = true
         hasShadow = true
-        backgroundColor = .clear
         isReleasedWhenClosed = false
+        hidesOnDeactivate = false
+        minSize = NSSize(width: 480, height: 320)
         // Follow the user across Spaces and stay visible over full-screen apps.
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         center()

@@ -1,10 +1,11 @@
 #if os(macOS)
 import AppKit
-import SwiftUI
 import ApplicationServices
+import SwiftUI
+import Carbon.HIToolbox
+import OSLog
 
-/// User-configurable quick-capture hotkey, persisted in UserDefaults so both the global
-/// monitor (HotkeyManager) and the recorder UI (SettingsView) read the same source of truth.
+/// User-configurable quick-capture hotkey shared by the Carbon registration and Settings UI.
 enum HotkeyConfig {
     static let keyCodeKey = "hotkeyKeyCode"
     static let modifiersKey = "hotkeyModifiers"
@@ -20,35 +21,122 @@ enum HotkeyConfig {
 
     static var keyCode: Int { UserDefaults.standard.object(forKey: keyCodeKey) as? Int ?? defaultKeyCode }
     static var modifiers: Int { UserDefaults.standard.object(forKey: modifiersKey) as? Int ?? defaultModifiers }
+
+    /// Convert AppKit modifier flags to the Carbon mask required by RegisterEventHotKey.
+    static func carbonModifiers(from rawValue: Int) -> UInt32 {
+        let modifiers = NSEvent.ModifierFlags(rawValue: UInt(rawValue))
+        var result: UInt32 = 0
+        if modifiers.contains(.command) { result |= UInt32(cmdKey) }
+        if modifiers.contains(.option) { result |= UInt32(optionKey) }
+        if modifiers.contains(.control) { result |= UInt32(controlKey) }
+        if modifiers.contains(.shift) { result |= UInt32(shiftKey) }
+        return result
+    }
 }
 
 @MainActor
 class HotkeyManager: ObservableObject {
     static let shared = HotkeyManager()
-    private var panel: FloatingPanel?
-    private var monitor: Any?
+
+    @Published private(set) var isRegistered = false
+    @Published private(set) var registrationError: String?
+
+    private var panel: FloatingCaptureWindow?
+    private var captureTask: Task<Void, Never>?
+    private var hotKeyRef: EventHotKeyRef?
+    private var eventHandlerRef: EventHandlerRef?
     private var closeObserver: NSObjectProtocol?
+    private let logger = Logger(subsystem: "com.noteone.app", category: "hotkey")
+    private let hotKeyID = EventHotKeyID(signature: 0x4E4F5445, id: 1)
 
+    /// Carbon dispatches registered hotkeys without keyboard-monitoring or Accessibility access.
+    private nonisolated static let eventHandler: EventHandlerUPP = { _, event, userData in
+        guard let event, let userData else { return OSStatus(eventNotHandledErr) }
+        var receivedID = EventHotKeyID()
+        let status = GetEventParameter(
+            event,
+            EventParamName(kEventParamDirectObject),
+            EventParamType(typeEventHotKeyID),
+            nil,
+            MemoryLayout<EventHotKeyID>.size,
+            nil,
+            &receivedID
+        )
+        guard status == noErr, receivedID.signature == 0x4E4F5445, receivedID.id == 1 else {
+            return OSStatus(eventNotHandledErr)
+        }
+
+        let manager = Unmanaged<HotkeyManager>.fromOpaque(userData).takeUnretainedValue()
+        DispatchQueue.main.async { @MainActor in
+            manager.togglePanel()
+        }
+        return noErr
+    }
+
+    /// Register the configured shortcut with macOS independently of app bootstrap and permissions.
     func register() {
-        monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            let mods = event.modifierFlags.intersection(HotkeyConfig.relevantMask)
-            if Int(event.keyCode) == HotkeyConfig.keyCode && Int(mods.rawValue) == HotkeyConfig.modifiers {
-                DispatchQueue.main.async { self?.togglePanel() }
-            }
-        }
-    }
-
-    func unregister() {
-        if let monitor = monitor {
-            NSEvent.removeMonitor(monitor)
-            self.monitor = nil
-        }
-    }
-
-    /// Re-arm the global monitor after the user changes the hotkey in Settings.
-    func reload() {
         unregister()
+
+        var eventType = EventTypeSpec(
+            eventClass: OSType(kEventClassKeyboard),
+            eventKind: UInt32(kEventHotKeyPressed)
+        )
+        let userData = Unmanaged.passUnretained(self).toOpaque()
+        let handlerStatus = InstallEventHandler(
+            GetApplicationEventTarget(),
+            Self.eventHandler,
+            1,
+            &eventType,
+            userData,
+            &eventHandlerRef
+        )
+        guard handlerStatus == noErr else {
+            reportRegistrationFailure(handlerStatus)
+            return
+        }
+
+        let registrationStatus = RegisterEventHotKey(
+            UInt32(HotkeyConfig.keyCode),
+            HotkeyConfig.carbonModifiers(from: HotkeyConfig.modifiers),
+            hotKeyID,
+            GetApplicationEventTarget(),
+            0,
+            &hotKeyRef
+        )
+        guard registrationStatus == noErr else {
+            if let eventHandlerRef { RemoveEventHandler(eventHandlerRef) }
+            eventHandlerRef = nil
+            reportRegistrationFailure(registrationStatus)
+            return
+        }
+
+        isRegistered = true
+        registrationError = nil
+        logger.info("Global hotkey registered")
+    }
+
+    /// Remove the Carbon registration and handler before reload or termination.
+    func unregister() {
+        if let hotKeyRef { UnregisterEventHotKey(hotKeyRef) }
+        if let eventHandlerRef { RemoveEventHandler(eventHandlerRef) }
+        hotKeyRef = nil
+        eventHandlerRef = nil
+        isRegistered = false
+    }
+
+    /// Re-register the system hotkey after the user changes its key combination.
+    func reload() {
         register()
+    }
+
+    /// Publish a concrete registration error for Settings instead of silently losing the shortcut.
+    private func reportRegistrationFailure(_ status: OSStatus) {
+        isRegistered = false
+        registrationError = L(
+            "全局快捷键注册失败（错误 \(status)）。该组合键可能已被其他应用占用，请修改后重试。",
+            "Global hotkey registration failed (error \(status)). Another app may own this shortcut; change it and retry."
+        )
+        logger.error("Global hotkey registration failed with status \(status, privacy: .public)")
     }
 
     func togglePanel() {
@@ -57,60 +145,87 @@ class HotkeyManager: ObservableObject {
             self.panel = nil
             return
         }
+        guard captureTask == nil else { return }
 
-        // Drain any stale drop payload so the panel starts clean.
-        Task { _ = await DropPayloadStore.shared.consume() }
+        let sourceApp = NSWorkspace.shared.frontmostApplication
+        let canCaptureSelection = PermissionCoordinator.shared.prepareForSelectionCapture()
 
-        let captureView = CaptureView(allowsClipboardFallback: false, onDismiss: { [weak self] in
-            self?.panel?.close()
-            self?.panel = nil
-        })
+        captureTask = Task { [weak self] in
+            guard let self else { return }
+            let (captured, meta) = await Task.detached { [self] in
+                let captured = canCaptureSelection
+                    ? captureSelection(from: sourceApp?.processIdentifier)
+                    : clipboardSelection(outcome: .permissionDenied)
+                let meta = captureBrowserMeta(
+                    bundleID: sourceApp?.bundleIdentifier,
+                    appName: sourceApp?.localizedName
+                )
+                return (captured, meta)
+            }.value
+            guard !Task.isCancelled else {
+                captureTask = nil
+                return
+            }
+            var text = captured.text
+            if let title = meta?.title, !title.isEmpty, let body = text, !body.isEmpty {
+                text = "[\(title)]\n\n\(body)"
+            }
+            presentPanel(
+                text: text,
+                sourceURL: meta?.url,
+                imageData: captured.image,
+                notice: captureNotice(for: captured.outcome)
+            )
+            captureTask = nil
+        }
+    }
 
+    /// Create the panel only after capture finishes so its initial editor state is deterministic.
+    private func presentPanel(text: String?, sourceURL: String?, imageData: Data?, notice: String?) {
+        let captureView = CaptureView(
+            initialContent: text,
+            initialSourceUrl: sourceURL,
+            initialImageData: imageData,
+            initialNotice: notice,
+            allowsClipboardFallback: false,
+            onDismiss: { [weak self] in self?.panel?.close() }
+        )
         let hostingView = NSHostingView(rootView: captureView)
-        let panel = FloatingPanel(contentRect: NSRect(x: 0, y: 0, width: 480, height: 320))
+        let panel = FloatingCaptureWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 320))
         panel.contentView = hostingView
-        // Show immediately WITHOUT stealing focus — the synthetic ⌘C below must land
-        // in the app the user was just working in, not in this panel.
-        panel.orderFront(nil)
         self.panel = panel
         if let closeObserver { NotificationCenter.default.removeObserver(closeObserver) }
         closeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification, object: panel, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.panel = nil
-            }
+            Task { @MainActor [weak self] in self?.panel = nil }
         }
-
-        // Capture the selection + browser context off the main thread (AppleScript and
-        // the modifier-release wait can take over a second), then hand the result to the
-        // already-visible CaptureView and only then activate the app.
-        Task.detached { [self, panel] in
-            let captured = captureSelection()
-            let meta = captureBrowserMeta()
-
-            var text = captured.text
-            if let title = meta?.title, !title.isEmpty, let body = text, !body.isEmpty {
-                text = "[\(title)]\n\n\(body)"
-            }
-            let payload = DroppedPayload(text: text, sourceUrl: meta?.url, imageData: captured.image)
-            let hasPayload = payload.text != nil || payload.sourceUrl != nil || payload.imageData != nil
-
-            await MainActor.run {
-                // The user may have closed the panel while the capture was in flight.
-                guard panel.isVisible else { return }
-                Task {
-                    if hasPayload {
-                        await DropPayloadStore.shared.set(payload)
-                        NotificationCenter.default.post(name: .droppedPayloadReady, object: nil)
-                    }
-                    panel.makeKeyAndOrderFront(nil)
-                    activateApp()
-                }
-            }
+        activateApp()
+        panel.makeKeyAndOrderFront(nil)
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .captureEditorFocusRequested, object: nil)
         }
     }
 
+    /// Explain why automatic filling was unavailable without presenting another system prompt.
+    private func captureNotice(for outcome: CaptureOutcome) -> String? {
+        switch outcome {
+        case .accessibilitySelection, .syntheticCopy:
+            return nil
+        case .permissionDenied:
+            return L(
+                "无法自动读取选中文字。请在系统设置中为壹识启用辅助功能权限，然后重新选择文字并按快捷键。",
+                "Selected text could not be read. Enable Accessibility for NoteOne in System Settings, then select the text and press the shortcut again."
+            )
+        case .noSelection:
+            return L(
+                "没有读取到选中文字。你可以重新选择后再按快捷键，或直接粘贴内容。",
+                "No selected text was detected. Select the text and try the shortcut again, or paste it here."
+            )
+        }
+    }
+
+    /// Bring NoteOne forward after the source application has handled the synthetic copy.
     private func activateApp() {
         if #available(macOS 14.0, *) {
             NSApp.activate()
@@ -119,28 +234,31 @@ class HotkeyManager: ObservableObject {
         }
     }
 
-    struct CapturedSelection {
-        var text: String?
-        var image: Data?
+    enum CaptureOutcome: String, Sendable {
+        case accessibilitySelection
+        case syntheticCopy
+        case permissionDenied
+        case noSelection
     }
 
-    private nonisolated func captureSelection() -> CapturedSelection {
+    struct CapturedSelection: Sendable {
+        var text: String?
+        var image: Data?
+        let outcome: CaptureOutcome
+
+        init(text: String? = nil, image: Data? = nil, outcome: CaptureOutcome) {
+            self.text = text
+            self.image = image
+            self.outcome = outcome
+        }
+    }
+
+    /// Copy the current selection while preserving all existing pasteboard representations.
+    private nonisolated func captureSelection(from applicationPID: pid_t?) -> CapturedSelection {
         let pasteboard = NSPasteboard.general
 
-        // If the user already copied an image, use it directly. Reading the clipboard needs
-        // no Accessibility permission, and we must NOT fire a synthetic Cmd+C here — that would
-        // clobber the image they deliberately put on the clipboard.
-        if let image = readClipboardImage(pasteboard) {
-            var result = CapturedSelection()
-            result.image = image
-            // Keep any text copied alongside the image (mixed selection) — don't drop it.
-            result.text = pasteboard.string(forType: .string)
-            return result
-        }
-
-        // Synthetic Cmd+C requires Accessibility permission; guide the user if it's missing.
-        guard ensureAccessibilityPermission() else {
-            return CapturedSelection()
+        if let selectedText = selectedTextFromFocusedElement(applicationPID: applicationPID) {
+            return CapturedSelection(text: selectedText, outcome: .accessibilitySelection)
         }
 
         // The hotkey is typically ⌘⇧O / ⌘⌥X / etc — when togglePanel runs, the user's
@@ -157,11 +275,9 @@ class HotkeyManager: ObservableObject {
         }
         if !NSEvent.modifierFlags.intersection(extraneousMask).isEmpty {
             // User is still holding modifiers — bail rather than fire a misinterpreted ⌘+...+C.
-            return CapturedSelection()
+            return CapturedSelection(outcome: .noSelection)
         }
 
-        let originalChangeCount = pasteboard.changeCount
-        let originalString = pasteboard.string(forType: .string)
         // Snapshot ALL clipboard types (not just the string) so the synthetic ⌘C never
         // destroys something the user deliberately copied earlier — images, files, rich text.
         let snapshot: [(NSPasteboard.PasteboardType, Data)] = (pasteboard.pasteboardItems ?? []).flatMap { item in
@@ -171,28 +287,27 @@ class HotkeyManager: ObservableObject {
         let source = CGEventSource(stateID: .combinedSessionState)
         guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: true),
               let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: false) else {
-            return CapturedSelection()
+            return CapturedSelection(outcome: .noSelection)
         }
+        pasteboard.clearContents()
+        let clearedChangeCount = pasteboard.changeCount
         keyDown.flags = .maskCommand
         keyUp.flags = .maskCommand
-        keyDown.post(tap: .cgSessionEventTap)
-        keyUp.post(tap: .cgSessionEventTap)
-
-        // Poll for the pasteboard to update instead of a fixed sleep. 1s gives slower
-        // Electron-based apps (Yuque, Notion, etc.) enough time to round-trip the copy.
-        let deadline = Date().addingTimeInterval(1.0)
-        while pasteboard.changeCount == originalChangeCount && Date() < deadline {
-            Thread.sleep(forTimeInterval: 0.02)
+        postCopy(keyDown: keyDown, keyUp: keyUp, applicationPID: applicationPID)
+        var changed = waitForPasteboardChange(after: clearedChangeCount, timeout: 0.7)
+        if !changed {
+            keyDown.post(tap: .cghidEventTap)
+            keyUp.post(tap: .cghidEventTap)
+            changed = waitForPasteboardChange(after: clearedChangeCount, timeout: 0.5)
         }
 
-        var result = CapturedSelection()
-        if pasteboard.changeCount != originalChangeCount {
+        var result = CapturedSelection(outcome: .noSelection)
+        if changed {
             result.text = pasteboard.string(forType: .string)
             result.image = readClipboardImage(pasteboard)
-        } else {
-            // Nothing was selected (the copy left the clipboard untouched) — fall back to
-            // whatever the user last copied, matching the long-standing panel behavior.
-            result.text = originalString
+            if result.text != nil || result.image != nil {
+                result = CapturedSelection(text: result.text, image: result.image, outcome: .syntheticCopy)
+            }
         }
 
         pasteboard.clearContents()
@@ -201,6 +316,58 @@ class HotkeyManager: ObservableObject {
         }
 
         return result
+    }
+
+    /// Return the user's existing clipboard as a permission-free fallback.
+    private nonisolated func clipboardSelection(outcome: CaptureOutcome) -> CapturedSelection {
+        let pasteboard = NSPasteboard.general
+        return CapturedSelection(
+            text: pasteboard.string(forType: .string),
+            image: readClipboardImage(pasteboard),
+            outcome: outcome
+        )
+    }
+
+    /// Send Command-C directly to the app that owned the selection at shortcut time.
+    private nonisolated func postCopy(
+        keyDown: CGEvent,
+        keyUp: CGEvent,
+        applicationPID: pid_t?
+    ) {
+        if let applicationPID {
+            keyDown.postToPid(applicationPID)
+            keyUp.postToPid(applicationPID)
+        } else {
+            keyDown.post(tap: .cghidEventTap)
+            keyUp.post(tap: .cghidEventTap)
+        }
+    }
+
+    /// Wait until the source app publishes a new pasteboard item.
+    private nonisolated func waitForPasteboardChange(after changeCount: Int, timeout: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while NSPasteboard.general.changeCount == changeCount && Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.02)
+        }
+        return NSPasteboard.general.changeCount != changeCount
+    }
+
+    /// Read the focused control's selected text directly before falling back to synthetic copy.
+    private nonisolated func selectedTextFromFocusedElement(applicationPID: pid_t?) -> String? {
+        let application = applicationPID.map(AXUIElementCreateApplication) ?? AXUIElementCreateSystemWide()
+        var focusedValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            application, "AXFocusedUIElement" as CFString, &focusedValue
+        ) == .success, let focusedValue else { return nil }
+
+        guard CFGetTypeID(focusedValue) == AXUIElementGetTypeID() else { return nil }
+        let focusedElement = unsafeDowncast(focusedValue as AnyObject, to: AXUIElement.self)
+        var selectedValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            focusedElement, "AXSelectedText" as CFString, &selectedValue
+        ) == .success, let selectedText = selectedValue as? String else { return nil }
+        let trimmed = selectedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : selectedText
     }
 
     /// Returns PNG data for any image currently on the pasteboard (normalizing TIFF → PNG),
@@ -216,24 +383,14 @@ class HotkeyManager: ObservableObject {
         return nil
     }
 
-    private nonisolated func ensureAccessibilityPermission() -> Bool {
-        let trusted = AXIsProcessTrusted()
-        if !trusted {
-            // Prompt once and point the user at System Settings. Use the literal option
-            // key to avoid referencing the non-Sendable global CFString constant.
-            _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
-        }
-        return trusted
-    }
-
     struct BrowserMeta {
         let url: String
         let title: String
     }
 
-    private nonisolated func captureBrowserMeta() -> BrowserMeta? {
-        guard let frontApp = NSWorkspace.shared.frontmostApplication,
-              let bundleId = frontApp.bundleIdentifier else { return nil }
+    /// Read the active browser tab only when Quick Capture is invoked from a supported browser.
+    private nonisolated func captureBrowserMeta(bundleID: String?, appName: String?) -> BrowserMeta? {
+        guard let bundleId = bundleID else { return nil }
 
         let chromiumIds: Set<String> = [
             "com.google.Chrome",
@@ -245,7 +402,7 @@ class HotkeyManager: ObservableObject {
         ]
 
         let script: String
-        let appName = frontApp.localizedName ?? ""
+        let appName = appName ?? ""
 
         if bundleId == "com.apple.Safari" {
             script = """

@@ -349,9 +349,9 @@ actor APIClient {
         return comps?.url
     }
 
-    func ascanConfigURL() -> URL? {
+    func newloreConfigURL() -> URL? {
         guard let token else { return nil }
-        var comps = URLComponents(string: "\(baseURL)/ascan/")
+        var comps = URLComponents(string: "\(baseURL)/newlore/")
         comps?.queryItems = [URLQueryItem(name: "token", value: token)]
         return comps?.url
     }
@@ -544,70 +544,84 @@ actor APIClient {
         let _: DeleteWrapper = try await delete("/api/reports/\(id)")
     }
 
-    // MARK: - Ascan
+    // MARK: - NewLore
 
-    func listAscanReports() async throws -> [AscanReportMeta] {
-        let response: AscanReportsResponse = try await get("/api/ascan/reports")
+    func listNewLoreReports() async throws -> [NewLoreReportMeta] {
+        let response: NewLoreReportsResponse = try await get("/api/newlore/reports")
         return response.reports
     }
 
-    func getAscanReport(date: String) async throws -> AscanReportResponse {
-        return try await get("/api/ascan/reports/\(date)")
+    func getNewLoreReport(date: String) async throws -> NewLoreReportResponse {
+        return try await get("/api/newlore/reports/\(date)")
     }
 
-    struct AscanReportPath: Decodable { let date: String; let path: String }
+    struct NewLoreReportPath: Decodable { let date: String; let path: String }
 
-    func getAscanReportPath(date: String) async throws -> String {
-        let resp: AscanReportPath = try await get("/api/ascan/reports/\(date)/path")
+    func getNewLoreReportPath(date: String) async throws -> String {
+        let resp: NewLoreReportPath = try await get("/api/newlore/reports/\(date)/path")
         return resp.path
     }
 
-    func getAscanConfig() async throws -> AscanConfig {
-        return try await get("/api/ascan/config")
+    func getNewLoreConfig() async throws -> NewLoreConfig {
+        return try await get("/api/newlore/config")
     }
 
-    func updateAscanConfig(updates: [String: Any]) async throws -> AscanConfig {
+    func updateNewLoreConfig(updates: [String: Any]) async throws -> NewLoreConfig {
         let bodyData = try JSONSerialization.data(withJSONObject: updates)
-        return try await requestRaw("/api/ascan/config", method: "PATCH", bodyData: bodyData)
+        return try await requestRaw("/api/newlore/config", method: "PATCH", bodyData: bodyData)
     }
 
-    func triggerAscan(date: String?) async throws -> AscanTriggerResponse {
+    func triggerNewLore(date: String?) async throws -> NewLoreTriggerResponse {
         struct Body: Encodable { let date: String? }
-        return try await post("/api/ascan/trigger", body: Body(date: date))
+        return try await post("/api/newlore/trigger", body: Body(date: date))
     }
 
-    func getAscanStatus() async throws -> AscanRunStatus {
-        return try await get("/api/ascan/status")
+    func getNewLoreStatus() async throws -> NewLoreRunStatus {
+        return try await get("/api/newlore/status")
     }
 
-    struct AscanAbortResponse: Decodable { let killed: Bool; let message: String }
+    struct NewLoreAbortResponse: Decodable { let killed: Bool; let message: String }
 
-    func abortAscan() async throws -> AscanAbortResponse {
-        return try await post("/api/ascan/abort", body: EmptyBody())
+    func abortNewLore() async throws -> NewLoreAbortResponse {
+        return try await post("/api/newlore/abort", body: EmptyBody())
     }
 
-    struct AscanDocsPath: Decodable { let path: String }
+    struct NewLoreDocsPath: Decodable { let path: String }
 
-    func getAscanDocsPath() async throws -> String {
-        let resp: AscanDocsPath = try await get("/api/ascan/docs-path")
+    func getNewLoreDocsPath() async throws -> String {
+        let resp: NewLoreDocsPath = try await get("/api/newlore/docs-path")
         return resp.path
     }
 
     func getWechatHealth() async throws -> WechatHealthResponse {
-        return try await get("/api/ascan/wechat-health")
+        return try await get("/api/newlore/wechat-health")
     }
 
-    struct AscanSummarizeResponse: Decodable { let date: String; let summary: String }
+    struct NewLoreSummarizeResponse: Decodable { let date: String; let summary: String }
 
-    func summarizeAscan(date: String) async throws -> AscanSummarizeResponse {
+    func summarizeNewLore(date: String) async throws -> NewLoreSummarizeResponse {
         struct Body: Encodable { let date: String }
-        return try await post("/api/ascan/summarize", body: Body(date: date))
+        return try await post("/api/newlore/summarize", body: Body(date: date))
     }
 
-    struct AscanDeleteResponse: Decodable { let deleted: Bool; let date: String }
+    struct NewLoreDeleteResponse: Decodable { let deleted: Bool; let date: String }
 
-    func deleteAscanReport(date: String) async throws -> AscanDeleteResponse {
-        return try await delete("/api/ascan/reports/\(date)")
+    func deleteNewLoreReport(date: String) async throws -> NewLoreDeleteResponse {
+        return try await delete("/api/newlore/reports/\(date)")
+    }
+
+    // MARK: - FarView
+
+    func getFarViewOverview() async throws -> FarViewOverviewResponse {
+        return try await get("/api/farview/overview")
+    }
+
+    func getFarViewStatus() async throws -> FarViewStatusResponse {
+        return try await get("/api/farview/status")
+    }
+
+    func refreshFarView() async throws -> FarViewRefreshResponse {
+        return try await post("/api/farview/refresh", body: EmptyBody())
     }
 
     private struct EmptyBody: Encodable {}

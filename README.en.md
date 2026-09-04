@@ -6,8 +6,9 @@
 NoteOne is an AI-powered personal knowledge system.
 
 - **Capture → Organize**: Capture anything, AI silently tags / summarizes / embeds
-- **Notty (闹闹)**: Core agent — searches permitted local files, schedules tasks, and orchestrates the NewSee pipeline
-- **NewSee (新知)**: Daily scan of arXiv / GitHub / official blogs / conference papers / WeChat, curated HTML report
+- **Notty (闹闹)**: Core agent — searches permitted local files, schedules tasks, and orchestrates the NewLore pipeline
+- **NewLore (新知)**: Daily scan of arXiv / GitHub / official blogs / conference papers / WeChat, curated HTML report
+- **FarView (高见)**: The ten hottest valid topics from the latest seven days across all collected sources
 - **MCP**: Claude / Cursor / Codex talk directly to your note database
 
 [中文](README.md) · [English](README.en.md) · [License](#license)
@@ -20,9 +21,10 @@ NoteOne is an AI-powered personal knowledge system.
 |---|---|
 | **Capture** | macOS global hotkey, iOS Share Extension, drag-and-drop. Auto-grabs URL, title, selected text, clipboard image |
 | **AI Pipeline** | Async: fetch link → title/summary → 4-dim tagging → 1536-d embedding |
-| **OldScene (往事)** | Time-grouped list, semantic search, tag filter, one-tap new note, AI summary cards |
-| **Notty (闹闹)** | 3-layer context mgmt, doom-loop detection, tool persistence, Markdown. Tools: terminal / cron / NewSee / web / notes |
-| **NewSee (新知)** | 6-module daily pipeline (arXiv · GitHub · official · blog · conference · WeChat), TOC-navigated HTML report |
+| **OldEcho (往事)** | Time-grouped list, semantic search, tag filter, one-tap new note, AI summary cards |
+| **Notty (闹闹)** | 3-layer context mgmt, doom-loop detection, tool persistence, Markdown. Tools: terminal / cron / NewLore / web / notes |
+| **NewLore (新知)** | 6-module daily pipeline (arXiv · GitHub · official · blog · conference · WeChat), TOC-navigated HTML report |
+| **FarView (高见)** | Globally shared top-ten topic ranking for the last seven days, with noise filtering, source mix, and representative items |
 | **Scheduled Tasks** | Natural-language cron via Notty, DB-persisted, auto-restored on boot |
 | **MCP** | 8 tools for Claude / Cursor / Codex to read/write notes |
 | **Reports** | Notty reads today's notes → web search → 4 styles × 3 depths HTML report |
@@ -36,8 +38,8 @@ NoteOne is an AI-powered personal knowledge system.
   │                        Client (SwiftUI)                        │
   │                                                               │
   │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
-  │  │ OldScene │  │  NewSee  │  │ Capture  │  │  Notty   │     │
-  │  │  往事     │  │  新知     │  │  记一条   │  │  闹闹     │     │
+  │  │ FarView  │  │ NewLore  │  │ OldEcho  │  │ Capture  │     │
+  │  │  高见     │  │  新知     │  │  往事     │  │  记一条   │     │
   │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘     │
   │       └─────────────┴─────────────┴─────────────┘            │
   │                  Settings · Reports · Trash                    │
@@ -48,7 +50,7 @@ NoteOne is an AI-powered personal knowledge system.
   │                                                                │
   │  auth · notes · tags · search · chat-sessions · reports        │
   │  uploads · settings · account · export                         │
-  │  ascan (reports / config / run-module / merge / status)        │
+  │  newlore (reports / config / run-module / merge / status)        │
   │  sidecar (scheduler · local-tools)                             │
   │                                                                │
   │  ┌─────────────────────┐  ┌──────────────────────────────┐    │
@@ -57,9 +59,9 @@ NoteOne is an AI-powered personal knowledge system.
   │  │  → embed            │  │  doom-loop detection           │    │
   │  └─────────────────────┘  └──────────────────────────────┘    │
   │                                                                │
-  │  PGlite embedded (WASM) / PostgreSQL 16   NewSee TS Pipeline     │
+  │  PGlite embedded (WASM) / PostgreSQL 16   NewLore TS Pipeline     │
   │  notes · tags · chat · reports           arXiv · GitHub · blog   │
-  │  scheduled_tasks · ascan_*                                       │
+  │  scheduled_tasks · newlore_*                                       │
   └────────────────────────────────────────────────────────────────┘
                            │ stdio (MCP)
   ┌────────────────────────┴──────────────────────────────────────┐
@@ -98,13 +100,13 @@ brew uninstall --cask noteone
 
 Download the latest `NoteOne.dmg` from [Releases](https://github.com/TobyChain/noteone/releases), drag to Applications, and double-click. The app bundles a Node runtime and PGlite database — no external dependencies, auto-migrates on first launch.
 
-> If macOS says "cannot verify the developer", go to System Settings → Privacy & Security and click "Open Anyway" (ad-hoc signed, personal use).
+> The DMG is ad-hoc signed (personal open-source project, no Apple Developer certificate). If macOS says "cannot verify the developer" on first launch, go to System Settings → Privacy & Security and click "Open Anyway".
 
 **Homebrew installation notes:**
 
 - **Apple Silicon only (arm64)**: The DMG is built for darwin-arm64; Intel Macs are not currently supported
 - **macOS 14+ (Sonoma)**: The app uses SwiftUI 6 + WKWebView system frameworks requiring macOS 14 or later
-- **Gatekeeper prompt on first launch**: Due to ad-hoc signing (no Apple Developer certificate), you may see "cannot verify developer" — go to System Settings → Privacy & Security → "Open Anyway"
+- **Gatekeeper prompt on first launch**: The DMG is ad-hoc signed (no Apple Developer certificate); first launch may say "cannot verify developer" — go to System Settings → Privacy & Security and click "Open Anyway"
 - **Tap is a separate repo**: `TobyChain/tap` points to `github.com/TobyChain/homebrew-tap`, separate from the main noteone repo — Cask version updates must be pushed to the tap repo
 - **Version upgrades**: `brew upgrade` downloads the new DMG and replaces the app binary. Data lives in `~/Library/Application Support/NoteOne`, separate from the app, so upgrades are non-destructive
 - **Migrating from DMG to Homebrew**: If previously installed via DMG, remove `/Applications/NoteOne.app` first, then `brew install --cask noteone` — your data directory is unaffected
@@ -154,13 +156,13 @@ Requires Xcode 16 / iOS 17 / macOS 14 / Swift 6. See [apple/README.md](apple/REA
 
 - The macOS app connects to its embedded service at `http://localhost:3000`
 - There is no account or login flow; startup opens the local data space automatically
-- macOS global hotkey requires Accessibility permission
+- The macOS global hotkey does not require Accessibility access; only automatic copying of selected text from another app needs it. The first launch explains why, and the system permission is requested only when needed
 
 ### Usage
 
 #### Configure LLM
 
-NoteOne is open-source and does not bundle an LLM. All AI features (tagging, summaries, Notty chat, reports, NewSee daily) require your own API key. Open **Settings → AI Model**:
+NoteOne is open-source and does not bundle an LLM. All AI features (tagging, summaries, Notty chat, reports, NewLore daily) require your own API key. Open **Settings → AI Model**:
 
 | Field | Example |
 |---|---|
@@ -172,9 +174,9 @@ NoteOne is open-source and does not bundle an LLM. All AI features (tagging, sum
 
 Without config, notes still save normally — AI steps are skipped.
 
-#### NewSee config
+#### NewLore config
 
-**Settings → NewSee** configures daily report parameters: arXiv categories, GitHub topics, paper limits, conference rank filter, blog sources, WeChat public accounts. Click "Run" or tell Notty "supplement today's new knowledge" to trigger the pipeline.
+**Settings → NewLore** configures daily report parameters: arXiv categories, GitHub topics, paper limits, conference rank filter, blog sources, WeChat public accounts. Click "Run" or tell Notty "supplement today's new knowledge" to trigger the pipeline.
 
 WeChat crawling is built into the NoteOne server (`/api/wechat`). Open "Settings → WeChat" to scan the login QR code and manage subscribed accounts — no external service required.
 
@@ -221,7 +223,7 @@ Tools: `list_notes` · `get_note` · `create_note` · `update_note` · `delete_n
 | Backend | Node.js + TypeScript, Express 5, Drizzle ORM |
 | DB | PGlite (WASM, embedded) / PostgreSQL 16 + pgvector |
 | AI | Any OpenAI-compatible API (chat temp 0.3, text-embedding-3-small 1536-d) |
-| NewSee | TypeScript pipeline (6 modules, in-process) |
+| NewLore | TypeScript pipeline (6 modules, in-process) |
 | MCP | @modelcontextprotocol/sdk (stdio) |
 | Local session | Single local data owner + internal JWT (30 d) |
 
@@ -236,10 +238,10 @@ All `/api/*` need `Authorization: Bearer <JWT>`.
 | Tags | `POST/GET /api/tags` · `DELETE /api/tags/:id` |
 | Search | `POST /api/search` (pgvector) |
 | Notty | `GET/POST /api/chat-sessions` · `GET/DELETE /api/chat-sessions/:id` · `POST /:id/messages` |
-| NewSee · Reports | `GET /api/ascan/reports` · `/:date` · `/:date/path` · `DELETE /:date` |
-| NewSee · Config | `GET` / `PATCH /api/ascan/config` |
-| NewSee · Run | `POST /api/ascan/trigger` · `/run-module` · `/merge` · `/abort` · `GET /status` |
-| NewSee · Misc | `GET /api/ascan/wechat-health` · `POST /api/ascan/summarize` |
+| NewLore · Reports | `GET /api/newlore/reports` · `/:date` · `/:date/path` · `DELETE /:date` |
+| NewLore · Config | `GET` / `PATCH /api/newlore/config` |
+| NewLore · Run | `POST /api/newlore/trigger` · `/run-module` · `/merge` · `/abort` · `GET /status` |
+| NewLore · Misc | `GET /api/newlore/wechat-health` · `POST /api/newlore/summarize` |
 | Reports | `GET /api/reports` · `POST /api/reports/daily` · `GET/DELETE /api/reports/:id` |
 | Misc | `POST /api/uploads/image` · `GET /api/stats` · `GET/PATCH /api/settings` · `GET /api/export` · `DELETE /api/account` |
 
@@ -247,20 +249,4 @@ All `/api/*` need `Authorization: Bearer <JWT>`.
 
 ## License
 
-> 落红不是无情物，化作春泥更护花。
-> —— 龚自珍《己亥杂诗》
-
-[Apache License 2.0](LICENSE) © 2026 TobyChain
-
-All NoteOne code (client, backend, NewSee pipeline, MCP servers, schema, migrations, deploy configs, browser extension) is open-sourced under Apache 2.0.
-
-Why Apache 2.0 over MIT:
-- **Patent protection**: explicit patent grant + retaliation clause
-- **No endorsement** (Section 6): no using "NoteOne" / "壹识" / "TobyChain" names to endorse derivatives without written consent
-- **Contributor agreement**: PR submission auto-grants patent rights
-- **Attribution required**: fork / modify / distribute must retain copyright notice
-
-Allowed: commercial use · modification · distribution · private use · SaaS deployment
-Required: retain copyright notice · state changes · no author-name endorsement
-
-"NoteOne" / "壹识" names are reserved trademarks — unauthorized use in derivative promotion is prohibited.
+Licensed under the [Apache License 2.0](LICENSE).

@@ -5,35 +5,35 @@ import fs from "node:fs";
 import { db } from "../db/client.js";
 import {
     users, notes, tags, noteTags, chatSessions, chatMessages, dailyReports, scheduledTasks,
-    ascanPapers, ascanGithubRepos, ascanOfficialItems, ascanBlogPosts,
-    ascanConferencePapers, ascanWechatArticles,
+    newlorePapers, newloreGithubRepos, newloreOfficialItems, newloreBlogPosts,
+    newloreConferencePapers, newloreWechatArticles, farviewSnapshots,
 } from "../db/schema.js";
 import { eq, asc, inArray } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { UPLOAD_DIR } from "./uploads.js";
-import { getEffectiveConfig, type AscanConfig } from "../services/ascan/config.js";
-import { ASCAN_DOCS } from "../services/ascan/config.js";
+import { getEffectiveConfig, type NewLoreConfig } from "../services/newlore/config.js";
+import { getReportStorageRoots } from "../services/newlore/reports.js";
 
 const router = Router();
 
-const SCHEMA_VERSION = "1.2";
+const SCHEMA_VERSION = "1.3";
 const ALLOWED_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "heic", "heif"]);
 const UUID_BASENAME = /^[0-9a-fA-F-]{32,36}\.[a-z0-9]{1,8}$/;
 
 /// Keys that carry real secrets (not just preferences). Omitted from the export unless the
 /// caller explicitly opts in with ?secrets=1 (personal cross-device transfer).
-const SENSITIVE_ASCAN_KEYS = new Set([
+const SENSITIVE_NEWLORE_KEYS = new Set([
     "llm_api_key", "github_token", "semantic_scholar_api_key", "wechat_auth_key",
 ]);
 
-function stripAscanSecrets(config: AscanConfig, includeSecrets: boolean): Partial<AscanConfig> {
+function stripNewLoreSecrets(config: NewLoreConfig, includeSecrets: boolean): Partial<NewLoreConfig> {
     if (includeSecrets) return { ...config };
     const out: Record<string, any> = {};
     for (const [k, v] of Object.entries(config)) {
-        if (SENSITIVE_ASCAN_KEYS.has(k)) continue;
+        if (SENSITIVE_NEWLORE_KEYS.has(k)) continue;
         out[k] = v;
     }
-    return out as Partial<AscanConfig>;
+    return out as Partial<NewLoreConfig>;
 }
 
 function uploadBasenameFromUrl(sourceUrl: string | null | undefined): string | null {
@@ -81,9 +81,9 @@ router.get("/", async (req: AuthRequest, res) => {
         createdAt: user.createdAt, updatedAt: user.updatedAt,
     };
 
-    // NewSee / WeChat pipeline config (lives in ascan/.env, not the DB). Strip secrets
+    // NewLore / WeChat pipeline config (lives in newlore/.env, not the DB). Strip secrets
     // unless opted in so a default export never leaks tokens.
-    const ascanConfig = stripAscanSecrets(await getEffectiveConfig(req.userId), includeSecrets);
+    const newloreConfig = stripNewLoreSecrets(await getEffectiveConfig(req.userId), includeSecrets);
 
     const userNotes = await db.query.notes.findMany({
         where: eq(notes.userId, userId),
@@ -118,10 +118,11 @@ router.get("/", async (req: AuthRequest, res) => {
         where: eq(scheduledTasks.userId, userId),
         orderBy: [asc(scheduledTasks.createdAt)],
     });
-    const [papers, githubRepos, officialItems, blogPosts, conferencePapers, wechatArticles] = await Promise.all([
-        db.select().from(ascanPapers), db.select().from(ascanGithubRepos),
-        db.select().from(ascanOfficialItems), db.select().from(ascanBlogPosts),
-        db.select().from(ascanConferencePapers), db.select().from(ascanWechatArticles),
+    const [papers, githubRepos, officialItems, blogPosts, conferencePapers, wechatArticles, farview] = await Promise.all([
+        db.select().from(newlorePapers), db.select().from(newloreGithubRepos),
+        db.select().from(newloreOfficialItems), db.select().from(newloreBlogPosts),
+        db.select().from(newloreConferencePapers), db.select().from(newloreWechatArticles),
+        db.select().from(farviewSnapshots),
     ]);
 
     const exportPayload = {
@@ -129,7 +130,7 @@ router.get("/", async (req: AuthRequest, res) => {
         exportedAt: new Date().toISOString(),
         includeSecrets,
         user: safeUser,
-        ascanConfig,
+        newloreConfig,
         notes: userNotes.map((n) => ({
             id: n.id, contentType: n.contentType, title: n.title, content: n.content,
             sourceUrl: n.sourceUrl, sourceApp: n.sourceApp, author: n.author, authorOrg: n.authorOrg,
@@ -156,7 +157,8 @@ router.get("/", async (req: AuthRequest, res) => {
         })),
         dailyReports: reports,
         scheduledTasks: tasks,
-        ascanHistory: { papers, githubRepos, officialItems, blogPosts, conferencePapers, wechatArticles },
+        newloreHistory: { papers, githubRepos, officialItems, blogPosts, conferencePapers, wechatArticles },
+        farviewSnapshots: farview,
     };
 
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -185,10 +187,14 @@ router.get("/", async (req: AuthRequest, res) => {
         if (!fs.existsSync(local)) continue;
         archive.file(local, { name: `uploads/${basename}` });
     }
-    if (fs.existsSync(ASCAN_DOCS)) {
-        for (const name of fs.readdirSync(ASCAN_DOCS)) {
-            if (!/^Ascan-\d{8}\.(html|md|summary)$/.test(name)) continue;
-            archive.file(path.join(ASCAN_DOCS, name), { name: `ascan-reports/${name}` });
+    const exportedReportNames = new Set<string>();
+    for (const root of getReportStorageRoots()) {
+        if (!fs.existsSync(root)) continue;
+        for (const name of fs.readdirSync(root)) {
+            if (!/^(NewLore|NewSee|Ascan)-\d{8}\.(html|md|summary)$/.test(name)) continue;
+            if (exportedReportNames.has(name)) continue;
+            exportedReportNames.add(name);
+            archive.file(path.join(root, name), { name: `newlore-reports/${name}` });
         }
     }
 
@@ -206,13 +212,13 @@ function buildReadme(payload: { schemaVersion: string; exportedAt: string; inclu
         `secrets:       ${hasSecrets ? "INCLUDED (LLM apiKey, tokens, WeChat auth key)" : "omitted (re-enter on import)"}`,
         "",
         "Files:",
-        "  noteone-export.json    Notes, tags, chats, daily reports, scheduled tasks, user settings, and NewSee/WeChat config.",
+        "  noteone-export.json    Notes, tags, chats, daily reports, scheduled tasks, user settings, and NewLore/WeChat config.",
         "  uploads/               Image files referenced by your image/mixed notes.",
         "  README.txt             This file.",
         "",
         "Notes:",
         "  - Embeddings are omitted (re-derivable after import).",
-        "  - NewSee pipeline + WeChat MP config is included so it migrates to the target device.",
+        "  - NewLore pipeline + WeChat MP config is included so it migrates to the target device.",
         hasSecrets
             ? "  - This archive CONTAINS secrets (API keys / tokens). Treat it as sensitive."
             : "  - API keys / tokens are stripped; re-enter them on the target device.",

@@ -1,14 +1,14 @@
 import { Router } from "express";
 import { db } from "../db/client.js";
 import {
-    users, notes, scheduledTasks, wechatSessions, ascanPapers, ascanGithubRepos, ascanOfficialItems,
-    ascanBlogPosts, ascanConferencePapers, ascanWechatArticles,
+    users, notes, scheduledTasks, wechatSessions, newlorePapers, newloreGithubRepos, newloreOfficialItems,
+    newloreBlogPosts, newloreConferencePapers, newloreWechatArticles, farviewSnapshots,
 } from "../db/schema.js";
 import { eq, and, inArray } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { removeUploadedImagesForNotes } from "../services/upload-cleanup.js";
 import { stopJobs } from "../services/scheduler.js";
-import { ASCAN_DOCS, ASCAN_LOGS, ASCAN_ENV } from "../services/ascan/config.js";
+import { NEWLORE_DOCS, NEWLORE_LOGS, NEWLORE_ENV, LEGACY_NEWSEE_ROOT, LEGACY_ASCAN_ROOT } from "../services/newlore/config.js";
 import { UPLOAD_DIR } from "./uploads.js";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -43,15 +43,16 @@ router.delete("/", async (req: AuthRequest, res) => {
         if (removed.length === 0) return { removed, isLastUser: false };
         const remainingUser = await tx.query.users.findFirst({ columns: { id: true } });
         const isLastUser = !remainingUser;
-        // NewSee history and WeChat sessions are installation-scoped legacy tables. NoteOne is
+        // NewLore history and WeChat sessions are installation-scoped legacy tables. NoteOne is
         // single-user, so clear them when the installation has no other owner.
         if (isLastUser) {
-            await tx.delete(ascanWechatArticles);
-            await tx.delete(ascanConferencePapers);
-            await tx.delete(ascanBlogPosts);
-            await tx.delete(ascanOfficialItems);
-            await tx.delete(ascanGithubRepos);
-            await tx.delete(ascanPapers);
+            await tx.delete(newloreWechatArticles);
+            await tx.delete(newloreConferencePapers);
+            await tx.delete(newloreBlogPosts);
+            await tx.delete(newloreOfficialItems);
+            await tx.delete(newloreGithubRepos);
+            await tx.delete(newlorePapers);
+            await tx.delete(farviewSnapshots);
             await tx.delete(wechatSessions);
         }
         return { removed, isLastUser };
@@ -65,14 +66,24 @@ router.delete("/", async (req: AuthRequest, res) => {
     await removeUploadedImagesForNotes(userImageNotes);
 
     if (result.isLastUser) {
-        for (const dir of [ASCAN_DOCS, ASCAN_LOGS]) {
+        const runtimeDirs = [
+            NEWLORE_DOCS,
+            NEWLORE_LOGS,
+            path.join(LEGACY_NEWSEE_ROOT, "docs"),
+            path.join(LEGACY_NEWSEE_ROOT, "logs"),
+            path.join(LEGACY_ASCAN_ROOT, "docs"),
+            path.join(LEGACY_ASCAN_ROOT, "logs"),
+        ];
+        for (const dir of runtimeDirs) {
             const entries = await fs.readdir(dir).catch(() => []);
             await Promise.all(entries.map((name) =>
                 fs.rm(path.join(dir, name), { recursive: true, force: true })
                     .catch((error) => console.error("[local-data] failed to remove", path.join(dir, name), error)),
             ));
         }
-        await fs.rm(ASCAN_ENV, { force: true }).catch(() => {});
+        await fs.rm(NEWLORE_ENV, { force: true }).catch(() => {});
+        await fs.rm(path.join(LEGACY_NEWSEE_ROOT, ".env"), { force: true }).catch(() => {});
+        await fs.rm(path.join(LEGACY_ASCAN_ROOT, ".env"), { force: true }).catch(() => {});
         const orphanUploads = await fs.readdir(UPLOAD_DIR).catch(() => []);
         await Promise.all(orphanUploads.map((name) =>
             fs.rm(path.join(UPLOAD_DIR, name), { force: true })

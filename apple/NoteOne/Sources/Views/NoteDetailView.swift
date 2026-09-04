@@ -121,7 +121,7 @@ struct NoteDetailView: View {
             }
             .padding()
             Divider()
-            AscanWebView(htmlContent: note.content) { _ in }
+            NewLoreWebView(htmlContent: note.content) { _ in }
             Divider()
             MetaSection(note: note)
                 .padding()
@@ -147,7 +147,7 @@ struct NoteDetailView: View {
                 .padding()
                 Divider()
                 if mdPreviewMode {
-                    AscanWebView(htmlContent: MarkdownRenderer.render(markdown: editContent, title: editTitle)) { _ in }
+                    NewLoreWebView(htmlContent: MarkdownRenderer.render(markdown: editContent, title: editTitle)) { _ in }
                 } else {
                     TextEditor(text: $editContent)
                         .font(.body)
@@ -164,7 +164,7 @@ struct NoteDetailView: View {
                 }
                 .padding()
                 Divider()
-                AscanWebView(htmlContent: MarkdownRenderer.render(markdown: note.content, title: note.title)) { _ in }
+                NewLoreWebView(htmlContent: MarkdownRenderer.render(markdown: note.content, title: note.title)) { _ in }
                 Divider()
                 MetaSection(note: note)
                     .padding()

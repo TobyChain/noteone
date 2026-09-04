@@ -2,6 +2,7 @@
 *.swp
 node_modules/
 dist/
+dist-*/
 server/bundle/
 
 # Xcode
@@ -20,6 +21,9 @@ build/
 
 # Uploaded files (local image storage)
 server/uploads/
+server/.newlore/*
+!server/.newlore/.env.example
+!server/.newlore/config.schema.json
 server/.ascan/*
 !server/.ascan/.env.example
 !server/.ascan/config.schema.json

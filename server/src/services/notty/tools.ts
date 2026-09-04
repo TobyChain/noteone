@@ -1,6 +1,6 @@
 /**
  * Notty tool registry — the single place where all 闹闹 tools are assembled.
- * Note/web tools are defined here; ascan/local/schedule tools are contributed
+ * Note/web tools are defined here; newlore/local/schedule tools are contributed
  * by their own service modules and aggregated below.
  */
 import { db } from "../../db/client.js";
@@ -9,14 +9,14 @@ import { eq, and } from "drizzle-orm";
 import { searchNotes } from "../note-search.js";
 import { fetchUrlContent } from "../web-fetch.js";
 import { searchWeb } from "../web-search.js";
-import { ascanToolDefinitions, makeAscanHandlers } from "../ascan/tools.js";
+import { newloreToolDefinitions, makeNewLoreHandlers } from "../newlore/tools.js";
 import { localToolDefinitions, makeLocalHandlers } from "../local-tools.js";
 import { scheduleToolDefinitions, makeScheduleHandlers } from "../schedule-tools.js";
 import { startStudyReport, getStudyReportProgress } from "./learn-art.js";
 import { getUserChatConfig } from "../user-config.js";
 import type { ToolDefinition, ToolHandler } from "./agent-loop.js";
 import type { NoteIndexEntry } from "./prompt-builder.js";
-import type { AscanPreferences, AscanModuleName } from "../ascan/pipeline/types.js";
+import type { NewLorePreferences, NewLoreModuleName } from "../newlore/pipeline/types.js";
 
 export interface NottyToolkit {
   tools: ToolDefinition[];
@@ -104,7 +104,7 @@ const preferenceToolDefinitions: ToolDefinition[] = [
   {
     type: "function",
     function: {
-      name: "get_ascan_preferences",
+      name: "get_newlore_preferences",
       description: "获取用户的新知挖取偏好设置，包括每日重点、兴趣主题和模块显示顺序。",
       parameters: { type: "object", properties: {} },
     },
@@ -112,7 +112,7 @@ const preferenceToolDefinitions: ToolDefinition[] = [
   {
     type: "function",
     function: {
-      name: "update_ascan_preferences",
+      name: "update_newlore_preferences",
       description: "更新新知挖取偏好。focus 是今日重点（如'AI Agent, 多模态'）；topics 是长期兴趣；moduleOrder 是显示顺序（可选值: official, blog, github, arxiv, conference, wechat）。用户说'今天重点关注XX'或'调整日报顺序'时使用。",
       parameters: {
         type: "object",
@@ -240,33 +240,34 @@ const webHandlers: Record<string, ToolHandler> = {
 
 function makePreferenceHandlers(userId: string): Record<string, ToolHandler> {
   return {
-    get_ascan_preferences: async () => {
+    get_newlore_preferences: async () => {
       const user = await db.query.users.findFirst({
         where: eq(users.id, userId),
         columns: { settings: true },
       });
-      const prefs = ((user?.settings as any)?.ascanPreferences ?? {}) as AscanPreferences;
+      const settings = (user?.settings as any) ?? {};
+      const prefs = (settings.newlorePreferences ?? settings.newseePreferences ?? settings.ascanPreferences ?? {}) as NewLorePreferences;
       const parts: string[] = [];
       if (prefs.focus) parts.push(`今日重点: ${prefs.focus}`);
       if (prefs.topics) parts.push(`兴趣主题: ${prefs.topics}`);
       if (prefs.moduleOrder?.length) parts.push(`显示顺序: ${prefs.moduleOrder.join(" → ")}`);
       return parts.length > 0 ? parts.join("\n") : "尚未设置新知挖取偏好（使用默认配置）。";
     },
-    update_ascan_preferences: async (args: Record<string, any>) => {
+    update_newlore_preferences: async (args: Record<string, any>) => {
       const user = await db.query.users.findFirst({
         where: eq(users.id, userId),
         columns: { settings: true },
       });
       const current = (user?.settings ?? {}) as any;
-      const prefs: AscanPreferences = { ...(current.ascanPreferences ?? {}) };
+      const prefs: NewLorePreferences = { ...(current.newlorePreferences ?? current.newseePreferences ?? current.ascanPreferences ?? {}) };
       if (typeof args.focus === "string") prefs.focus = args.focus || undefined;
       if (typeof args.topics === "string") prefs.topics = args.topics || undefined;
       if (Array.isArray(args.moduleOrder)) {
         const valid = ["official", "blog", "github", "arxiv", "conference", "wechat"] as const;
-        prefs.moduleOrder = args.moduleOrder.filter((m: string) => valid.includes(m as any)) as AscanModuleName[];
+        prefs.moduleOrder = args.moduleOrder.filter((m: string) => valid.includes(m as any)) as NewLoreModuleName[];
       }
       await db.update(users)
-        .set({ settings: { ...current, ascanPreferences: prefs }, updatedAt: new Date() })
+        .set({ settings: { ...current, newlorePreferences: prefs }, updatedAt: new Date() })
         .where(eq(users.id, userId));
       const parts: string[] = ["已更新新知挖取偏好："];
       if (prefs.focus) parts.push(`  今日重点: ${prefs.focus}`);
@@ -336,7 +337,7 @@ export function buildNottyToolkit(userId: string, allNotes: NoteIndexEntry[], no
     cachedTools = [
       ...noteToolDefinitions,
       ...preferenceToolDefinitions,
-      ...ascanToolDefinitions,
+      ...newloreToolDefinitions,
       ...localToolDefinitions,
       ...scheduleToolDefinitions,
       ...learnArtToolDefinitions,
@@ -352,7 +353,7 @@ export function buildNottyToolkit(userId: string, allNotes: NoteIndexEntry[], no
     ...makeNoteHandlers(userId, allNotes),
     ...webHandlers,
     ...makePreferenceHandlers(userId),
-    ...makeAscanHandlers(userId),
+    ...makeNewLoreHandlers(userId),
     ...makeLocalHandlers(),
     ...makeScheduleHandlers(userId),
     ...makeLearnArtHandlers(userId),

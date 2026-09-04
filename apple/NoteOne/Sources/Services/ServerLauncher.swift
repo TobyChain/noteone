@@ -84,8 +84,8 @@ final class ServerLauncher {
         env["NODE_ENV"] = "production"
         env["NOTEONE_MIGRATIONS_DIR"] = dir.appendingPathComponent("drizzle").path
         env["NOTEONE_PUBLIC_DIR"] = dir.appendingPathComponent("public").path
-        env["ASCAN_SCHEMA_PATH"] = dir.appendingPathComponent("config.schema.json").path
-        env["ASCAN_DATA_DIR"] = dir.appendingPathComponent("data").path
+        env["NEWLORE_SCHEMA_PATH"] = dir.appendingPathComponent("config.schema.json").path
+        env["NEWLORE_DATA_DIR"] = dir.appendingPathComponent("data").path
         p.environment = env
 
         try? FileManager.default.createDirectory(at: dataDir, withIntermediateDirectories: true)

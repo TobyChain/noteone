@@ -8,14 +8,15 @@
 > - 运行时默认绑定 `127.0.0.1`；非回环部署必须配置初始化访问令牌，或由受控容器端口明确声明外层回环隔离
 > - 本地工具已移除通用 shell 命令，只保留无 shell 的结构化文件搜索、列目录和读取工具
 > - 搜索使用用户 LLM 配置生成向量，不可用或无结果时自动降级为全文检索
-> - 数据导出默认不含密钥，并覆盖每日报告、定时任务、NewSee 去重历史与报告文件
+> - 数据导出默认不含密钥，并覆盖每日报告、定时任务、NewLore 去重历史与报告文件
 > - 删除"记实"模块（Writer）—— 本文中涉及 记实/WriterView/WriterAssistantView/markdown 编辑器/writer-messages 路由的部分均已移除
 > - 微信抓取已内置于 server（`services/wechat/` + `/api/wechat` + `/wechat/` 配置页），不再依赖外部 wechat-article-exporter 部署
-> - 新知（NewSee）pipeline 已从 Python 移植为 TypeScript（`server/src/services/ascan/pipeline/`，单入口编排 6 模块，进程内运行），Python `ascan/` 目录已删除（配置 schema 迁至 `server/.ascan/config.schema.json`）
+> - 新知（NewLore）pipeline 已从 Python 移植为 TypeScript（`server/src/services/newlore/pipeline/`，单入口编排 6 模块，进程内运行），Python `newlore/` 目录已删除（配置 schema 迁至 `server/.newlore/config.schema.json`）
+> - 高见（FarView）从 NewLore 六类结构化数据读取最近 7 天内容，过滤噪声后确定性提取话题并持久化全局热度快照；用户偏好只在 API 读取时重排，不修改全局分数
 > - 支持 dmg 单体分发：`scripts/package-dmg.sh` 打包内嵌 Node 运行时 + PGlite（Postgres-in-WASM，`NOTEONE_DATA_DIR` 内嵌模式）；App 侧 `ServerLauncher.swift` 自动拉起内置 server
 > - 新增 `scheduled_tasks` 表 + `services/scheduler.ts` + `services/schedule-tools.ts`（闹闹可创建 cron 定时任务）
 > - 新增 `services/local-tools.ts`（闹闹可调白名单本地终端命令）
-> - ascan 拆分为 `services/ascan/{config,reports,runner,tools}.ts` 子模块
+> - newlore 拆分为 `services/newlore/{config,reports,runner,tools}.ts` 子模块
 > - 多模块去重机制全面修复（WeChat known_ids、arXiv 跨日、Conference days_recent + DOI 跨模块）
 > - 完整变更见 `git log --since=2026-06-15`
 
@@ -23,7 +24,7 @@
 
 ## 1. 系统总览
 
-NoteOne 由四个可独立部署的部分组成：
+NoteOne 由三个主要运行组件组成：
 
 | 组件 | 目录 | 运行形态 |
 |------|------|----------|
@@ -31,7 +32,7 @@ NoteOne 由四个可独立部署的部分组成：
 | REST API + 内嵌 MCP | `server/` | Node.js / Express 5（`:3000`，MCP 见 §7.1） |
 | 数据库 | docker-compose | PostgreSQL 16 + pgvector（`127.0.0.1:5432`） |
 
-数据流：客户端经 HTTPS+JWT 访问 REST API；笔记创建后由后端**异步流水线**抓取链接、打标、摘要、向量化；外部 AI 经 MCP 读写笔记。
+数据流：桌面 App 经本机 HTTP+JWT、远程客户端经 HTTPS+JWT 访问 REST API；笔记创建后由后端**异步流水线**抓取链接、打标、摘要、向量化；外部 AI 经 MCP 读写笔记。
 
 ---
 
@@ -41,7 +42,7 @@ NoteOne 由四个可独立部署的部分组成：
 
 | 枚举 | 取值 |
 |------|------|
-| `content_type` | `text` · `image` · `video` · `link` · `mixed` |
+| `content_type` | `text` · `image` · `video` · `link` · `mixed` · `html` · `md` |
 | `note_status` | `pending_ai` · `active` · `archived` · `trashed` · `failed` |
 | `tag_dimension` | `format` · `topic` · `domain` · `module` |
 
@@ -68,6 +69,12 @@ NoteOne 由四个可独立部署的部分组成：
 | `0002_tired_captain_midlands` | note_status 增 `trashed`；notes 增 `deleted_at` |
 | `0003_huge_madrox` | note_status 增 `failed`；tags 增 `user_id`（多租户）；note_tags 加唯一约束 |
 | `0004_flippant_layla_miller` | 时间列统一转 `timestamptz`（按 `Asia/Shanghai` 保留历史数据） |
+| `0005_daily_reports` | 新增每日报告表 |
+| `0006_safe_vulcan` | 新增定时任务、NewLore 数据表和相关索引 |
+| `0007_glossy_victor_mancha` | 新增微信会话与文章采集字段 |
+| `0008_silky_thena` | 完善 NewLore 多来源字段和索引 |
+| `0009_learn_art_content_types` | 增加 `html` 与 `md` 笔记类型 |
+| `0010_farview_snapshots` | 新增论文首次观察日期与 FarView 全局快照 |
 
 ---
 
@@ -92,6 +99,8 @@ routes/
   account.ts         DELETE /api/account(级联硬删 + 清图)
   export.ts          GET /api/export(ZIP 导出,剔除 apiKey)
   stats.ts           GET /api/stats(计数 + 类型分布 + Top20 标签)
+  newlore.ts         新知日报、配置、模块运行与兼容 API
+  farview.ts         最近 7 天全局话题热度、详情、刷新与状态
 services/
   pipeline.ts        新笔记异步处理编排
   enrichment.ts      摘要 + 标题 + 向量,置 status=active(失败置 failed)
@@ -103,6 +112,9 @@ services/
   url-guard.ts       SSRF 防护(私网/回环/CGNAT/链路本地/DNS 全记录校验)
   trash-cleanup.ts   每小时 cron:硬删 30 天前的 trashed 笔记 + 清上传文件
   upload-cleanup.ts  安全删除 /uploads(UUID 校验 + 路径穿越防护)
+  calendar-date.ts   服务器本地自然日格式化、校验与日期平移
+  farview/           确定性话题提取、七天热度计算与快照持久化
+  newlore/           六来源采集、报告、配置与旧命名迁移边界
 mcp.ts               内嵌 MCP(stdio,直连 DB,7 工具);导出 mcpCreateNote 供测试
 test/                集成测试辅助(db.ts / setup.ts)
 ```
@@ -241,11 +253,11 @@ test/                集成测试辅助(db.ts / setup.ts)
 - **Models/**：`Note`（含 `ContentType` / `NoteStatus`） · `Tag`(`TagDimension`) · `NoteTag` · `ChatMessage`(会话模型) · `NoteDragPayload`(Transferable 拖出) · `AuthModels`。
 - **Views/**：`ContentView`(根 split/tab + iOS 顶层 onDrop) · `CaptureView`(统一录入,图文+剪贴板+拖拽+离线兜底) · `NoteListView`(分时段分组+轮询+语义搜索+NoteRowView 可拖) · `NoteDetailView`(详情+AIProcessing/Failed/Trashed 三态 banner+FlowTags+懒分块) · `NottyView`(会话 UI+SessionListPopover+ChatBubble) · `SettingsView`(主题/本地数据/服务器/快捷键/LLM/统计/标签) · `TrashView`(恢复/永久删/清空) · `MCPInstallView`(macOS 一键装 MCP)。
 - **Services/**：`APIClient`(actor，全部 API) · `LocalSessionService`(@MainActor，在服务健康后建立内部本地会话，失败可重试) · `SyncQueue`(actor，离线队列+消化 App Group 共享待传) · `DropPayloadStore`(actor，跨视图拖拽内存中转)。
-- **macOS/**：`HotkeyManager`(全局快捷键+选中文本/剪贴板图片/浏览器 meta 捕获) · `FloatingPanel`(非激活悬浮 NSPanel)。
+- **macOS/**：`HotkeyManager`(Carbon 全局快捷键+辅助功能选区读取+定向复制回退+浏览器 meta 捕获) · `PermissionCoordinator`(一次性权限说明与状态协调) · `FloatingCaptureWindow`(可拖拽、可关闭的标准 NSWindow)。
 - **Theme/**：`Theme`(system/light/dark + 命名色板)。
 
 ### 8.2 捕获流
-- **macOS**：`⌘⇧O`(默认) → `HotkeyManager.togglePanel()` → 抓浏览器 URL+标题(AppleScript) + 选中文本(合成 ⌘C 轮询剪贴板) + 剪贴板图片 → `FloatingPanel` 内 `CaptureView` 预填 → 保存。
+- **macOS**：`⌘⇧O`(默认) → Carbon hotkey 记录源 App → 优先通过 Accessibility 读取选区，失败时向源进程定向发送 `⌘C` 并确认剪贴板变化 → 抓浏览器 URL+标题与剪贴板图片 → `FloatingCaptureWindow` 内 `CaptureView` 预填 → 保存。
 - **iOS 手动**：「记一条」Tab → CaptureView（无剪贴板自动读，检查 DropPayloadStore）。
 - **iOS Share Extension**：分享菜单 → 写 App Group `UserDefaults["pendingNotes"]` + 图片落 `share-images/` → 主 App 激活 `SyncQueue.drainSharedPending()` → `flush()` 补传。
 - **iOS 拖入**：顶层 `.onDrop([.image,.url,.plainText])`（image>url>text）→ DropPayloadStore → 通知切到「记一条」Tab。

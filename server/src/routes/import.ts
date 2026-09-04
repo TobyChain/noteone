@@ -6,16 +6,16 @@ import fs from "node:fs";
 import { db } from "../db/client.js";
 import {
     users, notes, tags, noteTags, chatSessions, chatMessages, dailyReports, scheduledTasks,
-    ascanPapers, ascanGithubRepos, ascanOfficialItems, ascanBlogPosts,
-    ascanConferencePapers, ascanWechatArticles,
+    newlorePapers, newloreGithubRepos, newloreOfficialItems, newloreBlogPosts,
+    newloreConferencePapers, newloreWechatArticles, farviewSnapshots,
 } from "../db/schema.js";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { UPLOAD_DIR } from "./uploads.js";
 import { generateEmbedding, isLLMConfigured } from "../services/llm.js";
 import { getUserChatConfig } from "../services/user-config.js";
-import { updateEffectiveConfig, sanitizeConfigUpdates } from "../services/ascan/config.js";
-import { ASCAN_DOCS } from "../services/ascan/config.js";
+import { updateEffectiveConfig, sanitizeConfigUpdates } from "../services/newlore/config.js";
+import { NEWLORE_DOCS } from "../services/newlore/config.js";
 import { restoreTasks } from "../services/scheduler.js";
 
 const router = Router();
@@ -23,6 +23,8 @@ const router = Router();
 interface ImportPayload {
     schemaVersion: string;
     user?: { settings?: any };
+    newloreConfig?: Record<string, any>;
+    newseeConfig?: Record<string, any>;
     ascanConfig?: Record<string, any>;
     notes: any[];
     tags: any[];
@@ -30,17 +32,34 @@ interface ImportPayload {
     chatSessions: any[];
     dailyReports?: any[];
     scheduledTasks?: any[];
-    ascanHistory?: {
+    newloreHistory?: {
         papers?: any[]; githubRepos?: any[]; officialItems?: any[]; blogPosts?: any[];
         conferencePapers?: any[]; wechatArticles?: any[];
     };
+    newseeHistory?: ImportPayload["newloreHistory"];
+    ascanHistory?: ImportPayload["newloreHistory"];
+    farviewSnapshots?: any[];
 }
 
 const MAX_ARCHIVE_ENTRIES = 10_000;
 const MAX_UNCOMPRESSED_BYTES = 1024 * 1024 * 1024;
 const IMPORT_UPLOAD_NAME = /^[0-9a-fA-F-]{32,36}\.(png|jpe?g|gif|webp|heic|heif)$/;
-const IMPORT_REPORT_NAME = /^Ascan-\d{8}\.(html|md|summary)$/;
+const IMPORT_REPORT_NAME = /^(NewLore|NewSee|Ascan)-\d{8}\.(html|md|summary)$/;
+const REPORT_ARCHIVE_DIRS = ["newlore-reports/", "newsee-reports/", "ascan-reports/"];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function selectImportedNewLoreConfig(payload: ImportPayload): Record<string, any> | undefined {
+    return payload.newloreConfig ?? payload.newseeConfig ?? payload.ascanConfig;
+}
+
+export function selectImportedNewLoreHistory(payload: ImportPayload): NonNullable<ImportPayload["newloreHistory"]> {
+    return payload.newloreHistory ?? payload.newseeHistory ?? payload.ascanHistory ?? {};
+}
+
+export function isNewLoreReportEntry(entryName: string): boolean {
+    return REPORT_ARCHIVE_DIRS.some((prefix) => entryName.startsWith(prefix))
+        && IMPORT_REPORT_NAME.test(path.basename(entryName));
+}
 
 function toDate(v: any): Date | null {
     if (!v) return null;
@@ -50,10 +69,23 @@ function toDate(v: any): Date | null {
 
 function normalizeHistoryRow(row: Record<string, any>): Record<string, any> {
     const { id: _id, ...normalized } = row;
-    for (const key of ["processedAt", "createdAt", "updatedAt", "createdAtTs", "updatedAtTs"]) {
+    for (const key of ["processedAt", "createdAt", "updatedAt", "createdAtTs", "updatedAtTs", "generatedAt"]) {
         if (key in normalized) normalized[key] = toDate(normalized[key]);
     }
     return normalized;
+}
+
+function normalizeFarViewSnapshot(row: Record<string, any>): typeof farviewSnapshots.$inferInsert | null {
+    if (typeof row.weekStart !== "string" || typeof row.sourceThrough !== "string"
+        || !row.payload || typeof row.payload !== "object") return null;
+    return {
+        weekStart: row.weekStart,
+        sourceThrough: row.sourceThrough,
+        status: typeof row.status === "string" ? row.status : "completed",
+        payload: row.payload,
+        generatedAt: toDate(row.generatedAt) ?? new Date(),
+        errorMessage: typeof row.errorMessage === "string" ? row.errorMessage : null,
+    };
 }
 
 function removeRestoredFiles(files: string[]): void {
@@ -202,10 +234,10 @@ router.post("/", express.raw({ type: "*/*", limit: "500mb" }), async (req: AuthR
         }
     }
     for (const entry of entries) {
-        if (!entry.entryName.startsWith("ascan-reports/")) continue;
+        if (!isNewLoreReportEntry(entry.entryName)) continue;
         const basename = path.basename(entry.entryName);
         if (!IMPORT_REPORT_NAME.test(basename)) continue;
-        const local = path.resolve(ASCAN_DOCS, basename);
+        const local = path.resolve(NEWLORE_DOCS, basename);
         const importedData = entry.getData();
         if (fs.existsSync(local)) {
             if (!fs.readFileSync(local).equals(importedData)) {
@@ -340,14 +372,14 @@ router.post("/", express.raw({ type: "*/*", limit: "500mb" }), async (req: AuthR
                 insertedCounts.scheduledTasks = insertedTasks.length;
             }
 
-            const history = payload.ascanHistory ?? {};
+            const history = selectImportedNewLoreHistory(payload);
             const historyTables: Array<[any, any[]]> = [
-                [ascanPapers, history.papers ?? []],
-                [ascanGithubRepos, history.githubRepos ?? []],
-                [ascanOfficialItems, history.officialItems ?? []],
-                [ascanBlogPosts, history.blogPosts ?? []],
-                [ascanConferencePapers, history.conferencePapers ?? []],
-                [ascanWechatArticles, history.wechatArticles ?? []],
+                [newlorePapers, history.papers ?? []],
+                [newloreGithubRepos, history.githubRepos ?? []],
+                [newloreOfficialItems, history.officialItems ?? []],
+                [newloreBlogPosts, history.blogPosts ?? []],
+                [newloreConferencePapers, history.conferencePapers ?? []],
+                [newloreWechatArticles, history.wechatArticles ?? []],
             ];
             for (const [table, rows] of historyTables) {
                 if (Array.isArray(rows) && rows.length > 0) {
@@ -355,6 +387,23 @@ router.post("/", express.raw({ type: "*/*", limit: "500mb" }), async (req: AuthR
                     // provide deduplication and its sequences remain valid after import.
                     const withoutIds = rows.map(normalizeHistoryRow);
                     await tx.insert(table).values(withoutIds).onConflictDoNothing();
+                }
+            }
+            if (Array.isArray(payload.farviewSnapshots) && payload.farviewSnapshots.length > 0) {
+                const snapshots = payload.farviewSnapshots
+                    .map(normalizeFarViewSnapshot)
+                    .filter((row): row is NonNullable<typeof row> => row !== null);
+                if (snapshots.length > 0) {
+                    await tx.insert(farviewSnapshots).values(snapshots).onConflictDoUpdate({
+                        target: farviewSnapshots.weekStart,
+                        set: {
+                            status: sql`excluded.status`,
+                            payload: sql`excluded.payload`,
+                            sourceThrough: sql`excluded.source_through`,
+                            generatedAt: sql`excluded.generated_at`,
+                            errorMessage: sql`excluded.error_message`,
+                        },
+                    });
                 }
             }
 
@@ -370,16 +419,17 @@ router.post("/", express.raw({ type: "*/*", limit: "500mb" }), async (req: AuthR
             };
         });
 
-        // Restore NewSee / WeChat pipeline config (lives in ascan/.env). sanitizeConfigUpdates
+        // Restore NewLore / WeChat pipeline config (lives in newlore/.env). sanitizeConfigUpdates
         // drops unknown keys and "***" placeholders, so a secrets-stripped export simply leaves
         // existing sensitive values untouched on the target device.
         let configRestored = false;
-        if (payload.ascanConfig && Object.keys(payload.ascanConfig).length > 0) {
+        const importedConfig = selectImportedNewLoreConfig(payload);
+        if (importedConfig && Object.keys(importedConfig).length > 0) {
             try {
-                await updateEffectiveConfig(req.userId, sanitizeConfigUpdates(payload.ascanConfig));
+                await updateEffectiveConfig(req.userId, sanitizeConfigUpdates(importedConfig));
                 configRestored = true;
             } catch (err) {
-                console.warn("[import] ascan config restore failed:", err);
+                console.warn("[import] newlore config restore failed:", err);
             }
         }
 

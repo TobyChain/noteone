@@ -94,8 +94,8 @@ struct NoteListView: View {
                 .onAppear { Task { await loadMoreNotes() } }
             }
         }
-        .navigationTitle(L("往事", "OldScene"))
-        .searchable(text: $searchText, prompt: L("搜索往事...", "Search OldScene..."))
+        .navigationTitle(L("往事", "OldEcho"))
+        .searchable(text: $searchText, prompt: L("搜索往事...", "Search OldEcho..."))
         .onSubmit(of: .search) { search() }
         #if !os(macOS)
         .navigationDestination(for: String.self) { noteId in

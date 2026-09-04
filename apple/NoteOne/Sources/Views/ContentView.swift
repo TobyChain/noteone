@@ -7,11 +7,15 @@ extension Notification.Name {
     static let droppedPayloadReady = Notification.Name("droppedPayloadReady")
 }
 
+enum AppTab: Int, CaseIterable {
+    case farView, newLore, oldEcho, capture, notty, reports, settings
+}
+
 struct ContentView: View {
     #if os(macOS)
     @EnvironmentObject var localSession: LocalSessionService
     #else
-    @State private var selectedTab = 0
+    @State private var selectedTab: AppTab = .farView
     #endif
 
     var body: some View {
@@ -21,12 +25,28 @@ struct ContentView: View {
         #else
         TabView(selection: $selectedTab) {
             NavigationStack {
+                FarViewView()
+            }
+            .tabItem {
+                Label(L("高见", "FarView"), systemImage: "chart.line.uptrend.xyaxis")
+            }
+            .tag(AppTab.farView)
+
+            NavigationStack {
+                NewLoreReportListView()
+            }
+            .tabItem {
+                Label(L("新知", "NewLore"), systemImage: "globe")
+            }
+            .tag(AppTab.newLore)
+
+            NavigationStack {
                 NoteListView()
             }
             .tabItem {
-                Label(L("往事", "OldScene"), systemImage: "note.text")
+                Label(L("往事", "OldEcho"), systemImage: "note.text")
             }
-            .tag(0)
+            .tag(AppTab.oldEcho)
 
             NavigationStack {
                 CaptureView()
@@ -34,7 +54,7 @@ struct ContentView: View {
             .tabItem {
                 Label(L("记一条", "Capture"), systemImage: "plus.circle.fill")
             }
-            .tag(1)
+            .tag(AppTab.capture)
 
             NavigationStack {
                 NottyView()
@@ -42,7 +62,7 @@ struct ContentView: View {
             .tabItem {
                 Label(L("闹闹", "Notty"), systemImage: "bubble.left.fill")
             }
-            .tag(2)
+            .tag(AppTab.notty)
 
             NavigationStack {
                 ReportsView()
@@ -50,15 +70,7 @@ struct ContentView: View {
             .tabItem {
                 Label(L("报告", "Reports"), systemImage: "chart.bar.doc.horizontal")
             }
-            .tag(3)
-
-            NavigationStack {
-                AscanReportListView()
-            }
-            .tabItem {
-                Label(L("新知", "NewSee"), systemImage: "globe")
-            }
-            .tag(4)
+            .tag(AppTab.reports)
 
             NavigationStack {
                 UnifiedSettingsView()
@@ -66,7 +78,7 @@ struct ContentView: View {
             .tabItem {
                 Label(L("设置", "Settings"), systemImage: "gear")
             }
-            .tag(5)
+            .tag(AppTab.settings)
         }
         // Top-level drop target: when iOS routes a drag-from-another-app onto NoteOne,
         // stash the payload and jump to the capture tab so the user can confirm-and-save.
@@ -74,7 +86,7 @@ struct ContentView: View {
             handleTopLevelDrop(providers)
         }
         .onReceive(NotificationCenter.default.publisher(for: .droppedPayloadReady)) { _ in
-            selectedTab = 1
+            selectedTab = .capture
         }
         #endif
     }

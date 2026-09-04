@@ -44,7 +44,7 @@ struct SettingsView: View {
     @State private var llmTestResult: String?
     @State private var llmTestError = false
 
-    @State private var showAscanConfig = false
+    @State private var showNewLoreConfig = false
     @State private var showWechatConfig = false
     @State private var wechatHealth: WechatHealthResponse?
 
@@ -104,12 +104,15 @@ struct SettingsView: View {
 
             #if os(macOS)
             Section {
-                HotkeyRecorderField()
+                PermissionSettingsView()
             } header: {
-                Label(L("顺手记快捷键", "Quick Capture Hotkey"), systemImage: "keyboard")
+                Label(L("快捷键与权限", "Hotkey and Permissions"), systemImage: "hand.raised")
                     .sectionHeaderStyle()
             } footer: {
-                Text(L("全局按下即可唤起顺手记;若剪贴板里已复制图片,会自动带入并在保存时上传为图片链接。", "Press globally to summon Quick Capture; if an image is in the clipboard, it will be included and uploaded as an image link on save."))
+                Text(L(
+                    "全局快捷键无需辅助功能权限。辅助功能仅用于模拟复制并读取其他 App 中的选中文本；拒绝后壹识不会在每次启动时重复请求。",
+                    "The global hotkey does not need Accessibility access. Accessibility is used only to copy selected text from another app; NoteOne does not ask again on every launch after a denial."
+                ))
             }
             #endif
 
@@ -160,8 +163,8 @@ struct SettingsView: View {
         ) { result in
             handleImportPick(result)
         }
-        .sheet(isPresented: $showAscanConfig) {
-            AscanConfigSheet()
+        .sheet(isPresented: $showNewLoreConfig) {
+            NewLoreConfigSheet()
         }
         .sheet(isPresented: $showWechatConfig, onDismiss: {
             Task { await probeWechatHealth() }
@@ -243,15 +246,15 @@ struct SettingsView: View {
                     }
                 }
 
-                // Step 3: NewSee (optional)
+                // Step 3: NewLore (optional)
                 Button {
-                    showAscanConfig = true
+                    showNewLoreConfig = true
                 } label: {
                     HStack(spacing: DG.sp8) {
                         Image(systemName: "3.circle")
                             .font(.title3)
                             .foregroundStyle(.tertiary)
-                        Text(L("配置新知（可选）", "Configure NewSee (optional)"))
+                        Text(L("配置新知（可选）", "Configure NewLore (optional)"))
                             .font(.subheadline)
                         Spacer()
                         Image(systemName: "chevron.right")
@@ -496,10 +499,10 @@ struct SettingsView: View {
     private var integrationsSection: some View {
         Section {
             Button {
-                showAscanConfig = true
+                showNewLoreConfig = true
             } label: {
                 HStack {
-                    Label(L("新知配置", "NewSee Config"), systemImage: "antenna.radiowaves.left.and.right")
+                    Label(L("新知配置", "NewLore Config"), systemImage: "antenna.radiowaves.left.and.right")
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.caption)
@@ -524,7 +527,7 @@ struct SettingsView: View {
             }
             .buttonStyle(.plain)
         } header: {
-            Label(L("新知与集成", "NewSee & Integrations"), systemImage: "sparkles")
+            Label(L("新知与集成", "NewLore & Integrations"), systemImage: "sparkles")
                 .sectionHeaderStyle()
         } footer: {
             Text(L("微信公众号抓取已内置：点击后扫码登录公众平台并管理订阅的公众号，登录有效期 4 天。", "WeChat Official Account scraping is built-in: tap to scan-login to the platform and manage subscribed accounts. Login is valid for 4 days."))
@@ -730,7 +733,7 @@ struct SettingsView: View {
                             parts.append(L("\(tasks) 个定时任务", "\(tasks) scheduled tasks"))
                         }
                         if result.configRestored == true {
-                            parts.append(L("新知/微信配置已迁移", "NewSee/WeChat config migrated"))
+                            parts.append(L("新知/微信配置已迁移", "NewLore/WeChat config migrated"))
                         }
                         if result.settingsRestored == true {
                             parts.append(L("LLM 配置已迁移", "LLM config migrated"))

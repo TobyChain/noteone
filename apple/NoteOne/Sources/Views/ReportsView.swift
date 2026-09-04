@@ -212,7 +212,7 @@ struct ReportsView: View {
     private func todayString() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+        formatter.timeZone = .current
         return formatter.string(from: Date())
     }
 }

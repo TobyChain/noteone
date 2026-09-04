@@ -6,16 +6,17 @@ import AppKit
 enum SidebarSelection: Hashable {
     case note(String)
     case trash
-    case ascanReports
-    case ascanReport(String)
-    case ascanConfig
+    case newloreReports
+    case newloreReport(String)
+    case newloreConfig
+    case farView
     case empty
 }
 
 struct MainSidebar: View {
     @Binding var selection: SidebarSelection
     @Binding var notes: [Note]
-    @Binding var ascanReports: [AscanReportMeta]
+    @Binding var newloreReports: [NewLoreReportMeta]
 
     var onCreateNote: () -> Void
     var onRefresh: () async -> Void
@@ -26,17 +27,17 @@ struct MainSidebar: View {
     var isLoadingMore: Bool
     var onShowTrash: () -> Void
     var onShowConfig: () -> Void
-    var onDeleteAscanReport: (String) -> Void
+    var onDeleteNewLoreReport: (String) -> Void
 
     @State private var searchText = ""
     @State private var filterType: ContentType?
     @State private var isNotesExpanded = true
-    @State private var isAscanExpanded = true
+    @State private var isNewLoreExpanded = true
     @State private var collapsedDateGroups: Set<String> = ["本月", "更早"]
-    @State private var collapsedAscanGroups: Set<String> = ["更早"]
-    @State private var isAscanRunning = false
-    @State private var ascanRunningStatus: String?
-    @State private var ascanTimer: Timer?
+    @State private var collapsedNewLoreGroups: Set<String> = ["更早"]
+    @State private var isNewLoreRunning = false
+    @State private var newloreRunningStatus: String?
+    @State private var newloreTimer: Timer?
 
     private var filteredNotes: [Note] {
         guard let filter = filterType else { return notes }
@@ -46,20 +47,20 @@ struct MainSidebar: View {
     private var todayString: String {
         let f = DateFormatter()
         f.dateFormat = "yyyyMMdd"
-        f.timeZone = TimeZone(identifier: "Asia/Shanghai")
+        f.timeZone = .current
         return f.string(from: Date())
     }
 
-    private var groupedAscanReports: [(String, [AscanReportMeta])] {
+    private var groupedNewLoreReports: [(String, [NewLoreReportMeta])] {
         let cal = Calendar.current
         let now = Date()
         let f = DateFormatter()
         f.dateFormat = "yyyyMMdd"
-        f.timeZone = TimeZone(identifier: "Asia/Shanghai")
-        var groups: [String: [AscanReportMeta]] = [:]
+        f.timeZone = .current
+        var groups: [String: [NewLoreReportMeta]] = [:]
         let order = ["今日", "昨日", "本月", "更早"]
 
-        for r in ascanReports {
+        for r in newloreReports {
             guard let d = f.date(from: r.date) else { continue }
             let key: String
             if cal.isDateInToday(d) { key = "今日" }
@@ -103,68 +104,48 @@ struct MainSidebar: View {
         }
     }
 
-    var body: some View {
-        VStack(spacing: 0) {
-            // 往事
-            moduleHeader(
-                title: L("往事", "OldScene"),
-                icon: "note.text",
-                isExpanded: $isNotesExpanded,
-                action: { if let firstNote = groupedNotes.first?.1.first { selection = .note(firstNote.id) } }
-            ) {
-                Button(action: onCreateNote) {
-                    Image(systemName: "plus.circle")
-                }
+    @ViewBuilder
+    private var oldEchoSection: some View {
+        moduleHeader(
+            title: L("往事", "OldEcho"),
+            icon: "note.text",
+            isExpanded: $isNotesExpanded,
+            action: { selection = groupedNotes.first?.1.first.map { .note($0.id) } ?? .empty }
+        ) {
+            Button(action: onCreateNote) { Image(systemName: "plus.circle") }
                 .buttonStyle(.plain)
                 .help(L("新建笔记", "New Note"))
-
-                Menu {
-                    Button {
-                        filterType = nil
-                    } label: {
-                        if filterType == nil {
-                            Label(L("全部类型", "All Types"), systemImage: "checkmark")
-                        } else {
-                            Text(L("全部类型", "All Types"))
-                        }
-                    }
-                    Divider()
-                    ForEach(ContentType.allCases, id: \.rawValue) { type in
-                        Button {
-                            filterType = type
-                        } label: {
-                            if filterType == type {
-                                Label(type.displayName, systemImage: "checkmark")
-                            } else {
-                                Text(type.displayName)
-                            }
-                        }
-                    }
-                } label: {
-                    Image(systemName: filterType == nil
-                          ? "line.3.horizontal.decrease.circle"
-                          : "line.3.horizontal.decrease.circle.fill")
+            Menu {
+                Button { filterType = nil } label: {
+                    if filterType == nil { Label(L("全部类型", "All Types"), systemImage: "checkmark") }
+                    else { Text(L("全部类型", "All Types")) }
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                .help(L("按类型筛选", "Filter by Type"))
-                Button(action: { Task { await onRefresh() } }) {
-                    Image(systemName: "arrow.clockwise")
+                Divider()
+                ForEach(ContentType.allCases, id: \.rawValue) { type in
+                    Button { filterType = type } label: {
+                        if filterType == type { Label(type.displayName, systemImage: "checkmark") }
+                        else { Text(type.displayName) }
+                    }
                 }
+            } label: {
+                Image(systemName: filterType == nil ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help(L("按类型筛选", "Filter by Type"))
+            Button(action: { Task { await onRefresh() } }) { Image(systemName: "arrow.clockwise") }
                 .buttonStyle(.plain)
                 .help(L("刷新笔记列表", "Refresh Notes"))
-            }
+        }
 
-            if isNotesExpanded && !groupedNotes.isEmpty {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(groupedNotes, id: \.0) { (title, sectionNotes) in
-                            dateGroupHeader(title, count: sectionNotes.count)
-                            if !collapsedDateGroups.contains(title) {
-                                ForEach(sectionNotes) { note in
-                                    HStack(spacing: 6) {
-                                        NoteRowView(note: note)
-                                    }
+        if isNotesExpanded && !groupedNotes.isEmpty {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(groupedNotes, id: \.0) { title, sectionNotes in
+                        dateGroupHeader(title, count: sectionNotes.count)
+                        if !collapsedDateGroups.contains(title) {
+                            ForEach(sectionNotes) { note in
+                                NoteRowView(note: note)
                                     .padding(.horizontal, DG.sp8)
                                     .padding(.vertical, 2)
                                     .background(selection == .note(note.id) ? Color.accent.opacity(0.1) : Color.clear)
@@ -172,57 +153,73 @@ struct MainSidebar: View {
                                     .contentShape(Rectangle())
                                     .onTapGesture { selection = .note(note.id) }
                                     .contextMenu {
-                                        Button(role: .destructive) {
-                                            onDeleteNote(note)
-                                        } label: {
+                                        Button(role: .destructive) { onDeleteNote(note) } label: {
                                             Label(L("移到垃圾箱", "Move to Trash"), systemImage: "trash")
                                         }
                                     }
-                                }
                             }
                         }
-                        if hasMoreNotes && searchText.isEmpty {
-                            HStack {
-                                Spacer()
-                                if isLoadingMore { ProgressView().controlSize(.small) }
-                                else { Text(L("加载更多", "Load More")).font(.caption2).foregroundStyle(.secondary) }
-                                Spacer()
-                            }
-                            .padding(.vertical, DG.sp8)
-                            .onAppear { Task { await onLoadMore() } }
+                    }
+                    if hasMoreNotes && searchText.isEmpty {
+                        HStack {
+                            Spacer()
+                            if isLoadingMore { ProgressView().controlSize(.small) }
+                            else { Text(L("加载更多", "Load More")).font(.caption2).foregroundStyle(.secondary) }
+                            Spacer()
                         }
+                        .padding(.vertical, DG.sp8)
+                        .onAppear { Task { await onLoadMore() } }
                     }
                 }
             }
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button { selection = .farView } label: {
+                Label(L("高见", "FarView"), systemImage: "chart.line.uptrend.xyaxis")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(Color.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, DG.sp12)
+                    .padding(.vertical, DG.sp8)
+                    .background(selection == .farView ? Color.accent.opacity(0.1) : Color.canvasSecondary.opacity(0.5))
+            }
+            .buttonStyle(.plain)
 
             Divider()
 
             // 新知
-            Button {
-                withAnimation { isAscanExpanded.toggle() }
-            } label: {
-                HStack(spacing: DG.sp4) {
+            HStack(spacing: 0) {
+                Button { withAnimation { isNewLoreExpanded.toggle() } } label: {
                     Image(systemName: "chevron.right")
                         .font(.caption2)
-                        .rotationEffect(.degrees(isAscanExpanded ? 90 : 0))
+                        .rotationEffect(.degrees(isNewLoreExpanded ? 90 : 0))
                         .foregroundStyle(Color.inkTertiary)
-                    Label(L("新知", "NewSee"), systemImage: "globe")
+                        .padding(.trailing, DG.sp4)
+                }
+                .buttonStyle(.plain)
+                Button { selection = .newloreReports } label: {
+                    HStack {
+                    Label(L("新知", "NewLore"), systemImage: "globe")
                         .font(.subheadline.bold())
                         .foregroundStyle(Color.ink)
                     Spacer()
-                    if isAscanRunning {
+                    if isNewLoreRunning {
                         ProgressView()
                             .controlSize(.small)
                     }
+                    }
+                    .contentShape(Rectangle())
                 }
-                .contentShape(Rectangle())
-                .padding(.horizontal, DG.sp12)
-                .padding(.vertical, DG.sp8)
-                .background(Color.canvasSecondary.opacity(0.5))
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, DG.sp12)
+            .padding(.vertical, DG.sp8)
+            .background(selection == .newloreReports ? Color.accent.opacity(0.1) : Color.canvasSecondary.opacity(0.5))
 
-            if isAscanRunning, let status = ascanRunningStatus {
+            if isNewLoreRunning, let status = newloreRunningStatus {
                 Text(status)
                     .font(.system(size: 10))
                     .foregroundStyle(Color.inkTertiary)
@@ -231,17 +228,17 @@ struct MainSidebar: View {
                     .padding(.bottom, DG.sp4)
             }
 
-            if isAscanExpanded && !groupedAscanReports.isEmpty {
+            if isNewLoreExpanded && !groupedNewLoreReports.isEmpty {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(groupedAscanReports, id: \.0) { (title, reports) in
-                            let isCollapsed = collapsedAscanGroups.contains(title)
+                        ForEach(groupedNewLoreReports, id: \.0) { (title, reports) in
+                            let isCollapsed = collapsedNewLoreGroups.contains(title)
                             Button {
                                 withAnimation {
                                     if isCollapsed {
-                                        collapsedAscanGroups.remove(title)
+                                        collapsedNewLoreGroups.remove(title)
                                     } else {
-                                        collapsedAscanGroups.insert(title)
+                                        collapsedNewLoreGroups.insert(title)
                                     }
                                 }
                             } label: {
@@ -266,14 +263,14 @@ struct MainSidebar: View {
 
                             if !isCollapsed {
                                 ForEach(reports) { report in
-                                    AscanReportRow(
+                                    NewLoreReportRow(
                                         report: report,
                                         isSelected: {
-                                            if case .ascanReport(let d) = selection { return d == report.date }
+                                            if case .newloreReport(let d) = selection { return d == report.date }
                                             return false
                                         }(),
-                                        onTap: { selection = .ascanReport(report.date) },
-                                        onDelete: { onDeleteAscanReport(report.date) }
+                                        onTap: { selection = .newloreReport(report.date) },
+                                        onDelete: { onDeleteNewLoreReport(report.date) }
                                     )
                                 }
                             }
@@ -281,14 +278,18 @@ struct MainSidebar: View {
                     }
                 }
             }
+
+            Divider()
+
+            oldEchoSection
         }
         .background(Color.canvas)
-        .onAppear { startAscanPolling() }
-        .searchable(text: $searchText, prompt: L("搜索往事...", "Search OldScene..."))
-        .onSubmit(of: .search) { Task { await onSearch(searchText) } }
-        .onChange(of: searchText) { _, newValue in
-            if newValue.isEmpty { Task { await onSearch("") } }
-        }
+        .onAppear { startNewLorePolling() }
+        .modifier(OldEchoSearchModifier(
+            isEnabled: isOldEchoSelection,
+            searchText: $searchText,
+            onSearch: onSearch
+        ))
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 0) {
                 Button(action: onShowTrash) {
@@ -317,19 +318,26 @@ struct MainSidebar: View {
         }
     }
 
+    private var isOldEchoSelection: Bool {
+        if case .note = selection { return true }
+        return selection == .empty
+    }
+
     // MARK: - Module Header
 
     @ViewBuilder
     private func moduleHeader(title: String, icon: String, isExpanded: Binding<Bool>, action: @escaping () -> Void, @ViewBuilder trailing: () -> some View) -> some View {
         HStack(spacing: 0) {
-            Button {
-                withAnimation { isExpanded.wrappedValue.toggle() }
-            } label: {
-                HStack(spacing: DG.sp4) {
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                        .rotationEffect(.degrees(isExpanded.wrappedValue ? 90 : 0))
-                        .foregroundStyle(Color.inkTertiary)
+            Button { withAnimation { isExpanded.wrappedValue.toggle() } } label: {
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .rotationEffect(.degrees(isExpanded.wrappedValue ? 90 : 0))
+                    .foregroundStyle(Color.inkTertiary)
+                    .padding(.trailing, DG.sp4)
+            }
+            .buttonStyle(.plain)
+            Button(action: action) {
+                HStack {
                     Label(title, systemImage: icon)
                         .font(.subheadline.bold())
                         .foregroundStyle(Color.ink)
@@ -382,16 +390,16 @@ struct MainSidebar: View {
 
     // MARK: - Helpers
 
-    private func startAscanPolling() {
-        stopAscanPolling()
-        ascanTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+    private func startNewLorePolling() {
+        stopNewLorePolling()
+        newloreTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
             Task { @MainActor in
                 do {
-                    let status = try await APIClient.shared.getAscanStatus()
-                    isAscanRunning = status.isRunning
-                    ascanRunningStatus = status.recentLog ?? (status.isRunning ? L("运行中…", "Running…") : nil)
+                    let status = try await APIClient.shared.getNewLoreStatus()
+                    isNewLoreRunning = status.isRunning
+                    newloreRunningStatus = status.recentLog ?? (status.isRunning ? L("运行中…", "Running…") : nil)
                     if !status.isRunning {
-                        ascanRunningStatus = nil
+                        newloreRunningStatus = nil
                         await onRefresh()
                     }
                 } catch {}
@@ -399,14 +407,34 @@ struct MainSidebar: View {
         }
     }
 
-    private func stopAscanPolling() {
-        ascanTimer?.invalidate()
-        ascanTimer = nil
+    private func stopNewLorePolling() {
+        newloreTimer?.invalidate()
+        newloreTimer = nil
     }
 }
 
-private struct AscanReportRow: View {
-    let report: AscanReportMeta
+private struct OldEchoSearchModifier: ViewModifier {
+    let isEnabled: Bool
+    @Binding var searchText: String
+    let onSearch: (String) async -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content
+                .searchable(text: $searchText, prompt: L("搜索往事...", "Search OldEcho..."))
+                .onSubmit(of: .search) { Task { await onSearch(searchText) } }
+                .onChange(of: searchText) { _, value in
+                    if value.isEmpty { Task { await onSearch("") } }
+                }
+        } else {
+            content
+        }
+    }
+}
+
+private struct NewLoreReportRow: View {
+    let report: NewLoreReportMeta
     let isSelected: Bool
     let onTap: () -> Void
     let onDelete: () -> Void
@@ -436,7 +464,7 @@ private struct AscanReportRow: View {
             Button {
                 Task {
                     do {
-                        let path = try await APIClient.shared.getAscanReportPath(date: report.date)
+                        let path = try await APIClient.shared.getNewLoreReportPath(date: report.date)
                         let url = URL(fileURLWithPath: path)
                         NSWorkspace.shared.activateFileViewerSelecting([url])
                     } catch {}

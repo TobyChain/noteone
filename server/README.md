@@ -72,30 +72,41 @@ Coverage focus:
 In addition to notes / tags / search / chat-sessions / settings / uploads, the server
 exposes:
 
-### NewSee pipeline (`/api/ascan/*`)
+### NewLore pipeline (`/api/newlore/*`)
 
-> Note: API paths retain `/api/ascan/` for backward compatibility; this is the NewSee pipeline.
+> `/api/newlore/` is the canonical API. `/api/newsee/` and `/api/ascan/` remain compatibility aliases for existing clients.
 
-The NewSee pipeline runs in-process (TypeScript, `src/services/ascan/pipeline/`).
-The server reads/writes its config in `.ascan/.env`（dev 模式；内嵌模式为数据目录下 `ascan/.env`）and tracks run status in-memory.
+The NewLore pipeline runs in-process (TypeScript, `src/services/newlore/pipeline/`).
+The server reads/writes its config in `.newlore/.env`（dev 模式；内嵌模式为数据目录下 `newlore/.env`）and tracks run status in-memory. Existing `.newsee` and `.ascan` configuration is read as a compatibility fallback and copied forward on the next update.
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /api/ascan/reports` · `/:date` · `/:date/path` | List / read / get file path for daily reports |
-| `DELETE /api/ascan/reports/:date` | Delete a daily report (+ sidecar files) |
-| `GET` / `PATCH /api/ascan/config` | Read / update NewSee config (writes to `.ascan/.env`) |
-| `POST /api/ascan/trigger` | Fire-and-forget full pipeline run |
-| `POST /api/ascan/run-module` | Run a single module (blocking, for 闹闹 orchestration) |
-| `POST /api/ascan/merge` | Merge already-run module fragments into a report |
-| `POST /api/ascan/abort` | Abort a running pipeline (kills pid) |
-| `GET /api/ascan/status` | Check run status + recent log lines |
-| `GET /api/ascan/wechat-health` | Check the built-in WeChat MP integration (login state) |
-| `POST /api/ascan/summarize` | Generate LLM one-sentence summary for a report |
+| `GET /api/newlore/reports` · `/:date` · `/:date/path` | List / read / get file path for daily reports |
+| `DELETE /api/newlore/reports/:date` | Delete a daily report (+ sidecar files) |
+| `GET` / `PATCH /api/newlore/config` | Read / update NewLore config (writes to `.newlore/.env`) |
+| `POST /api/newlore/trigger` | Fire-and-forget full pipeline run |
+| `POST /api/newlore/run-module` | Run a single module (blocking, for 闹闹 orchestration) |
+| `POST /api/newlore/merge` | Merge already-run module fragments into a report |
+| `POST /api/newlore/abort` | Abort a running pipeline (kills pid) |
+| `GET /api/newlore/status` | Check run status + recent log lines |
+| `GET /api/newlore/wechat-health` | Check the built-in WeChat MP integration (login state) |
+| `POST /api/newlore/summarize` | Generate LLM one-sentence summary for a report |
 
 ### 闹闹 tools (chat-sessions)
 
 闹闹 (Notty) chat sessions expose tools beyond basic chat:
-- **NewSee**: `start_ascan_supplement` (non-blocking), `get_ascan_status`, `list/get/delete_ascan_report`
+- **NewLore**: `start_newlore_supplement` (non-blocking), `get_newlore_status`, `list/get/delete_newlore_report`; the old `ascan` action/tool names remain compatibility aliases.
+
+### FarView rolling seven-day heat (`/api/farview/*`)
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/farview/overview` | Read the latest cached top-ten ranking for the last seven days |
+| `GET /api/farview/topics/:id` | Read one topic with heat, source mix, and representative items |
+| `POST /api/farview/refresh` | Start an asynchronous global seven-day heat refresh |
+| `GET /api/farview/status` | Read refresh status and the latest generated period |
+
+FarView filters built-in English/Chinese stopwords, source boilerplate, URLs, versions, and pervasive template phrases. Add installation-specific exclusions through `farview_blocked_topics` in the NewLore configuration page.
 - **Local files**: `search_files`, `list_files`, `read_file` — structured operations without a shell, restricted to resolved paths under `~/Documents`, `~/Desktop`, and `~/Downloads`
 - **Scheduled tasks**: `schedule_task` (cron), `list_scheduled_tasks`, `cancel_scheduled_task` — DB-persisted, auto-restored on server boot via `node-cron`
 
@@ -103,7 +114,7 @@ The server reads/writes its config in `.ascan/.env`（dev 模式；内嵌模式�
 
 ### `DELETE /api/account`
 
-Permanently delete all installation-local data: user-owned rows, NewSee history, WeChat
+Permanently delete all installation-local data: user-owned rows, NewLore history, WeChat
 sessions, reports, logs, configuration, and uploaded files. **Irrevocable.**
 
 Response: `204 No Content`.
@@ -113,9 +124,9 @@ Response: `204 No Content`.
 Streams a zip with the caller's full data export:
 
 - `noteone-export.json` — notes, tags, note-tag links, chats, daily reports, scheduled
-  tasks, NewSee deduplication history, and user settings. Secrets are excluded by default.
+  tasks, NewLore deduplication history, and user settings. Secrets are excluded by default.
 - `uploads/<uuid>.<ext>` — image files referenced by image/mixed notes.
-- `ascan-reports/` — generated NewSee HTML, Markdown, and summary files.
+- `newlore-reports/` — generated NewLore HTML, Markdown, and summary files.
 - `README.txt` — schema version + export timestamp.
 
 Response: `200 application/zip` with a friendly filename.

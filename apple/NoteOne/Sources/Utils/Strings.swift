@@ -10,7 +10,7 @@ func L(_ zh: String, _ en: String) -> String {
     return lang == "en" ? en : zh
 }
 
-/// Localizes date group labels used in note/ascan list grouping.
+/// Localizes date group labels used in note/newlore list grouping.
 /// The internal grouping keys remain Chinese; this function only translates
 /// the display text shown to the user.
 func LDateGroup(_ zh: String) -> String {

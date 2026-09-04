@@ -71,6 +71,13 @@
       "when": 1784702400000,
       "tag": "0009_learn_art_content_types",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788487200000,
+      "tag": "0010_farview_snapshots",
+      "breakpoints": true
     }
   ]
 }

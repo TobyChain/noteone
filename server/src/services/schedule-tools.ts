@@ -1,6 +1,6 @@
 /**
  * Schedule tools for 闹闹 — create / list / cancel scheduled tasks.
- * Currently supports one action: "start_ascan_supplement" (定时补充新知).
+ * Currently supports one action: "start_newlore_supplement" (定时补充新知).
  */
 import type { ToolDefinition } from "./notty/agent-loop.js";
 import { createTask, listTasks, cancelTask } from "./scheduler.js";
@@ -11,14 +11,14 @@ export const scheduleToolDefinitions: ToolDefinition[] = [
     function: {
       name: "schedule_task",
       description:
-        "创建定时任务。目前支持 action=\"start_ascan_supplement\"（定时补充新知）。" +
+        "创建定时任务。目前支持 action=\"start_newlore_supplement\"（定时补充新知）。兼容旧 action=\"start_ascan_supplement\"。" +
         "cron 表达式为 5 字段标准格式：分 时 日 月 周。例如 \"0 8 * * *\" = 每天 8:00，\"0 8 * * 1-5\" = 工作日 8:00，\"0 */2 * * *\" = 每 2 小时。",
       parameters: {
         type: "object",
         properties: {
           name: { type: "string", description: "任务名称，如 每日新知补充" },
           cron: { type: "string", description: "cron 表达式，如 \"0 8 * * *\"" },
-          action: { type: "string", description: "任务动作，目前仅支持 start_ascan_supplement" },
+          action: { type: "string", description: "任务动作，支持 start_newlore_supplement（兼容 start_ascan_supplement）" },
         },
         required: ["name", "cron", "action"],
       },

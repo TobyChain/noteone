@@ -1,5 +1,5 @@
 // 微信公众号配置页 — 由 App WebView 以 /wechat/?token={JWT} 打开。
-// 登录/公众号接口凭 auth-key cookie；订阅列表读写走 /api/ascan/config（需 JWT）。
+// 登录/公众号接口凭 auth-key cookie；订阅列表读写走 /api/newsee/config（需 JWT）。
 (() => {
   const jwt = new URLSearchParams(location.search).get("token") || "";
   const authHeaders = jwt ? { Authorization: `Bearer ${jwt}` } : {};
@@ -120,17 +120,17 @@
     }, 2000);
   }
 
-  // ── 订阅列表与抓取参数（/api/ascan/config） ──────────────────
+  // ── 订阅列表与抓取参数（/api/newsee/config） ──────────────────
 
   async function loadConfig() {
-    config = await api("/api/ascan/config", { headers: authHeaders });
+    config = await api("/api/newsee/config", { headers: authHeaders });
     renderMpList();
     $("limit-per-mp").value = config.wechat_limit_per_mp ?? 20;
     $("days-recent").value = config.wechat_days_recent ?? 30;
   }
 
   async function saveConfig(updates) {
-    config = await api("/api/ascan/config", {
+    config = await api("/api/newsee/config", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...authHeaders },
       body: JSON.stringify(updates),
