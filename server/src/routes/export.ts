@@ -23,7 +23,7 @@ const UUID_BASENAME = /^[0-9a-fA-F-]{32,36}\.[a-z0-9]{1,8}$/;
 /// Keys that carry real secrets (not just preferences). Omitted from the export unless the
 /// caller explicitly opts in with ?secrets=1 (personal cross-device transfer).
 const SENSITIVE_NEWLORE_KEYS = new Set([
-    "llm_api_key", "github_token", "semantic_scholar_api_key", "wechat_auth_key",
+    "llm_api_key", "github_token", "semantic_scholar_api_key",
 ]);
 
 function stripNewLoreSecrets(config: NewLoreConfig, includeSecrets: boolean): Partial<NewLoreConfig> {
@@ -81,7 +81,7 @@ router.get("/", async (req: AuthRequest, res) => {
         createdAt: user.createdAt, updatedAt: user.updatedAt,
     };
 
-    // NewLore / WeChat pipeline config (lives in newlore/.env, not the DB). Strip secrets
+    // NewLore pipeline config (lives in newlore/.env, not the DB). Strip secrets
     // unless opted in so a default export never leaks tokens.
     const newloreConfig = stripNewLoreSecrets(await getEffectiveConfig(req.userId), includeSecrets);
 
@@ -209,16 +209,16 @@ function buildReadme(payload: { schemaVersion: string; exportedAt: string; inclu
         "",
         `schemaVersion: ${payload.schemaVersion}`,
         `exportedAt:    ${payload.exportedAt}`,
-        `secrets:       ${hasSecrets ? "INCLUDED (LLM apiKey, tokens, WeChat auth key)" : "omitted (re-enter on import)"}`,
+        `secrets:       ${hasSecrets ? "INCLUDED (LLM apiKey and provider tokens)" : "omitted (re-enter on import)"}`,
         "",
         "Files:",
-        "  noteone-export.json    Notes, tags, chats, daily reports, scheduled tasks, user settings, and NewLore/WeChat config.",
+        "  noteone-export.json    Notes, tags, chats, daily reports, scheduled tasks, user settings, NewLore config, and legacy crawler history.",
         "  uploads/               Image files referenced by your image/mixed notes.",
         "  README.txt             This file.",
         "",
         "Notes:",
         "  - Embeddings are omitted (re-derivable after import).",
-        "  - NewLore pipeline + WeChat MP config is included so it migrates to the target device.",
+        "  - NewLore pipeline config and legacy crawler history are included for migration compatibility.",
         hasSecrets
             ? "  - This archive CONTAINS secrets (API keys / tokens). Treat it as sensitive."
             : "  - API keys / tokens are stripped; re-enter them on the target device.",

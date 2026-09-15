@@ -45,8 +45,6 @@ struct SettingsView: View {
     @State private var llmTestError = false
 
     @State private var showNewLoreConfig = false
-    @State private var showWechatConfig = false
-    @State private var wechatHealth: WechatHealthResponse?
 
     @State private var isExporting = false
     @State private var exportIncludesSecrets = false
@@ -166,11 +164,6 @@ struct SettingsView: View {
         .sheet(isPresented: $showNewLoreConfig) {
             NewLoreConfigSheet()
         }
-        .sheet(isPresented: $showWechatConfig, onDismiss: {
-            Task { await probeWechatHealth() }
-        }) {
-            WechatConfigSheet()
-        }
         #if !os(macOS)
         .sheet(isPresented: $showShareSheet) {
             if let url = exportedFileURL {
@@ -191,7 +184,6 @@ struct SettingsView: View {
                     selectedPreset = "custom"
                 }
             } catch { settingsError = error.localizedDescription }
-            await probeWechatHealth()
             #if !os(macOS)
             // Schedule report notification on first load if enabled
             if reportEnabled {
@@ -265,24 +257,6 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
 
-                // Step 4: WeChat (optional)
-                Button {
-                    showWechatConfig = true
-                } label: {
-                    HStack(spacing: DG.sp8) {
-                        Image(systemName: "4.circle")
-                            .font(.title3)
-                            .foregroundStyle(.tertiary)
-                        Text(L("配置微信公众号（可选）", "Configure WeChat (optional)"))
-                            .font(.subheadline)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
             } header: {
                 Label(L("快速入门", "Quick Start"), systemImage: "lightbulb")
                     .sectionHeaderStyle()
@@ -512,54 +486,9 @@ struct SettingsView: View {
             }
             .buttonStyle(.plain)
 
-            Button {
-                showWechatConfig = true
-            } label: {
-                HStack {
-                    Label(L("微信公众号", "WeChat Official Account"), systemImage: "dot.radiowaves.left.and.right")
-                    Spacer()
-                    wechatStatusBadge
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
         } header: {
             Label(L("新知与集成", "NewLore & Integrations"), systemImage: "sparkles")
                 .sectionHeaderStyle()
-        } footer: {
-            Text(L("微信公众号抓取已内置：点击后扫码登录公众平台并管理订阅的公众号，登录有效期 4 天。", "WeChat Official Account scraping is built-in: tap to scan-login to the platform and manage subscribed accounts. Login is valid for 4 days."))
-        }
-    }
-
-    @ViewBuilder
-    private var wechatStatusBadge: some View {
-        if let h = wechatHealth {
-            switch h.status {
-            case "ready":
-                Label(h.nickname?.isEmpty == false ? "\(h.nickname!) · \(h.mpCount ?? 0) " + L("个公众号", "accounts") : L("已就绪", "Ready"), systemImage: "checkmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(Color.success)
-                    .labelStyle(.titleAndIcon)
-            case "auth_expired":
-                Label(L("登录过期", "Login Expired"), systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-            case "rate_limited":
-                Label(L("文章接口限流", "Article API Rate Limited"), systemImage: "clock.badge.exclamationmark")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-            case "unreachable":
-                Label(L("连接失败", "Connection Failed"), systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(Color.danger)
-            default:
-                Text(L("未登录", "Not Logged In"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
         }
     }
 
@@ -639,17 +568,6 @@ struct SettingsView: View {
                     settingsError = error.localizedDescription
                 }
             }
-        }
-    }
-
-    private func probeWechatHealth() async {
-        do {
-            wechatHealth = try await APIClient.shared.getWechatHealth()
-        } catch {
-            wechatHealth = WechatHealthResponse(
-                status: "unreachable", mpCount: nil, nickname: nil,
-                expiresAt: nil, message: error.localizedDescription
-            )
         }
     }
 
@@ -733,7 +651,7 @@ struct SettingsView: View {
                             parts.append(L("\(tasks) 个定时任务", "\(tasks) scheduled tasks"))
                         }
                         if result.configRestored == true {
-                            parts.append(L("新知/微信配置已迁移", "NewLore/WeChat config migrated"))
+                            parts.append(L("新知配置已迁移", "NewLore config migrated"))
                         }
                         if result.settingsRestored == true {
                             parts.append(L("LLM 配置已迁移", "LLM config migrated"))

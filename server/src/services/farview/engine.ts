@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { dateKey, isDateKey, shiftDateKey } from "../calendar-date.js";
 
-export type FarViewSourceType = "paper" | "conference" | "github" | "blog" | "official" | "wechat";
-const SOURCE_TYPES: FarViewSourceType[] = ["paper", "conference", "github", "blog", "official", "wechat"];
+export type FarViewSourceType = "paper" | "conference" | "github" | "blog" | "official";
+const SOURCE_TYPES: FarViewSourceType[] = ["paper", "conference", "github", "blog", "official"];
 
 export interface FarViewSourceItem {
   sourceType: FarViewSourceType;

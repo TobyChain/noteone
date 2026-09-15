@@ -113,7 +113,7 @@ const preferenceToolDefinitions: ToolDefinition[] = [
     type: "function",
     function: {
       name: "update_newlore_preferences",
-      description: "更新新知挖取偏好。focus 是今日重点（如'AI Agent, 多模态'）；topics 是长期兴趣；moduleOrder 是显示顺序（可选值: official, blog, github, arxiv, conference, wechat）。用户说'今天重点关注XX'或'调整日报顺序'时使用。",
+      description: "更新新知挖取偏好。focus 是今日重点（如'AI Agent, 多模态'）；topics 是长期兴趣；moduleOrder 是显示顺序（可选值: official, blog, github, arxiv, conference）。用户说'今天重点关注XX'或'调整日报顺序'时使用。",
       parameters: {
         type: "object",
         properties: {
@@ -121,8 +121,8 @@ const preferenceToolDefinitions: ToolDefinition[] = [
           topics: { type: "string", description: "长期兴趣主题，如'LLM, Agent, Web3'" },
           moduleOrder: {
             type: "array",
-            items: { type: "string", enum: ["official", "blog", "github", "arxiv", "conference", "wechat"] },
-            description: "模块显示顺序，默认 official→blog→github→arxiv→conference→wechat",
+            items: { type: "string", enum: ["official", "blog", "github", "arxiv", "conference"] },
+            description: "模块显示顺序，默认 official→blog→github→arxiv→conference",
           },
         },
       },
@@ -193,9 +193,9 @@ function makeNoteHandlers(userId: string, allNotes: NoteIndexEntry[]): Record<st
 }
 
 const webHandlers: Record<string, ToolHandler> = {
-  web_fetch: async (args: Record<string, any>) => {
-    const result = await fetchUrlContent(args.url as string);
-    if (result.error) return `获取失败: ${result.error}`;
+  web_fetch: async (args: Record<string, any>, signal?: AbortSignal) => {
+    const result = await fetchUrlContent(args.url as string, 15000, signal);
+    if (result.error) throw new Error(`获取失败: ${result.error}`);
     return `标题: ${result.title}\n\n${result.content}`;
   },
   discover_feed: async (args: Record<string, any>) => {
@@ -227,14 +227,16 @@ const webHandlers: Record<string, ToolHandler> = {
     if (feeds.length === 0) return `未找到 ${url} 的 RSS/Atom feed。请手动提供 feed 地址。`;
     return `找到 ${feeds.length} 个 feed:\n${feeds.map((f: string, i: number) => `${i + 1}. ${f}`).join("\n")}`;
   },
-  search_web: async (args: Record<string, any>) => {
+  search_web: async (args: Record<string, any>, signal?: AbortSignal) => {
     const query = args.query as string;
     const maxResults = (args.maxResults as number) || 5;
-    const results = await searchWeb(query, { maxResults });
-    if (results.length === 0) return "未找到相关结果";
-    return results.map((r, i) =>
+    const result = await searchWeb(query, { maxResults, signal });
+    if (result.error) throw new Error(`联网搜索失败: ${result.error}`);
+    if (result.results.length === 0) return "未找到相关结果";
+    const resultLines = result.results.map((r, i) =>
       `${i + 1}. ${r.title}\n   URL: ${r.url}\n   ${r.snippet}`
     ).join("\n\n");
+    return `搜索来源: ${result.provider}\n\n${resultLines}`;
   },
 };
 
@@ -263,7 +265,7 @@ function makePreferenceHandlers(userId: string): Record<string, ToolHandler> {
       if (typeof args.focus === "string") prefs.focus = args.focus || undefined;
       if (typeof args.topics === "string") prefs.topics = args.topics || undefined;
       if (Array.isArray(args.moduleOrder)) {
-        const valid = ["official", "blog", "github", "arxiv", "conference", "wechat"] as const;
+        const valid = ["official", "blog", "github", "arxiv", "conference"] as const;
         prefs.moduleOrder = args.moduleOrder.filter((m: string) => valid.includes(m as any)) as NewLoreModuleName[];
       }
       await db.update(users)

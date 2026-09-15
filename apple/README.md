@@ -44,7 +44,7 @@ xcodebuild test -project NoteOne.xcodeproj -scheme NoteOne_iOS \
 - DEBUG 默认连 `http://localhost:3000`，Release 默认连 `https://api.noteone.app`
 - 在「设置 → 服务器」可修改 baseURL
 - DEBUG 登录页提供"开发者快速登录"按钮（需后端 `ENABLE_DEV_LOGIN=true`）
-- macOS 全局快捷键（默认 Cmd+Shift+O 弹出"顺手记"窗口）本身无需辅助功能权限；自动获取其他 App 的选中文本时才需要该权限
+- macOS 全局快捷键（默认 Cmd+Shift+O 弹出“记一条”窗口）本身无需辅助功能权限；普通启动不会请求跨 App 数据权限。自动获取其他 App 的选中文本或浏览器页面信息必须由用户在设置中主动开启
 
 ## 工程结构
 
@@ -76,6 +76,6 @@ apple/
 | `NoteDetailView` | 笔记详情 + 编辑 + 元信息 |
 | `CaptureView` | "顺手记"捕获面板（macOS 悬浮窗 / iOS sheet） |
 | `NottyView` | 闹闹对话主界面 + 工具调用渲染 + 新知补充进度条 |
-| `SettingsView` | 设置面板：AI 模型 / 新知配置 / 微信抓取 / 数据导出 |
+| `SettingsView` | 设置面板：AI 模型 / 新知配置 / 数据导出 |
 | `NewLoreReportListView` / `NewLoreReportDetailView` | 新知日报列表 + 详情 |
 | `TrashView` | 垃圾箱（30 天自动清理） |

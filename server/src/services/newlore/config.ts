@@ -64,14 +64,6 @@ export interface NewLoreConfig {
   // Blog
   blog_max_per_source: number;
   blog_sources: string[];
-  // WeChat MP (built-in service)
-  wechat_service_url: string;
-  wechat_auth_key: string;
-  wechat_mp_ids: Array<{ id: string; name: string }>;
-  wechat_limit_per_mp: number;
-  wechat_days_recent: number;
-  wechat_request_interval_seconds: number;
-  wechat_rate_limit_cooldown_minutes: number;
   // Output
   output_dir: string;
   log_level: string;
@@ -82,7 +74,7 @@ export interface NewLoreConfig {
 
 // ── schema (single source of truth: .newlore/config.schema.json) ─
 
-type FieldType = "string" | "int" | "string_list" | "mp_list";
+type FieldType = "string" | "int" | "string_list";
 
 interface SchemaField {
   key: keyof NewLoreConfig;
@@ -152,25 +144,6 @@ function parseList(value: string): string[] {
   return value.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
-function parseMpList(value: string): Array<{ id: string; name: string }> {
-  if (!value) return [];
-  if (value.startsWith("[")) {
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed) && parsed.every((v: unknown) => v && typeof v === "object" && "id" in v)) {
-        return parsed as Array<{ id: string; name: string }>;
-      }
-    } catch {
-      // fall through to manual parse
-    }
-  }
-  // Fallback: "id1|name1,id2|name2"
-  return value.split(",").map((s) => s.trim()).filter(Boolean).map((s) => {
-    const [id, name] = s.split("|").map((p) => p.trim());
-    return { id, name: name || id };
-  });
-}
-
 function parseFieldValue(field: SchemaField, raw: string | undefined): any {
   if (raw === undefined || raw === "") {
     return structuredClone(field.default);
@@ -184,8 +157,6 @@ function parseFieldValue(field: SchemaField, raw: string | undefined): any {
     }
     case "string_list":
       return parseList(raw);
-    case "mp_list":
-      return parseMpList(raw);
   }
 }
 

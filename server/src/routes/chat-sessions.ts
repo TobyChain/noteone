@@ -5,6 +5,7 @@ import { eq, desc, asc } from "drizzle-orm";
 import { AuthRequest } from "../middleware/auth.js";
 import { z } from "zod";
 import { findSession, processSessionMessage } from "../services/notty/session-service.js";
+import { isAgentLoopAbortError } from "../services/notty/agent-loop.js";
 import { getUserChatConfig } from "../services/user-config.js";
 import { isLLMConfigured } from "../services/llm.js";
 
@@ -103,9 +104,9 @@ router.post("/:id/messages", async (req: AuthRequest, res) => {
           req.userId!, req.params.id as string, parsed.data.message, controller.signal,
           (activity) => {
             if (activity.type === "start") {
-              send("tool_start", { name: activity.name, argsSummary: activity.argsSummary });
+              send("tool_start", { callId: activity.callId, name: activity.name, argsSummary: activity.argsSummary });
             } else {
-              send("tool_end", { name: activity.name, durationMs: activity.durationMs, preview: activity.preview });
+              send("tool_end", { callId: activity.callId, name: activity.name, durationMs: activity.durationMs, preview: activity.preview, isError: activity.isError });
             }
           },
           (text) => send("intermediate", { content: stripDSML(text) }),
@@ -116,7 +117,9 @@ router.post("/:id/messages", async (req: AuthRequest, res) => {
           send("message", { id: result.messageId, role: "assistant", content: stripDSML(result.reply) });
         }
       } catch (err) {
-        send("error", { error: err instanceof Error ? err.message : String(err) });
+        if (!isAgentLoopAbortError(err) && !controller.signal.aborted) {
+          send("error", { error: err instanceof Error ? err.message : String(err) });
+        }
       }
       if (!res.destroyed) res.end();
       return;

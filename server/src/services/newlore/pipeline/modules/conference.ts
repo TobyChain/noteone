@@ -357,7 +357,7 @@ async function fetchAllConferences(
   return filtered.slice(0, DEFAULT_MAX_TOTAL);
 }
 
-// ── LLM topic filter (similar to wechat's llmFilterArticles) ─────────────
+// ── LLM topic filter ─────────────────────────────────────────────────────
 
 const LLM_FILTER_THRESHOLD = 6;
 

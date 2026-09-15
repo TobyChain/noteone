@@ -40,9 +40,9 @@ struct ToolActivityRow: View {
                                 .font(.caption2)
                                 .foregroundStyle(Color.inkTertiary)
                         }
-                        Image(systemName: "checkmark")
+                        Image(systemName: activity.isError ? "xmark" : "checkmark")
                             .font(.caption2)
-                            .foregroundStyle(Color.success)
+                            .foregroundStyle(activity.isError ? Color.danger : Color.success)
                     }
 
                     if hasPreview {
@@ -64,10 +64,7 @@ struct ToolActivityRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Color.canvasSecondary.opacity(0.55))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.vertical, 3)
     }
 
     private var hasPreview: Bool {
@@ -77,7 +74,7 @@ struct ToolActivityRow: View {
 
     private var iconName: String {
         switch activity.name {
-        case "search_notes", "search_files", "search_web", "search_wechat_mp":
+        case "search_notes", "search_files", "search_web":
             return "magnifyingglass"
         case "read_note", "read_file", "get_newlore_report", "list_newlore_reports":
             return "doc.text"
@@ -91,8 +88,6 @@ struct ToolActivityRow: View {
             return "clock"
         case "start_newlore_supplement", "run_newlore_modules", "get_newlore_status":
             return "sparkles"
-        case "add_wechat_mp", "remove_wechat_mp", "list_wechat_mps":
-            return "bubble.left.and.bubble.right"
         case "add_blog_source", "remove_blog_source", "list_blog_sources":
             return "dot.radiowaves.left.and.right"
         case "get_newlore_config", "update_newlore_config", "get_newlore_preferences", "update_newlore_preferences":
@@ -102,8 +97,10 @@ struct ToolActivityRow: View {
         }
     }
 
-    private var displayName: String {
-        switch activity.name {
+    private var displayName: String { Self.displayName(for: activity.name) }
+
+    static func displayName(for name: String) -> String {
+        switch name {
         case "read_note": return L("读取笔记", "Read note")
         case "search_notes": return L("搜索笔记", "Search notes")
         case "web_fetch": return L("抓取网页", "Fetch webpage")
@@ -121,10 +118,6 @@ struct ToolActivityRow: View {
         case "list_newlore_reports": return L("新知报告列表", "List NewLore reports")
         case "get_newlore_report": return L("读取新知报告", "Read NewLore report")
         case "delete_newlore_report": return L("删除新知报告", "Delete NewLore report")
-        case "list_wechat_mps": return L("公众号列表", "List WeChat accounts")
-        case "search_wechat_mp": return L("搜索公众号", "Search WeChat accounts")
-        case "add_wechat_mp": return L("添加公众号", "Add WeChat account")
-        case "remove_wechat_mp": return L("移除公众号", "Remove WeChat account")
         case "list_blog_sources": return L("博客源列表", "List blog sources")
         case "add_blog_source": return L("添加博客源", "Add blog source")
         case "remove_blog_source": return L("移除博客源", "Remove blog source")
@@ -132,7 +125,7 @@ struct ToolActivityRow: View {
         case "update_newlore_config": return L("更新新知配置", "Update NewLore config")
         case "get_newlore_preferences": return L("查看新知偏好", "Get NewLore preferences")
         case "update_newlore_preferences": return L("更新新知偏好", "Update NewLore preferences")
-        default: return activity.name
+        default: return name
         }
     }
 }

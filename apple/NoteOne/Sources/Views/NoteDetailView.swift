@@ -1,4 +1,9 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 struct NoteDetailView: View {
     let noteId: String
@@ -12,6 +17,9 @@ struct NoteDetailView: View {
     @State private var isDeleted = false
     @State private var pollTimer: Timer?
     @State private var errorMessage: String?
+    @State private var isSelectingParagraphs = false
+    @State private var selectedParagraphIDs: Set<Int> = []
+    @State private var copiedText = false
 
     init(noteId: String, initialNote: Note? = nil) {
         self.noteId = noteId
@@ -98,6 +106,8 @@ struct NoteDetailView: View {
             note = initialNote
             isEditing = false
             isDeleted = false
+            isSelectingParagraphs = false
+            selectedParagraphIDs = []
             stopPolling()
         }
         .task(id: noteId) { await loadNote() }
@@ -113,18 +123,20 @@ struct NoteDetailView: View {
                 TrashedBanner(onRestore: restoreNote, onPermanentDelete: permanentDeleteNote)
                     .padding()
             }
-            HStack {
-                Text(note.title ?? L("无标题", "Untitled"))
-                    .font(.title2)
-                    .foregroundStyle(Color.ink)
-                Spacer()
-            }
-            .padding()
+            noteHeader(note)
+                .frame(maxWidth: 760, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, 48)
+                .padding(.top, 44)
+                .padding(.bottom, DG.sp20)
             Divider()
             NewLoreWebView(htmlContent: note.content) { _ in }
             Divider()
             MetaSection(note: note)
-                .padding()
+                .frame(maxWidth: 760, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, 48)
+                .padding(.vertical, DG.sp20)
         }
     }
 
@@ -140,11 +152,14 @@ struct NoteDetailView: View {
             if isEditing {
                 HStack {
                     TextField(L("标题", "Title"), text: $editTitle)
-                        .font(.title)
+                        .font(.system(size: 34, weight: .bold))
                         .textFieldStyle(.plain)
                     Spacer()
                 }
-                .padding()
+                .frame(maxWidth: 760)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 48)
+                .padding(.vertical, DG.sp20)
                 Divider()
                 if mdPreviewMode {
                     NewLoreWebView(htmlContent: MarkdownRenderer.render(markdown: editContent, title: editTitle)) { _ in }
@@ -153,21 +168,25 @@ struct NoteDetailView: View {
                         .font(.body)
                         .frame(minHeight: 400)
                         .scrollContentBackground(.hidden)
-                        .padding()
+                        .frame(maxWidth: 760)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 48)
                 }
             } else {
-                HStack {
-                    Text(note.title ?? L("无标题", "Untitled"))
-                        .font(.title2)
-                        .foregroundStyle(Color.ink)
-                    Spacer()
-                }
-                .padding()
+                noteHeader(note)
+                    .frame(maxWidth: 760, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 48)
+                    .padding(.top, 44)
+                    .padding(.bottom, DG.sp20)
                 Divider()
                 NewLoreWebView(htmlContent: MarkdownRenderer.render(markdown: note.content, title: note.title)) { _ in }
                 Divider()
                 MetaSection(note: note)
-                    .padding()
+                    .frame(maxWidth: 760, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 48)
+                    .padding(.vertical, DG.sp20)
             }
         }
     }
@@ -177,7 +196,7 @@ struct NoteDetailView: View {
     @ViewBuilder
     private func textNoteView(_ note: Note) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 6) {
+            LazyVStack(alignment: .leading, spacing: 0) {
                 if note.status == .trashed {
                     TrashedBanner(onRestore: restoreNote, onPermanentDelete: permanentDeleteNote)
                 } else if note.status == .pendingAi {
@@ -188,7 +207,7 @@ struct NoteDetailView: View {
 
                 if isEditing {
                     TextField(L("标题", "Title"), text: $editTitle)
-                        .font(.title)
+                        .font(.system(size: 34, weight: .bold))
                         .textFieldStyle(.plain)
                         .foregroundStyle(Color.ink)
                         .padding(.bottom, 8)
@@ -202,34 +221,70 @@ struct NoteDetailView: View {
                         .padding(.top, 4)
                 } else {
                     noteHeader(note)
-                        .padding(.bottom, 8)
+                        .padding(.bottom, DG.sp20)
 
-                    Divider()
+                    HStack(spacing: DG.sp8) {
+                        Button { toggleParagraphSelection() } label: {
+                            Label(
+                                isSelectingParagraphs ? L("取消选择", "Cancel selection") : L("选择段落", "Select paragraphs"),
+                                systemImage: isSelectingParagraphs ? "xmark" : "text.badge.plus"
+                            )
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+
+                        if isSelectingParagraphs {
+                            Text(L("已选 \(selectedParagraphIDs.count) 段", "\(selectedParagraphIDs.count) selected"))
+                                .font(.caption)
+                                .foregroundStyle(Color.inkSecondary)
+                        }
+
+                        Spacer()
+
+                        Button { copyReaderText(note) } label: {
+                            Label(copiedText ? L("已复制", "Copied") : L("复制", "Copy"), systemImage: copiedText ? "checkmark" : "doc.on.doc")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(isSelectingParagraphs && selectedParagraphIDs.isEmpty)
+                    }
+                    .padding(.vertical, DG.sp8)
+                    .overlay(alignment: .bottom) { Divider() }
+                    .padding(.bottom, DG.sp16)
 
                     ForEach(contentChunks(note.content)) { chunk in
-                        Text(chunk.text)
-                            .font(.body)
-                            .foregroundStyle(Color.ink)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        paragraphView(chunk)
                     }
 
                     Divider()
-                        .padding(.top, 8)
+                        .padding(.top, DG.sp24)
 
                     MetaSection(note: note)
                 }
             }
-            .padding()
+            .frame(maxWidth: 760, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 48)
+            .padding(.vertical, 52)
         }
+        .background(Color.canvas)
     }
 
     @ViewBuilder
     private func noteHeader(_ note: Note) -> some View {
         Text(note.title ?? L("无标题", "Untitled"))
-            .font(.title)
+            .font(.system(size: 36, weight: .bold))
             .foregroundStyle(Color.ink)
             .textSelection(.enabled)
+            .lineSpacing(2)
+
+        HStack(spacing: DG.sp8) {
+            if let app = note.sourceApp { Label(app, systemImage: "square.stack.3d.up") }
+            if let author = note.author { Label(author, systemImage: "person") }
+            Label(note.createdAt.formatted(date: .abbreviated, time: .omitted), systemImage: "calendar")
+        }
+        .font(.caption)
+        .foregroundStyle(Color.inkTertiary)
 
         if let summary = note.aiSummary {
             Text(summary)
@@ -237,7 +292,11 @@ struct NoteDetailView: View {
                 .foregroundStyle(Color.inkSecondary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .cardStyle(padding: DG.sp12)
+                .padding(.vertical, DG.sp8)
+                .padding(.leading, DG.sp12)
+                .overlay(alignment: .leading) {
+                    Rectangle().fill(Color.accent.opacity(0.55)).frame(width: 3)
+                }
         }
 
         if let tags = note.tags, !tags.isEmpty {
@@ -266,6 +325,63 @@ struct NoteDetailView: View {
     private struct ContentChunk: Identifiable {
         let id: Int
         let text: String
+    }
+
+    @ViewBuilder
+    private func paragraphView(_ chunk: ContentChunk) -> some View {
+        if isSelectingParagraphs {
+            Button { toggleParagraph(chunk.id) } label: {
+                HStack(alignment: .top, spacing: DG.sp12) {
+                    Image(systemName: selectedParagraphIDs.contains(chunk.id) ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(selectedParagraphIDs.contains(chunk.id) ? Color.accent : Color.inkTertiary)
+                        .padding(.top, 4)
+                    Text(chunk.text)
+                        .font(.system(size: 17))
+                        .lineSpacing(7)
+                        .foregroundStyle(Color.ink)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(DG.sp12)
+                .background(selectedParagraphIDs.contains(chunk.id) ? Color.accent.opacity(0.08) : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: DG.r8))
+            }
+            .buttonStyle(.plain)
+            .padding(.vertical, 3)
+        } else {
+            Text(chunk.text)
+                .font(.system(size: 17))
+                .lineSpacing(7)
+                .foregroundStyle(Color.ink)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, DG.sp16)
+        }
+    }
+
+    private func toggleParagraphSelection() {
+        isSelectingParagraphs.toggle()
+        selectedParagraphIDs.removeAll()
+    }
+
+    private func toggleParagraph(_ id: Int) {
+        if selectedParagraphIDs.contains(id) { selectedParagraphIDs.remove(id) }
+        else { selectedParagraphIDs.insert(id) }
+    }
+
+    private func copyReaderText(_ note: Note) {
+        let text = isSelectingParagraphs
+            ? contentChunks(note.content).filter { selectedParagraphIDs.contains($0.id) }.map(\.text).joined(separator: "\n\n")
+            : note.content
+        guard !text.isEmpty else { return }
+        #if os(macOS)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        #else
+        UIPasteboard.general.string = text
+        #endif
+        copiedText = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copiedText = false }
     }
 
     /// Splits note content into paragraph-level chunks (split on blank lines, i.e. `\n\n`+)
@@ -494,30 +610,15 @@ private struct FlowTagsView: View {
     let tags: [NoteTag]
 
     var body: some View {
-        HStack(spacing: 0) {
-            let wrapped = wrappedTags()
-            VStack(alignment: .leading, spacing: DG.sp4) {
-                ForEach(wrapped.indices, id: \.self) { rowIdx in
-                    HStack(spacing: DG.sp4) {
-                        ForEach(wrapped[rowIdx], id: \.tagId) { tag in
-                            TagPill(text: "#\(tag.name)", color: colorForDimension(tag.dimension))
-                        }
-                    }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: DG.sp8) {
+                ForEach(tags, id: \.tagId) { tag in
+                    TagPill(text: "#\(tag.name)", color: colorForDimension(tag.dimension))
+                        .fixedSize()
                 }
             }
-            Spacer()
         }
-    }
-
-    private func wrappedTags() -> [[NoteTag]] {
-        var rows: [[NoteTag]] = [[]]
-        for tag in tags {
-            rows[rows.count - 1].append(tag)
-            if rows[rows.count - 1].count >= 5 {
-                rows.append([])
-            }
-        }
-        return rows.filter { !$0.isEmpty }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func colorForDimension(_ dimension: String) -> Color {

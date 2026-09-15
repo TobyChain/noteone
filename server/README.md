@@ -89,7 +89,6 @@ The server reads/writes its config in `.newlore/.env`（dev 模式；内嵌模�
 | `POST /api/newlore/merge` | Merge already-run module fragments into a report |
 | `POST /api/newlore/abort` | Abort a running pipeline (kills pid) |
 | `GET /api/newlore/status` | Check run status + recent log lines |
-| `GET /api/newlore/wechat-health` | Check the built-in WeChat MP integration (login state) |
 | `POST /api/newlore/summarize` | Generate LLM one-sentence summary for a report |
 
 ### 闹闹 tools (chat-sessions)
@@ -114,8 +113,8 @@ FarView filters built-in English/Chinese stopwords, source boilerplate, URLs, ve
 
 ### `DELETE /api/account`
 
-Permanently delete all installation-local data: user-owned rows, NewLore history, WeChat
-sessions, reports, logs, configuration, and uploaded files. **Irrevocable.**
+Permanently delete all installation-local data: user-owned rows, NewLore history,
+legacy crawler rows, reports, logs, configuration, and uploaded files. **Irrevocable.**
 
 Response: `204 No Content`.
 

@@ -13,7 +13,7 @@ export const PRESETS: NewLorePreset[] = [
     name: "默认推荐",
     description: "覆盖 AI + 全栈 + 电商方向，适合大多数用户",
     config: {
-      enabled_modules: ["official", "blog", "github", "arxiv", "conference", "wechat"],
+      enabled_modules: ["official", "blog", "github", "arxiv", "conference"],
       github_topics: [
         "ai-agent", "llm-agent", "rag", "multi-agent", "chatbot",
         "recommendation-system", "e-commerce", "web-framework",

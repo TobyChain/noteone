@@ -31,7 +31,6 @@
 		29B03C832D82CADE94C2F67B /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */; };
 		2B8C5F1D4C871851581171BA /* MCPInstallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF28AE8C3C361172D698542 /* MCPInstallView.swift */; };
 		2BC4131212ABE644E3B8DAEA /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76C21DFC46974BFDA55F2506 /* Tag.swift */; };
-		32B81D1B2D186399D5F7F9D0 /* WechatConfigSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B779E3EEA5B5ACB09EF434 /* WechatConfigSheet.swift */; };
 		3388C8E60E0175207F77FCD8 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */; };
 		339AF008D8024E6745D78291 /* NottyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9509847332E1CD6E94D93766 /* NottyView.swift */; };
 		33B4CC413235ADFB4F98AF3F /* NewLoreReportDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AD7C4D83F4151F51D8674B8 /* NewLoreReportDetailView.swift */; };
@@ -47,7 +46,6 @@
 		5522E8F058903BAD34A782AE /* PermissionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B43D3DCBF4D9A10F4303C922 /* PermissionCoordinator.swift */; };
 		5802ECF1F8EF845155DFD2C4 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76C21DFC46974BFDA55F2506 /* Tag.swift */; };
 		58F5346BC6D2D527DB1810AB /* ReportScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E6049FD1E08FF125D9F2C7 /* ReportScheduler.swift */; };
-		5AAC27E42588329568F30FAE /* WechatConfigSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B779E3EEA5B5ACB09EF434 /* WechatConfigSheet.swift */; };
 		5B58EE786CB9CAD87EDAD099 /* NewLoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E83B35FC70B0B774078D27 /* NewLoreView.swift */; };
 		5E37CEDE27F2B3C18154E873 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */; };
 		5E832B4DC576E1968F35A1D0 /* FarViewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5352661C215A0B69D893E5 /* FarViewView.swift */; };
@@ -135,7 +133,6 @@
 		130B5BBA5A1DD8DA162CE49D /* NotePaginationStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotePaginationStateTests.swift; sourceTree = "<group>"; };
 		14E6C7017395B182C0EB0733 /* SyncQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncQueue.swift; sourceTree = "<group>"; };
 		1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		22B779E3EEA5B5ACB09EF434 /* WechatConfigSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WechatConfigSheet.swift; sourceTree = "<group>"; };
 		22EE3101A64438BCED0107F8 /* NewLoreConfigSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewLoreConfigSheet.swift; sourceTree = "<group>"; };
 		28E83B35FC70B0B774078D27 /* NewLoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewLoreView.swift; sourceTree = "<group>"; };
 		299BB6DDC2A846F60D72E1F0 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
@@ -315,7 +312,6 @@
 				22EE3101A64438BCED0107F8 /* NewLoreConfigSheet.swift */,
 				3209DBAABBCAFA02465832EF /* PermissionViews.swift */,
 				37F332F07FEEED5830F8D113 /* ShareSheet.swift */,
-				22B779E3EEA5B5ACB09EF434 /* WechatConfigSheet.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -558,7 +554,6 @@
 				25DBE5C91BD9DA63F932CF98 /* TrashView.swift in Sources */,
 				DB918CB34CC939B90F2DCA24 /* UnifiedSettingsView.swift in Sources */,
 				D0C3980D68CD8C8468A34135 /* UpdateChecker.swift in Sources */,
-				5AAC27E42588329568F30FAE /* WechatConfigSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -627,7 +622,6 @@
 				DB89638BBDCE0136E772803D /* TrashView.swift in Sources */,
 				E2C4A2A8486497040D2ED8F8 /* UnifiedSettingsView.swift in Sources */,
 				67B75806CAC5C949D5DA3D54 /* UpdateChecker.swift in Sources */,
-				32B81D1B2D186399D5F7F9D0 /* WechatConfigSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -651,7 +645,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = NoteOne/NoteOne.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = NoteOne/NoteOne.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = NoteOne/NoteOne.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 6;
 				INFOPLIST_FILE = NoteOne/Info.plist;
@@ -754,7 +749,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = NoteOne/NoteOne.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = NoteOne/NoteOne.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = NoteOne/NoteOne.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 6;
 				INFOPLIST_FILE = NoteOne/Info.plist;
@@ -898,7 +894,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = NoteOne/NoteOne.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = NoteOne/NoteOne.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = NoteOne/NoteOne.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 6;
 				INFOPLIST_FILE = NoteOne/Info.plist;
@@ -918,7 +915,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = NoteOne/NoteOne.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = NoteOne/NoteOne.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = NoteOne/NoteOne.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 6;
 				INFOPLIST_FILE = NoteOne/Info.plist;

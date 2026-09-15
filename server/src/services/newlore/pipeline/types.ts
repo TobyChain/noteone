@@ -30,13 +30,13 @@ export interface NewLorePreferences {
   focus?: string;
   /** 长期兴趣主题，如 "LLM, Agent, Web3" */
   topics?: string;
-  /** 模块显示顺序，默认 official→blog→github→arxiv→conference→wechat */
+  /** 模块显示顺序，默认 official→blog→github→arxiv→conference */
   moduleOrder?: NewLoreModuleName[];
 }
 
 export type ModuleRunner = (ctx: ModuleContext) => Promise<ModuleResult>;
 
-export type NewLoreModuleName = "arxiv" | "github" | "official" | "blog" | "conference" | "wechat";
+export type NewLoreModuleName = "arxiv" | "github" | "official" | "blog" | "conference";
 
 export const MODULE_LABELS_ZH: Record<NewLoreModuleName, string> = {
   official: "官方动态跟踪",
@@ -44,7 +44,6 @@ export const MODULE_LABELS_ZH: Record<NewLoreModuleName, string> = {
   github: "GitHub 项目挖掘",
   arxiv: "arXiv 论文精选",
   conference: "会议论文追踪",
-  wechat: "微信公众号",
 };
 
 export const MODULE_LABELS_EN: Record<NewLoreModuleName, string> = {
@@ -53,7 +52,6 @@ export const MODULE_LABELS_EN: Record<NewLoreModuleName, string> = {
   github: "GitHub Projects",
   arxiv: "arXiv Papers",
   conference: "Conference Papers",
-  wechat: "WeChat Articles",
 };
 
 /** Default (Chinese) module labels — kept for backward compatibility. */

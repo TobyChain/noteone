@@ -16,18 +16,20 @@ struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
 
 /// One tool invocation by Notty, rendered as a collapsible row in the chat flow.
 struct ToolActivity: Codable, Identifiable, Sendable, Equatable {
-    let id: UUID
+    let id: String
     var name: String
     var argsSummary: String?
     var resultPreview: String?
     var durationMs: Int?
     var isRunning: Bool
+    var isError: Bool
 
-    init(name: String, argsSummary: String? = nil) {
-        self.id = UUID()
+    init(id: String = UUID().uuidString, name: String, argsSummary: String? = nil) {
+        self.id = id
         self.name = name
         self.argsSummary = argsSummary
         self.isRunning = true
+        self.isError = false
     }
 }
 

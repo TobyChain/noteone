@@ -63,7 +63,6 @@ struct PermissionOnboardingView: View {
                 Spacer()
 
                 Button(L("继续使用壹识", "Continue to NoteOne")) {
-                    coordinator.completeOnboarding()
                     onContinue()
                 }
                 .buttonStyle(.borderedProminent)
@@ -92,6 +91,7 @@ struct PermissionOnboardingView: View {
 struct PermissionSettingsView: View {
     @ObservedObject private var coordinator = PermissionCoordinator.shared
     @ObservedObject private var hotkeyManager = HotkeyManager.shared
+    @AppStorage(HotkeyConfig.browserMetadataEnabledKey) private var browserMetadataEnabled = false
 
     var body: some View {
         HotkeyRecorderField()
@@ -126,6 +126,18 @@ struct PermissionSettingsView: View {
                         coordinator.openAccessibilitySettings()
                     }
                 }
+            }
+        }
+
+        Toggle(isOn: $browserMetadataEnabled) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L("读取浏览器页面信息", "Read Browser Page Info"))
+                Text(L(
+                    "默认关闭。开启后，只有在浏览器中按下快捷键时才可能请求一次系统授权。",
+                    "Off by default. When enabled, macOS may ask once only after you press the shortcut in a browser."
+                ))
+                .font(.caption)
+                .foregroundStyle(Color.inkSecondary)
             }
         }
         .onAppear { coordinator.refresh() }

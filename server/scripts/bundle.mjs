@@ -7,7 +7,7 @@
  *     server.mjs            — esbuild single-file bundle (ESM, node platform)
  *     node_modules/         — only @electric-sql/* (PGlite WASM assets can't be inlined)
  *     drizzle/              — migration files (applied on first embedded boot)
- *     public/               — /wechat config page
+ *     public/               — NewLore config page
  *     config.schema.json    — newlore config schema
  *     data/                 — pipeline data assets (ccf_conferences.yaml)
  *
@@ -45,7 +45,8 @@ for (const pkg of ["@electric-sql/pglite", "@electric-sql/pglite-pgvector"]) {
 }
 
 cpSync(join(ROOT, "drizzle"), join(OUT, "drizzle"), { recursive: true });
-cpSync(join(ROOT, "public"), join(OUT, "public"), { recursive: true });
+mkdirSync(join(OUT, "public"), { recursive: true });
+cpSync(join(ROOT, "public", "newlore"), join(OUT, "public", "newlore"), { recursive: true });
 cpSync(join(ROOT, ".newlore/config.schema.json"), join(OUT, "config.schema.json"));
 cpSync(join(ROOT, "src/services/newlore/pipeline/data"), join(OUT, "data"), { recursive: true });
 cpSync(join(ROOT, "src/services/notty/resources"), join(OUT, "notty-resources"), { recursive: true });

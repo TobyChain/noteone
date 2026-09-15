@@ -52,64 +52,88 @@ final class NotePaginationStateTests: XCTestCase {
         XCTAssertEqual(HotkeyConfig.carbonModifiers(from: rawValue), expected)
     }
 
-    /// Completing permission onboarding must suppress it on later launches for the same defaults suite.
+    /// Shortcut-driven selection capture must never open a system prompt implicitly.
     @MainActor
-    func testPermissionOnboardingIsShownOnlyUntilCompleted() {
-        let suiteName = "PermissionCoordinatorTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-
-        let coordinator = PermissionCoordinator(defaults: defaults)
-        XCTAssertTrue(coordinator.shouldPresentOnboarding)
-
-        coordinator.completeOnboarding()
-
-        XCTAssertFalse(coordinator.shouldPresentOnboarding)
-    }
-
-    /// Shortcut-driven permission requests must not recur after the first system prompt.
-    @MainActor
-    func testSelectionCapturePromptsAtMostOnceAutomatically() {
-        let suiteName = "PermissionCoordinatorTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defer { defaults.removePersistentDomain(forName: suiteName) }
+    func testSelectionCaptureNeverPromptsImplicitly() {
         var requestCount = 0
         let coordinator = PermissionCoordinator(
-            defaults: defaults,
             accessibilityStatus: { false },
             accessibilityRequest: {
                 requestCount += 1
                 return false
-            },
-            appFingerprint: "build-a"
+            }
         )
 
-        XCTAssertFalse(coordinator.prepareForSelectionCapture())
-        XCTAssertFalse(coordinator.prepareForSelectionCapture())
-        XCTAssertEqual(requestCount, 1)
+        XCTAssertFalse(coordinator.canCaptureSelectionWithoutPrompt())
+        XCTAssertFalse(coordinator.canCaptureSelectionWithoutPrompt())
+        XCTAssertEqual(requestCount, 0)
     }
 
-    /// A replaced ad-hoc binary may request a new TCC entry once without prompting every launch.
+    /// The system prompt remains available after an explicit Settings action.
     @MainActor
-    func testSelectionCaptureCanPromptOnceForANewBuild() {
-        let suiteName = "PermissionCoordinatorTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        defaults.set("build-a", forKey: PermissionCoordinator.accessibilityPromptedBuildKey)
+    func testSelectionCapturePromptsAfterExplicitAction() {
         var requestCount = 0
         let coordinator = PermissionCoordinator(
-            defaults: defaults,
             accessibilityStatus: { false },
             accessibilityRequest: {
                 requestCount += 1
                 return false
-            },
-            appFingerprint: "build-b"
+            }
         )
 
-        XCTAssertFalse(coordinator.prepareForSelectionCapture())
-        XCTAssertFalse(coordinator.prepareForSelectionCapture())
+        XCTAssertFalse(coordinator.requestAccessibility())
         XCTAssertEqual(requestCount, 1)
+    }
+
+    func testBrowserMetadataCaptureIsOffByDefault() {
+        let suiteName = "HotkeyConfigTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        XCTAssertFalse(HotkeyConfig.browserMetadataEnabled(in: defaults))
+        defaults.set(true, forKey: HotkeyConfig.browserMetadataEnabledKey)
+        XCTAssertTrue(HotkeyConfig.browserMetadataEnabled(in: defaults))
+    }
+
+    @MainActor
+    func testNottyHistoryKeepsDuplicateToolNamesPairedByCallID() {
+        let now = Date()
+        let calls = [
+            StoredToolCall(id: "call-a", function: .init(name: "search_web", arguments: #"{"query":"A"}"#)),
+            StoredToolCall(id: "call-b", function: .init(name: "search_web", arguments: #"{"query":"B"}"#)),
+        ]
+        let history = [
+            ServerChatMessage(id: "1", sessionId: "s", role: "assistant", content: "", isSummary: false, toolCalls: calls, toolCallId: nil, createdAt: now),
+            ServerChatMessage(id: "2", sessionId: "s", role: "tool", content: "result B", isSummary: false, toolCalls: nil, toolCallId: "call-b", createdAt: now),
+            ServerChatMessage(id: "3", sessionId: "s", role: "tool", content: "result A", isSummary: false, toolCalls: nil, toolCallId: "call-a", createdAt: now),
+            ServerChatMessage(id: "4", sessionId: "s", role: "assistant", content: "done", isSummary: false, toolCalls: nil, toolCallId: nil, createdAt: now),
+        ]
+
+        let mapped = NottyView.mapHistory(history)
+
+        XCTAssertEqual(mapped.last?.toolActivities.map(\.id), ["call-a", "call-b"])
+        XCTAssertEqual(mapped.last?.toolActivities.map(\.resultPreview), ["result A", "result B"])
+    }
+
+    func testNottyFormatsWideMarkdownTablesForTheSidebar() {
+        let markdown = "| 状态 | 任务 |\n|---|---|\n| 启用 | 每日新知 |"
+        XCTAssertEqual(NottySidebarText.format(markdown), "• 状态：启用 · 任务：每日新知")
+    }
+
+    func testMacSyncQueueDoesNotResolveTheShareExtensionContainer() {
+        let support = URL(fileURLWithPath: "/tmp/noteone-support", isDirectory: true)
+        var appGroupLookupCount = 0
+
+        let result = SyncQueue.storageDirectory(
+            applicationSupportDirectory: support,
+            appGroupContainer: {
+                appGroupLookupCount += 1
+                return URL(fileURLWithPath: "/tmp/noteone-group", isDirectory: true)
+            }
+        )
+
+        XCTAssertEqual(result, support.appendingPathComponent("NoteOne", isDirectory: true))
+        XCTAssertEqual(appGroupLookupCount, 0)
     }
 
     /// The standard titlebar close button must dismiss the floating capture panel.

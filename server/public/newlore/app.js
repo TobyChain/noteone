@@ -15,7 +15,6 @@
     { key: "github", label: "GitHub 项目挖掘" },
     { key: "arxiv", label: "arXiv 论文精选" },
     { key: "conference", label: "会议论文追踪" },
-    { key: "wechat", label: "微信公众号" },
   ];
 
   function toast(msg) {
@@ -80,8 +79,9 @@
   // ── 模块开关 ────────────────────────────────────────────────
 
   function renderModules() {
-    const enabled = new Set(config.enabled_modules && config.enabled_modules.length
-      ? config.enabled_modules
+    const configured = Array.isArray(config.enabled_modules) ? config.enabled_modules : [];
+    const enabled = new Set(configured.length
+      ? configured.filter((key) => ALL_MODULES.some((mod) => mod.key === key))
       : ALL_MODULES.map((m) => m.key));
     $("module-count").textContent = `${enabled.size}/${ALL_MODULES.length} 启用`;
     const list = $("module-list");
@@ -99,8 +99,9 @@
       const slider = document.createElement("span");
       slider.className = "slider";
       input.onchange = async () => {
-        const current = new Set(config.enabled_modules && config.enabled_modules.length
-          ? config.enabled_modules
+        const configured = Array.isArray(config.enabled_modules) ? config.enabled_modules : [];
+        const current = new Set(configured.length
+          ? configured.filter((key) => ALL_MODULES.some((mod) => mod.key === key))
           : ALL_MODULES.map((m) => m.key));
         if (input.checked) current.add(mod.key);
         else current.delete(mod.key);
@@ -119,20 +120,6 @@
       item.append(label, sw);
       list.appendChild(item);
     }
-  }
-
-  // ── 微信公众号 ──────────────────────────────────────────────
-
-  function renderMpSummary() {
-    const mps = config.wechat_mp_ids || [];
-    $("mp-count").textContent = `${mps.length} 个`;
-    $("mp-summary").textContent = mps.length
-      ? `已订阅：${mps.map((m) => m.name).join("、")}`
-      : "尚未订阅公众号。点击管理后扫码登录并搜索添加。";
-    const url = new URL("/wechat/", location.origin);
-    if (jwt) url.searchParams.set("token", jwt);
-    $("open-wechat").href = url.toString();
-    $("open-wechat").target = "_blank";
   }
 
   // ── 博客信息源 ──────────────────────────────────────────────
@@ -192,7 +179,6 @@
 
   function renderAll() {
     renderModules();
-    renderMpSummary();
     renderBlogSources();
     $("arxiv-subjects").value = (config.arxiv_subjects || []).join(", ");
     $("arxiv-offset").value = config.arxiv_date_offset_days ?? 1;

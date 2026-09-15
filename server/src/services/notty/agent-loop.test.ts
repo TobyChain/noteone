@@ -10,7 +10,7 @@ vi.mock("../llm.js", () => ({
   isLLMConfigured: () => true,
 }));
 
-import { runAgentLoop, type ToolDefinition } from "./agent-loop.js";
+import { AgentLoopAbortError, runAgentLoop, type ToolDefinition } from "./agent-loop.js";
 
 function assistantMsg(content: string | null, toolCalls?: any[]) {
   return { choices: [{ message: { role: "assistant", content, tool_calls: toolCalls } }] };
@@ -226,5 +226,84 @@ describe("runAgentLoop", () => {
     expect(assistant.tool_calls[0].id).toMatch(/^call_/);
     expect(toolResult.tool_call_id).toBe(assistant.tool_calls[0].id);
     expect(echo).toHaveBeenCalledWith({ value: 1 });
+  });
+
+  it("keeps tool-call ids unique across model rounds", async () => {
+    scriptResponses([
+      assistantMsg(null, [toolCall("reused-id", "echo", { value: 1 })]),
+      assistantMsg(null, [toolCall("reused-id", "echo", { value: 2 })]),
+      assistantMsg("done"),
+    ]);
+    const starts: string[] = [];
+
+    await runAgentLoop(baseMessages as any, tools, { echo: async () => "ok" }, {
+      llmConfig: { baseUrl: "http://test", apiKey: "sk-test", model: "test-model" } as any,
+      onToolStart: ({ callId }) => starts.push(callId),
+    });
+
+    expect(starts[0]).toBe("reused-id");
+    expect(starts[1]).toMatch(/^call_/);
+    expect(new Set(starts).size).toBe(2);
+  });
+
+  it("keeps duplicate same-name tool activity paired by call id", async () => {
+    scriptResponses([
+      assistantMsg(null, [
+        toolCall("same-name-a", "list_blog_sources", { value: 1 }),
+        toolCall("same-name-b", "list_blog_sources", { value: 2 }),
+      ]),
+      assistantMsg("done"),
+    ]);
+    const starts: string[] = [];
+    const ends: string[] = [];
+
+    await runAgentLoop(baseMessages as any, orderedTools, {
+      list_blog_sources: async ({ value }) => {
+        if (value === 1) await new Promise((resolve) => setTimeout(resolve, 10));
+        return String(value);
+      },
+    }, {
+      llmConfig: { baseUrl: "http://test", apiKey: "sk-test", model: "test-model" } as any,
+      cacheScope: "duplicate-name-test",
+      onToolStart: ({ callId }) => starts.push(callId),
+      onToolEnd: ({ callId }) => ends.push(callId),
+    });
+
+    expect(starts).toEqual(["same-name-a", "same-name-b"]);
+    expect(ends).toEqual(["same-name-b", "same-name-a"]);
+  });
+
+  it("rejects cancellation instead of returning assistant content", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(runAgentLoop(baseMessages as any, tools, { echo: async () => "ok" }, {
+      llmConfig: { baseUrl: "http://test", apiKey: "sk-test", model: "test-model" } as any,
+      signal: controller.signal,
+    })).rejects.toBeInstanceOf(AgentLoopAbortError);
+    expect(llmFetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not misclassify a provider timeout as a user cancellation", async () => {
+    llmFetchMock.mockRejectedValueOnce(new DOMException("provider timeout", "AbortError"));
+
+    await expect(runAgentLoop(baseMessages as any, tools, { echo: async () => "ok" }, {
+      llmConfig: { baseUrl: "http://test", apiKey: "sk-test", model: "test-model" } as any,
+    })).rejects.toMatchObject({ name: "AbortError", message: "provider timeout" });
+  });
+
+  it("marks failed tool executions as errors in lifecycle events", async () => {
+    scriptResponses([
+      assistantMsg(null, [toolCall("failed-call", "echo", {})]),
+      assistantMsg("done"),
+    ]);
+    const endings: Array<{ callId: string; isError: boolean }> = [];
+
+    await runAgentLoop(baseMessages as any, tools, { echo: async () => { throw new Error("boom"); } }, {
+      llmConfig: { baseUrl: "http://test", apiKey: "sk-test", model: "test-model" } as any,
+      onToolEnd: ({ callId, isError }) => endings.push({ callId, isError }),
+    });
+
+    expect(endings).toEqual([{ callId: "failed-call", isError: true }]);
   });
 });

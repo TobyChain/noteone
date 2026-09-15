@@ -11,7 +11,6 @@ import { attachPromptTags } from "./services/prompt-tagging.js";
 import { listReports, getReport, deleteReport } from "./services/newlore/reports.js";
 import { getRunStatus, runModule, mergeReport } from "./services/newlore/runner.js";
 import { getUserChatConfig } from "./services/user-config.js";
-import { checkWechatHealth } from "./services/wechat/service.js";
 
 const server = new McpServer({
   name: "noteone",
@@ -279,7 +278,7 @@ server.tool(
 
 server.tool(
   "get_ascan_status",
-  "查看新知 pipeline 的运行状态，包括微信公众号登录状态",
+  "查看新知 pipeline 的运行状态",
   {},
   async () => {
     const status = await getRunStatus();
@@ -288,33 +287,7 @@ server.tool(
       status.recentLog ? `最新日志: ${status.recentLog}` : null,
       status.lockAge ? `锁文件时长: ${status.lockAge}` : null,
     ].filter(Boolean);
-    const health = await checkWechatHealth(await getUserId());
-    const healthLabel = {
-      ready: `已登录（${health.nickname || ""}，有效期至 ${health.expiresAt || "?"}）`,
-      rate_limited: `已登录，但文章接口频率限制中（${health.message || "请稍后重试"}）`,
-      auth_expired: "登录已过期，请重新扫码登录",
-      unconfigured: "尚未扫码登录",
-      unreachable: `无法连接：${health.message || ""}`,
-    }[health.status];
-    parts.push(`微信公众号: ${healthLabel}`);
     return { content: [{ type: "text" as const, text: parts.join("\n") }] };
-  }
-);
-
-server.tool(
-  "check_wechat_health",
-  "检查微信公众号登录及文章接口状态。返回状态：ready（已就绪）、rate_limited（文章接口限流）、auth_expired（登录已过期）、unconfigured（未配置）、unreachable（无法连接）。",
-  {},
-  async () => {
-    const health = await checkWechatHealth(await getUserId());
-    const labels = {
-      ready: `微信公众号登录正常（${health.nickname || ""}，有效期至 ${health.expiresAt || "?"}）`,
-      rate_limited: `微信公众号已登录，但文章接口频率限制中：${health.message || "请稍后重试"}`,
-      auth_expired: "微信公众号登录已过期，请重新扫码登录（打开服务端 /wechat/ 页面重新扫码）",
-      unconfigured: "微信公众号尚未扫码登录，请打开服务端 /wechat/ 页面扫码登录",
-      unreachable: `微信公众号无法连接：${health.message || "未知错误"}`,
-    };
-    return { content: [{ type: "text" as const, text: labels[health.status] }] };
   }
 );
 
@@ -341,26 +314,16 @@ server.tool(
 
 server.tool(
   "run_ascan_module",
-  "运行新知的单个模块（阻塞，可能耗时 1-5 分钟）。模块：arxiv/github/official/blog/conference/wechat。补充新知时依次调用各模块，再 merge_ascan_report 合并。",
+  "运行新知的单个模块（阻塞，可能耗时 1-5 分钟）。模块：arxiv/github/official/blog/conference。补充新知时依次调用各模块，再 merge_ascan_report 合并。",
   {
-    module: z.enum(["arxiv", "github", "official", "blog", "conference", "wechat"]),
+    module: z.enum(["arxiv", "github", "official", "blog", "conference"]),
     date: z.string().optional().describe("报告日期 YYYYMMDD，默认今天"),
   },
   async ({ module, date }) => {
     const userId = await getUserId();
     const llmConfig = await getUserChatConfig(userId);
     const r = await runModule(module, date, llmConfig, userId);
-    let text = `${module} 模块${r.ok ? "完成" : "失败"}：${r.chars} 字符${r.error ? "；错误：" + r.error : ""}`;
-    if (module === "wechat") {
-      const health = await checkWechatHealth(userId);
-      if (health.status === "auth_expired") {
-        text += `\n⚠️ 微信公众号登录已过期，请重新扫码登录（打开 /wechat/ 页面重新扫码）。`;
-      } else if (health.status === "unconfigured") {
-        text += `\n⚠️ 微信公众号尚未扫码登录，无法抓取文章。`;
-      } else if (health.status === "rate_limited") {
-        text += `\n⚠️ 微信公众号已登录，但文章接口频率限制中：${health.message || "请稍后重试"}`;
-      }
-    }
+    const text = `${module} 模块${r.ok ? "完成" : "失败"}：${r.chars} 字符${r.error ? "；错误：" + r.error : ""}`;
     return { content: [{ type: "text" as const, text }] };
   }
 );

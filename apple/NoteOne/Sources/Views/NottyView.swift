@@ -18,24 +18,30 @@ struct NottyView: View {
     @State private var llmConfigured: Bool? = nil
     @State private var showLLMNotConfiguredAlert = false
     @State private var liveActivities: [ToolActivity] = []
+    @State private var responseTask: Task<Void, Never>?
+    @FocusState private var composerFocused: Bool
     var onClose: (() -> Void)? = nil
 
     private let promptSuggestions: [String] = [
-        L("帮我补充今日新知", "Help me supplement today's NewLore"),
-        L("每天 8 点自动补充新知", "Auto-supplement NewLore every day at 8 AM"),
-        L("搜索本地文件里的 TODO", "Search for TODOs in local files"),
-        L("列出桌面上的文件", "List files on the Desktop"),
+        L("搜索我的笔记并读取原文", "Search my notes and read the sources"),
+        L("联网搜索最近的 Agent 进展并附链接", "Search the web for recent agent advances with links"),
+        L("比较我的笔记与最新网络信息", "Compare my notes with current web information"),
     ]
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
+            HStack(spacing: DG.sp8) {
                 Image("NottyAvatar")
                     .resizable()
-                    .frame(width: 28, height: 28)
+                    .frame(width: 26, height: 26)
                     .clipShape(Circle())
-                Text(L("闹闹", "Notty"))
-                    .font(.headline)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(L("闹闹", "Notty"))
+                        .font(.headline)
+                    Text(isLoading ? L("正在工作", "Working") : L("可读取笔记与联网搜索", "Notes and web search ready"))
+                        .font(.caption2)
+                        .foregroundStyle(Color.inkTertiary)
+                }
 
                 Spacer()
 
@@ -44,12 +50,14 @@ struct NottyView: View {
                         .foregroundStyle(Color.inkSecondary)
                 }
                 .buttonStyle(.plain)
+                .disabled(isLoading)
 
                 Button { showSessionList.toggle() } label: {
                     Image(systemName: "clock.arrow.circlepath")
                         .foregroundStyle(Color.inkSecondary)
                 }
                 .buttonStyle(.plain)
+                .disabled(isLoading)
                 .popover(isPresented: $showSessionList) {
                     SessionListPopover(
                         sessions: sessions,
@@ -68,7 +76,8 @@ struct NottyView: View {
                 .buttonStyle(.plain)
                 #endif
             }
-            .padding()
+            .padding(.horizontal, DG.sp16)
+            .padding(.vertical, DG.sp12)
 
             Divider()
 
@@ -98,26 +107,6 @@ struct NottyView: View {
                             .equatable()
                             .id(msg.id)
                         }
-                        if !liveActivities.isEmpty {
-                            VStack(alignment: .leading, spacing: 4) {
-                                ForEach(liveActivities) { activity in
-                                    ToolActivityRow(activity: activity)
-                                }
-                            }
-                            .padding(.leading, 12)
-                            .id("activities")
-                        }
-                        if isLoading {
-                            HStack(spacing: 6) {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Text(L("Notty 思考中...", "Notty is thinking..."))
-                                    .font(.caption)
-                                    .foregroundStyle(Color.inkTertiary)
-                            }
-                            .padding(.leading, 12)
-                            .id("loading")
-                        }
                     }
                     .padding()
                 }
@@ -128,20 +117,37 @@ struct NottyView: View {
                         proxy.scrollTo(last.id, anchor: .bottom)
                     }
                 }
-                .onChange(of: liveActivities.count) {
-                    if !liveActivities.isEmpty {
-                        proxy.scrollTo("activities", anchor: .bottom)
-                    }
-                }
             }
 
-            Divider()
+            if isLoading {
+                VStack(alignment: .leading, spacing: DG.sp8) {
+                    HStack(spacing: DG.sp8) {
+                        ProgressView().controlSize(.small)
+                        Text(liveActivities.last.map { activityStatus($0) } ?? L("正在理解问题", "Understanding request"))
+                            .font(.caption)
+                            .foregroundStyle(Color.inkSecondary)
+                            .lineLimit(1)
+                        Spacer()
+                        Button(L("停止", "Stop"), action: stopResponse)
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                    }
+                    ForEach(Array(liveActivities.suffix(4))) { activity in
+                        ToolActivityRow(activity: activity)
+                    }
+                }
+                .padding(DG.sp12)
+                .background(Color.canvasSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: DG.r12))
+                .padding(.horizontal, DG.sp12)
+                .padding(.top, DG.sp8)
+            }
 
             if let supp = supplement, supp.isRunning || supplementDoneFlash {
                 supplementBanner(supp)
             }
 
-            if messages.count <= 1 && supplement == nil {
+            if messages.count <= 1 && supplement == nil && !isLoading {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: DG.sp8) {
                         ForEach(promptSuggestions, id: \.self) { suggestion in
@@ -164,21 +170,38 @@ struct NottyView: View {
                 }
             }
 
-            HStack(spacing: 8) {
-                TextField(L("问 Notty 关于你的笔记...", "Ask Notty about your notes..."), text: $input)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit { send() }
-                    .disabled(isLoading)
+            VStack(alignment: .leading, spacing: DG.sp8) {
+                TextField(
+                    L("提问、搜索笔记或联网查找…", "Ask, search notes, or search the web…"),
+                    text: $input,
+                    axis: .vertical
+                )
+                .textFieldStyle(.plain)
+                .lineLimit(1...6)
+                .focused($composerFocused)
+                .onSubmit { if !isLoading { send() } }
 
-                Button { send() } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.title2)
+                HStack {
+                    Text(L("Return 发送 · Shift-Return 换行", "Return to send · Shift-Return for newline"))
+                        .font(.caption2)
+                        .foregroundStyle(Color.inkTertiary)
+                    Spacer()
+                    Button {
+                        if isLoading { stopResponse() } else { send() }
+                    } label: {
+                        Image(systemName: isLoading ? "stop.fill" : "arrow.up")
+                            .frame(width: 24, height: 24)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.circle)
+                    .disabled(!isLoading && input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                .disabled(input.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
-                .buttonStyle(.plain)
-                .foregroundStyle(input.trimmingCharacters(in: .whitespaces).isEmpty ? Color.inkTertiary : Color.accent)
             }
-            .padding()
+            .padding(DG.sp12)
+            .background(Color.canvasSecondary)
+            .clipShape(RoundedRectangle(cornerRadius: DG.r12))
+            .overlay(RoundedRectangle(cornerRadius: DG.r12).stroke(Color.hairline, lineWidth: 0.75))
+            .padding(DG.sp12)
         }
         .opacity(isReady ? 1 : 0)
         .offset(y: isReady ? 0 : 8)
@@ -192,6 +215,8 @@ struct NottyView: View {
         }
         .onDisappear {
             isReady = false
+            responseTask?.cancel()
+            responseTask = nil
             stopSupplementPolling()
         }
         .alert(L("AI 模型未配置", "AI Model Not Configured"), isPresented: $showLLMNotConfiguredAlert) {
@@ -204,6 +229,13 @@ struct NottyView: View {
         } message: {
             Text(L("请先在设置中配置 API Key 后再使用 AI 功能。", "Please configure your API Key in Settings before using AI features."))
         }
+    }
+
+    private func activityStatus(_ activity: ToolActivity) -> String {
+        guard let summary = activity.argsSummary, !summary.isEmpty else {
+            return ToolActivityRow.displayName(for: activity.name)
+        }
+        return ToolActivityRow.displayName(for: activity.name) + " · " + summary
     }
 
     private func initSession() async {
@@ -228,7 +260,7 @@ struct NottyView: View {
         if messages.isEmpty {
             messages.append(ChatMessage(
                 role: "assistant",
-                content: L("你好！我是 Notty，你的笔记助手\n\n我可以帮你检索、总结和分析你的所有笔记。试试问我：\"最近有哪些关于 AI 的笔记？\"", "Hi! I'm Notty, your note assistant.\n\nI can help you search, summarize, and analyze all your notes. Try asking: \"What recent notes do I have about AI?\"")
+                content: L("你好！我是闹闹。我可以检索并读取你的笔记，也可以联网搜索最新资料并保留来源链接。", "Hi! I'm Notty. I can search and read your notes, or search the web for current sources and links.")
             ))
         }
     }
@@ -257,7 +289,7 @@ struct NottyView: View {
         sessionId = nil
         messages = [ChatMessage(
             role: "assistant",
-            content: L("你好！我是 Notty，你的笔记助手\n\n我可以帮你检索、总结和分析你的所有笔记。试试问我：\"最近有哪些关于 AI 的笔记？\"", "Hi! I'm Notty, your note assistant.\n\nI can help you search, summarize, and analyze all your notes. Try asking: \"What recent notes do I have about AI?\"")
+            content: L("你好！我是闹闹。我可以检索并读取你的笔记，也可以联网搜索最新资料并保留来源链接。", "Hi! I'm Notty. I can search and read your notes, or search the web for current sources and links.")
         )]
     }
 
@@ -279,7 +311,7 @@ struct NottyView: View {
                     pendingIndexByCallId.removeAll()
                 }
                 for call in calls {
-                    var activity = ToolActivity(name: call.function.name, argsSummary: summarizeArgsJSON(call.function.arguments))
+                    var activity = ToolActivity(id: call.id, name: call.function.name, argsSummary: summarizeArgsJSON(call.function.arguments))
                     activity.isRunning = false
                     pendingIndexByCallId[call.id] = pending.count
                     pending.append(activity)
@@ -325,8 +357,8 @@ struct NottyView: View {
     }
 
     private func send(_ preset: String? = nil) {
-        let text = (preset ?? input).trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty else { return }
+        let text = (preset ?? input).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, !isLoading else { return }
 
         if let configured = llmConfigured, !configured {
             showLLMNotConfiguredAlert = true
@@ -339,7 +371,7 @@ struct NottyView: View {
         isLoading = true
         liveActivities = []
 
-        Task {
+        responseTask = Task {
             do {
                 if sessionId == nil {
                     let session = try await APIClient.shared.createChatSession()
@@ -350,13 +382,14 @@ struct NottyView: View {
                 var gotFinalMessage = false
                 for try await event in stream {
                     switch event {
-                    case .toolStart(let name, let argsSummary):
-                        liveActivities.append(ToolActivity(name: name, argsSummary: argsSummary))
-                    case .toolEnd(let name, let durationMs, let preview):
-                        if let idx = liveActivities.lastIndex(where: { $0.name == name && $0.isRunning }) {
+                    case .toolStart(let callId, let name, let argsSummary):
+                        liveActivities.append(ToolActivity(id: callId, name: name, argsSummary: argsSummary))
+                    case .toolEnd(let callId, _, let durationMs, let preview, let isError):
+                        if let idx = liveActivities.lastIndex(where: { $0.id == callId }) {
                             liveActivities[idx].isRunning = false
                             liveActivities[idx].durationMs = durationMs
                             liveActivities[idx].resultPreview = preview
+                            liveActivities[idx].isError = isError
                         }
                     case .intermediate(let content):
                         // Mid-reply: bubble up the text with the tools run so far,
@@ -370,6 +403,7 @@ struct NottyView: View {
                         messages.append(ChatMessage(role: response.role, content: response.content, toolActivities: liveActivities))
                         liveActivities = []
                         isLoading = false
+                        responseTask = nil
                     case .failure(let message):
                         throw APIError.serverMessage(statusCode: 500, message: message)
                     }
@@ -378,13 +412,31 @@ struct NottyView: View {
                     isLoading = false
                     liveActivities = []
                     messages.append(ChatMessage(role: "assistant", content: L("连接中断，未收到完整回复", "Connection lost before the reply completed")))
+                    responseTask = nil
                 }
             } catch {
+                guard !Task.isCancelled else { return }
                 messages.append(ChatMessage(role: "assistant", content: L("抱歉，出了点问题：", "Sorry, something went wrong: ") + error.localizedDescription))
                 liveActivities = []
                 isLoading = false
+                responseTask = nil
             }
         }
+    }
+
+    private func stopResponse() {
+        guard isLoading else { return }
+        responseTask?.cancel()
+        responseTask = nil
+        for index in liveActivities.indices { liveActivities[index].isRunning = false }
+        messages.append(ChatMessage(
+            role: "assistant",
+            content: L("已停止当前回答。", "Stopped the current response."),
+            toolActivities: liveActivities
+        ))
+        liveActivities = []
+        isLoading = false
+        composerFocused = true
     }
 
     // MARK: - Supplement progress
@@ -662,7 +714,7 @@ private struct ChatBubble: View, Equatable {
                         .clipShape(RoundedRectangle(cornerRadius: DG.r16))
                         .contextMenu { messageContextMenu }
                 } else if !message.content.isEmpty {
-                    Text(markdownAttributed(message.content))
+                    Text(markdownAttributed(NottySidebarText.format(message.content)))
                         .font(.body)
                         .textSelection(.enabled)
                         .padding(.horizontal, DG.sp12)
@@ -688,5 +740,55 @@ private struct ChatBubble: View, Equatable {
             return attr
         }
         return AttributedString(text)
+    }
+}
+
+enum NottySidebarText {
+    static func format(_ text: String) -> String {
+        let lines = text.components(separatedBy: .newlines)
+        var output: [String] = []
+        var index = 0
+
+        while index < lines.count {
+            guard index + 1 < lines.count,
+                  let headers = cells(in: lines[index]),
+                  isDivider(lines[index + 1], columns: headers.count) else {
+                output.append(lines[index])
+                index += 1
+                continue
+            }
+
+            index += 2
+            var rows: [[String]] = []
+            while index < lines.count, let row = cells(in: lines[index]), row.count == headers.count {
+                rows.append(row)
+                index += 1
+            }
+            for row in rows {
+                let summary = zip(headers, row)
+                    .filter { !$0.1.isEmpty }
+                    .map { "\($0.0)：\($0.1)" }
+                    .joined(separator: " · ")
+                output.append("• " + summary)
+            }
+        }
+        return output.joined(separator: "\n")
+    }
+
+    private static func cells(in line: String) -> [String]? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.contains("|") else { return nil }
+        let body = trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "|"))
+        let values = body.split(separator: "|", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+        return values.count > 1 ? values : nil
+    }
+
+    private static func isDivider(_ line: String, columns: Int) -> Bool {
+        guard let values = cells(in: line), values.count == columns else { return false }
+        return values.allSatisfy { value in
+            let marks = value.trimmingCharacters(in: CharacterSet(charactersIn: ":"))
+            return marks.count >= 3 && marks.allSatisfy { $0 == "-" }
+        }
     }
 }

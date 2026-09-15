@@ -6,9 +6,9 @@ describe("requestLogger", () => {
   it("redacts sensitive query parameters", () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const req: any = {
-      path: "/wechat/",
+      path: "/legacy-config/",
       method: "GET",
-      originalUrl: "/wechat/?token=secret&auth-key=private&safe=yes",
+      originalUrl: "/legacy-config/?token=secret&auth-key=private&safe=yes",
       headers: {},
     };
     const res: any = new EventEmitter();

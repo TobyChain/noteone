@@ -9,10 +9,8 @@ struct NoteOneApp: App {
     @Environment(\.scenePhase) private var scenePhase
     #if os(macOS)
     @StateObject private var hotkeyManager = HotkeyManager.shared
-    @StateObject private var permissionCoordinator = PermissionCoordinator.shared
     @State private var updateInfo: UpdateInfo?
     @State private var showUpdateAlert = false
-    @State private var showPermissionOnboarding = false
     #endif
 
     private var theme: AppTheme {
@@ -102,25 +100,15 @@ struct NoteOneApp: App {
                 didStartBootstrap = true
                 #if os(macOS)
                 hotkeyManager.register()
-                permissionCoordinator.refresh()
-                showPermissionOnboarding = permissionCoordinator.shouldPresentOnboarding
                 #endif
                 await bootstrap()
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
-                    #if os(macOS)
-                    permissionCoordinator.refresh()
-                    #endif
                     Task { await syncPending() }
                 }
             }
             #if os(macOS)
-            .sheet(isPresented: $showPermissionOnboarding) {
-                PermissionOnboardingView(coordinator: permissionCoordinator) {
-                    showPermissionOnboarding = false
-                }
-            }
             .alert("发现新版本", isPresented: $showUpdateAlert, presenting: updateInfo) { info in
                 Button("下载安装包") {
                     if let url = URL(string: info.downloadURL) { NSWorkspace.shared.open(url) }

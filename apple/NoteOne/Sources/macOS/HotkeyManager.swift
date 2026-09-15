@@ -10,6 +10,7 @@ enum HotkeyConfig {
     static let keyCodeKey = "hotkeyKeyCode"
     static let modifiersKey = "hotkeyModifiers"
     static let keyLabelKey = "hotkeyKeyLabel"
+    static let browserMetadataEnabledKey = "captureBrowserMetadataEnabled"
 
     // Default: ⌘⇧O.
     static let defaultKeyCode = 31 // 'o'
@@ -21,6 +22,9 @@ enum HotkeyConfig {
 
     static var keyCode: Int { UserDefaults.standard.object(forKey: keyCodeKey) as? Int ?? defaultKeyCode }
     static var modifiers: Int { UserDefaults.standard.object(forKey: modifiersKey) as? Int ?? defaultModifiers }
+    static func browserMetadataEnabled(in defaults: UserDefaults = .standard) -> Bool {
+        defaults.bool(forKey: browserMetadataEnabledKey)
+    }
 
     /// Convert AppKit modifier flags to the Carbon mask required by RegisterEventHotKey.
     static func carbonModifiers(from rawValue: Int) -> UInt32 {
@@ -148,7 +152,8 @@ class HotkeyManager: ObservableObject {
         guard captureTask == nil else { return }
 
         let sourceApp = NSWorkspace.shared.frontmostApplication
-        let canCaptureSelection = PermissionCoordinator.shared.prepareForSelectionCapture()
+        let canCaptureSelection = PermissionCoordinator.shared.canCaptureSelectionWithoutPrompt()
+        let canCaptureBrowserMetadata = HotkeyConfig.browserMetadataEnabled()
 
         captureTask = Task { [weak self] in
             guard let self else { return }
@@ -156,10 +161,9 @@ class HotkeyManager: ObservableObject {
                 let captured = canCaptureSelection
                     ? captureSelection(from: sourceApp?.processIdentifier)
                     : clipboardSelection(outcome: .permissionDenied)
-                let meta = captureBrowserMeta(
-                    bundleID: sourceApp?.bundleIdentifier,
-                    appName: sourceApp?.localizedName
-                )
+                let meta = canCaptureBrowserMetadata
+                    ? captureBrowserMeta(bundleID: sourceApp?.bundleIdentifier, appName: sourceApp?.localizedName)
+                    : nil
                 return (captured, meta)
             }.value
             guard !Task.isCancelled else {

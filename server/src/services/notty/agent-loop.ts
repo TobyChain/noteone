@@ -15,7 +15,7 @@ export interface ToolDefinition {
   };
 }
 
-export type ToolHandler = (args: Record<string, any>) => Promise<string>;
+export type ToolHandler = (args: Record<string, any>, signal?: AbortSignal) => Promise<string>;
 
 export interface IntermediateMessage {
   role: string;
@@ -29,16 +29,57 @@ export interface AgentLoopOptions {
   maxIterations?: number;
   signal?: AbortSignal;
   onIntermediateMessage?: (msg: IntermediateMessage) => void;
-  onToolStart?: (name: string, args: Record<string, any>) => void;
-  onToolEnd?: (name: string, result: string, durationMs: number) => void;
+  onToolStart?: (event: ToolExecutionStartEvent) => void;
+  onToolEnd?: (event: ToolExecutionEndEvent) => void;
   cacheScope?: string;
+}
+
+export interface ToolExecutionStartEvent {
+  callId: string;
+  name: string;
+  args: Record<string, any>;
+}
+
+export interface ToolExecutionEndEvent {
+  callId: string;
+  name: string;
+  result: string;
+  durationMs: number;
+  isError: boolean;
+}
+
+/** A user-requested stop is a terminal control-flow event, not assistant content. */
+export class AgentLoopAbortError extends Error {
+  constructor() {
+    super("Agent loop aborted");
+    this.name = "AgentLoopAbortError";
+  }
+}
+
+export function isAgentLoopAbortError(error: unknown): boolean {
+  return error instanceof AgentLoopAbortError;
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new AgentLoopAbortError();
+}
+
+async function awaitWithUserAbort<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
+  try {
+    const value = await operation;
+    throwIfAborted(signal);
+    return value;
+  } catch (error) {
+    if (signal?.aborted) throw new AgentLoopAbortError();
+    throw error;
+  }
 }
 
 /** Only explicitly read-only tools may run concurrently or use the result cache. */
 const READ_ONLY_TOOLS = new Set([
   "read_note", "search_notes", "web_fetch", "discover_feed", "search_web",
   "get_newlore_preferences", "list_newlore_reports", "get_newlore_report", "get_newlore_status",
-  "list_wechat_mps", "search_wechat_mp", "list_blog_sources", "get_newlore_config",
+  "list_blog_sources", "get_newlore_config",
   "get_study_report_status", "list_scheduled_tasks", "search_files",
   "list_files", "read_file",
 ]);
@@ -142,8 +183,7 @@ function parseDSMLToolCalls(content: string): any[] | null {
   return calls.length > 0 ? calls : null;
 }
 
-function normalizeToolCalls(toolCalls: any[]): any[] {
-  const seen = new Set<string>();
+function normalizeToolCalls(toolCalls: any[], seen: Set<string>): any[] {
   return toolCalls.map((call, index) => {
     let id = typeof call?.id === "string" && call.id ? call.id : `call_${randomUUID()}_${index}`;
     if (seen.has(id)) id = `call_${randomUUID()}_${index}`;
@@ -189,17 +229,21 @@ export async function runAgentLoop(
   const conversationMessages = sanitizeToolMessageGroups(messages);
   const totalStart = Date.now();
   let toolCallCount = 0;
+  const seenToolCallIds = new Set<string>();
   const recentFingerprints: string[] = [];
   const DOOM_WINDOW = 4;
   const DOOM_REPEAT_THRESHOLD = 3;
 
   for (let i = 0; i < maxIter; i++) {
-    if (signal?.aborted) return "请求已取消。";
+    throwIfAborted(signal);
 
     const iterStart = Date.now();
-    const data = await llmFetch(apiEndpoint(cfg.baseUrl, "chat/completions"), cfg, {
-      model: cfg.model, messages: conversationMessages, tools, temperature: 0.3,
-    }, signal);
+    const data = await awaitWithUserAbort(
+      llmFetch(apiEndpoint(cfg.baseUrl, "chat/completions"), cfg, {
+        model: cfg.model, messages: conversationMessages, tools, temperature: 0.3,
+      }, signal),
+      signal,
+    );
     if (!Array.isArray(data?.choices) || !data.choices[0]?.message) {
       const detail = data?.error?.message || data?.message || "missing choices[0].message";
       throw new Error(`LLM API returned an invalid chat response: ${detail}`);
@@ -226,7 +270,7 @@ export async function runAgentLoop(
       }
     }
     if (choice.message.tool_calls?.length) {
-      choice.message.tool_calls = normalizeToolCalls(choice.message.tool_calls);
+      choice.message.tool_calls = normalizeToolCalls(choice.message.tool_calls, seenToolCallIds);
     }
 
     if (!choice.message.tool_calls || choice.message.tool_calls.length === 0) {
@@ -290,10 +334,11 @@ export async function runAgentLoop(
 
     const results: Array<{ id: string; name: string; result: string }> = [];
     const executeOne = async (p: PendingToolCall) => {
-      if (signal?.aborted) return { id: p.id, name: p.name, result: "请求已取消。" };
-      opts.onToolStart?.(p.name, p.args);
+      throwIfAborted(signal);
+      opts.onToolStart?.({ callId: p.id, name: p.name, args: p.args });
       const fnStart = Date.now();
       let result: string;
+      let isError = false;
       const cached = tryDedup(cacheScope, p.name, p.args);
       if (cached) {
         result = cached;
@@ -302,20 +347,23 @@ export async function runAgentLoop(
         const handler = toolHandlers[p.name];
         if (handler) {
           try {
-            result = await handler(p.args);
+            result = signal ? await handler(p.args, signal) : await handler(p.args);
           } catch (err) {
+            isError = true;
             result = `Error executing tool "${p.name}": ${err instanceof Error ? err.message : String(err)}`;
             console.error(`[llm] tool-exec-error name=${p.name} error=${result}`);
           }
         } else {
+          isError = true;
           result = `Error: unknown tool "${p.name}"`;
         }
         result = compressToolResult(result);
-        recordDedup(cacheScope, p.name, p.args, result);
+        if (!isError) recordDedup(cacheScope, p.name, p.args, result);
       }
+      throwIfAborted(signal);
       const dur = Date.now() - fnStart;
       console.log(`[llm] tool-exec name=${p.name} duration=${dur}ms args=${JSON.stringify(p.args).slice(0, 80)} result="${result.slice(0, 120).replace(/\n/g, "\\n")}"`);
-      opts.onToolEnd?.(p.name, result, dur);
+      opts.onToolEnd?.({ callId: p.id, name: p.name, result, durationMs: dur, isError });
       toolCallCount++;
       return { id: p.id, name: p.name, result };
     };
@@ -341,6 +389,7 @@ export async function runAgentLoop(
       }
     }
     await flushReadBatch();
+    throwIfAborted(signal);
 
     // Push results in original order
     const resultMap = new Map(results.map((r) => [r.id, r]));
@@ -352,7 +401,7 @@ export async function runAgentLoop(
     }
   }
 
-  if (signal?.aborted) return "请求已取消。";
+  throwIfAborted(signal);
 
   // Iteration budget exhausted mid-task. A bare follow-up call lets the model
   // trail off mid-sentence ("让我看看…：") because it can no longer call tools.
@@ -362,9 +411,12 @@ export async function runAgentLoop(
     role: "system",
     content: `本轮工具调用已达上限（${maxIter} 次）。请不要再调用工具，基于已获得的信息向用户总结：目前完成了什么、拿到了哪些结果、还剩什么没做。`,
   });
-  const finalData = await llmFetch(apiEndpoint(cfg.baseUrl, "chat/completions"), cfg, {
-    model: cfg.model, messages: conversationMessages, temperature: 0.3,
-  }, signal);
+  const finalData = await awaitWithUserAbort(
+    llmFetch(apiEndpoint(cfg.baseUrl, "chat/completions"), cfg, {
+      model: cfg.model, messages: conversationMessages, temperature: 0.3,
+    }, signal),
+    signal,
+  );
   if (!Array.isArray(finalData?.choices) || !finalData.choices[0]?.message) {
     const detail = finalData?.error?.message || finalData?.message || "missing choices[0].message";
     throw new Error(`LLM API returned an invalid chat response: ${detail}`);

@@ -110,7 +110,10 @@ struct MainSidebar: View {
             title: L("往事", "OldEcho"),
             icon: "note.text",
             isExpanded: $isNotesExpanded,
-            action: { selection = groupedNotes.first?.1.first.map { .note($0.id) } ?? .empty }
+            action: {
+                selection = groupedNotes.first?.1.first.map { .note($0.id) } ?? .empty
+                withAnimation(.easeInOut(duration: 0.16)) { isNotesExpanded.toggle() }
+            }
         ) {
             Button(action: onCreateNote) { Image(systemName: "plus.circle") }
                 .buttonStyle(.plain)
@@ -184,24 +187,30 @@ struct MainSidebar: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, DG.sp12)
                     .padding(.vertical, DG.sp8)
-                    .background(selection == .farView ? Color.accent.opacity(0.1) : Color.canvasSecondary.opacity(0.5))
+                    .background(
+                        RoundedRectangle(cornerRadius: DG.r8)
+                            .fill(selection == .farView ? Color.accent.opacity(0.12) : Color.canvasSecondary.opacity(0.5))
+                    )
+                    .contentShape(RoundedRectangle(cornerRadius: DG.r8))
             }
             .buttonStyle(.plain)
+            .padding(.horizontal, DG.sp8)
+            .padding(.top, DG.sp8)
+            .padding(.bottom, DG.sp4)
 
             Divider()
+                .padding(.horizontal, DG.sp8)
 
             // 新知
-            HStack(spacing: 0) {
-                Button { withAnimation { isNewLoreExpanded.toggle() } } label: {
+            Button {
+                selection = .newloreReports
+                withAnimation(.easeInOut(duration: 0.16)) { isNewLoreExpanded.toggle() }
+            } label: {
+                HStack(spacing: DG.sp8) {
                     Image(systemName: "chevron.right")
                         .font(.caption2)
                         .rotationEffect(.degrees(isNewLoreExpanded ? 90 : 0))
                         .foregroundStyle(Color.inkTertiary)
-                        .padding(.trailing, DG.sp4)
-                }
-                .buttonStyle(.plain)
-                Button { selection = .newloreReports } label: {
-                    HStack {
                     Label(L("新知", "NewLore"), systemImage: "globe")
                         .font(.subheadline.bold())
                         .foregroundStyle(Color.ink)
@@ -210,13 +219,12 @@ struct MainSidebar: View {
                         ProgressView()
                             .controlSize(.small)
                     }
-                    }
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, DG.sp12)
+                .padding(.vertical, DG.sp8)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, DG.sp12)
-            .padding(.vertical, DG.sp8)
+            .buttonStyle(.plain)
             .background(selection == .newloreReports ? Color.accent.opacity(0.1) : Color.canvasSecondary.opacity(0.5))
 
             if isNewLoreRunning, let status = newloreRunningStatus {
@@ -263,15 +271,17 @@ struct MainSidebar: View {
 
                             if !isCollapsed {
                                 ForEach(reports) { report in
+                                    let isSelected = selectedNewLoreReportDate == report.date
                                     NewLoreReportRow(
                                         report: report,
-                                        isSelected: {
-                                            if case .newloreReport(let d) = selection { return d == report.date }
-                                            return false
-                                        }(),
+                                        isSelected: isSelected,
                                         onTap: { selection = .newloreReport(report.date) },
                                         onDelete: { onDeleteNewLoreReport(report.date) }
                                     )
+                                    // Recreate the row when the selected report changes.
+                                    // This avoids stale selection fills retained by the
+                                    // macOS sidebar's reused hosting views.
+                                    .id("\(report.date)-\(isSelected)")
                                 }
                             }
                         }
@@ -323,34 +333,36 @@ struct MainSidebar: View {
         return selection == .empty
     }
 
+    private var selectedNewLoreReportDate: String? {
+        guard case .newloreReport(let date) = selection else { return nil }
+        return date
+    }
+
     // MARK: - Module Header
 
     @ViewBuilder
     private func moduleHeader(title: String, icon: String, isExpanded: Binding<Bool>, action: @escaping () -> Void, @ViewBuilder trailing: () -> some View) -> some View {
-        HStack(spacing: 0) {
-            Button { withAnimation { isExpanded.wrappedValue.toggle() } } label: {
-                Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .rotationEffect(.degrees(isExpanded.wrappedValue ? 90 : 0))
-                    .foregroundStyle(Color.inkTertiary)
-                    .padding(.trailing, DG.sp4)
-            }
-            .buttonStyle(.plain)
+        HStack(spacing: DG.sp8) {
             Button(action: action) {
-                HStack {
+                HStack(spacing: DG.sp8) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .rotationEffect(.degrees(isExpanded.wrappedValue ? 90 : 0))
+                        .foregroundStyle(Color.inkTertiary)
                     Label(title, systemImage: icon)
                         .font(.subheadline.bold())
                         .foregroundStyle(Color.ink)
                     Spacer(minLength: DG.sp8)
                 }
+                .padding(.leading, DG.sp12)
+                .padding(.vertical, DG.sp8)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
             trailing()
+                .padding(.trailing, DG.sp12)
         }
-        .padding(.horizontal, DG.sp12)
-        .padding(.vertical, DG.sp8)
         .background(Color.canvasSecondary.opacity(0.5))
     }
 
@@ -454,8 +466,10 @@ private struct NewLoreReportRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, DG.sp8)
         .padding(.vertical, 3)
-        .background(isSelected ? Color.accent.opacity(0.1) : Color.clear)
-        .cornerRadius(DG.r6)
+        .background {
+            RoundedRectangle(cornerRadius: DG.r6)
+                .fill(isSelected ? Color.accent.opacity(0.1) : Color.canvas)
+        }
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
         .padding(.horizontal, DG.sp4)

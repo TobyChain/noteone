@@ -16,7 +16,7 @@ import {
   buildSummarizationPrompt,
   type ContextMessage,
 } from "../context-manager.js";
-import { runAgentLoop } from "./agent-loop.js";
+import { AgentLoopAbortError, runAgentLoop } from "./agent-loop.js";
 import { buildNoteIndex, buildStableSystemPrompt, buildDynamicContext } from "./prompt-builder.js";
 import { buildNottyToolkit } from "./tools.js";
 
@@ -37,10 +37,12 @@ export interface ProcessedMessage {
 
 export interface ToolActivityEvent {
   type: "start" | "end";
+  callId: string;
   name: string;
   argsSummary?: string;
   durationMs?: number;
   preview?: string;
+  isError?: boolean;
 }
 
 /// Compact one-line summary of tool arguments for live UI display (e.g. `query="AI 笔记"`).
@@ -131,17 +133,21 @@ export async function processSessionMessage(
         onIntermediateText?.(msg.content);
       }
     },
-    onToolStart: (name, args) => onToolActivity?.({ type: "start", name, argsSummary: summarizeArgs(args) }),
-    onToolEnd: (name, result, durationMs) => onToolActivity?.({
+    onToolStart: ({ callId, name, args }) => onToolActivity?.({ type: "start", callId, name, argsSummary: summarizeArgs(args) }),
+    onToolEnd: ({ callId, name, result, durationMs, isError }) => onToolActivity?.({
       type: "end",
+      callId,
       name,
       durationMs,
       preview: result.length > 400 ? result.slice(0, 400) + "…" : result,
+      isError,
     }),
   });
+  if (signal?.aborted) throw new AgentLoopAbortError();
 
   // Persist intermediate tool messages and final reply atomically
   const assistantId = await db.transaction(async (tx) => {
+    if (signal?.aborted) throw new AgentLoopAbortError();
     const latestHistoryTime = allMessages.at(-1)?.createdAt?.getTime() ?? 0;
     const persistenceBase = Math.max(Date.now(), latestHistoryTime + 1);
     if (intermediateMessages.length > 0) {
@@ -156,6 +162,7 @@ export async function processSessionMessage(
         })),
       );
     }
+    if (signal?.aborted) throw new AgentLoopAbortError();
     const [assistant] = await tx.insert(chatMessages).values({
       sessionId: session.id,
       role: "assistant",

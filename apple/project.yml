@@ -19,13 +19,21 @@ targets:
     platform: [iOS, macOS]
     sources:
       - path: NoteOne/Sources
+        excludes:
+          # Local Ascan migration drafts duplicate the active NewLore module.
+          - Models/AscanModels.swift
+          - Views/AscanReportDetailView.swift
+          - Views/AscanReportListView.swift
+          - Views/AscanView.swift
+          - Views/Settings/AscanConfigSheet.swift
       - path: NoteOne/Resources/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.noteone.app
         MARKETING_VERSION: "0.2.4"
         CURRENT_PROJECT_VERSION: "6"
-        CODE_SIGN_ENTITLEMENTS: NoteOne/NoteOne.entitlements
+        "CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]": NoteOne/NoteOne.entitlements
+        "CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]": NoteOne/NoteOne.entitlements
     info:
       path: NoteOne/Info.plist
       properties:
@@ -65,12 +73,6 @@ targets:
               - public.movie
         LSSupportsOpeningDocumentsInPlace: true
         NSAppleEventsUsageDescription: NoteOne reads the current browser page only when you invoke Quick Capture.
-    entitlements:
-      path: NoteOne/NoteOne.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.noteone.app
-
   NoteOneShareExtension:
     type: app-extension
     platform: iOS

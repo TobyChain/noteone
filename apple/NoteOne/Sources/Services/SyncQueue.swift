@@ -9,7 +9,7 @@ struct PendingImage: Codable, Sendable {
 actor SyncQueue {
     static let shared = SyncQueue()
 
-    private let appGroupId = "group.com.noteone.app"
+    private static let appGroupId = "group.com.noteone.app"
     private let pendingNotesKey = "pendingNotes"
     private let fileURL: URL
     private let imageQueueURL: URL
@@ -21,20 +21,27 @@ actor SyncQueue {
 
     private init() {
         let fm = FileManager.default
-        // Prefer the shared App Group container so state is consistent across
-        // the main app and the Share Extension; fall back to Application Support.
-        let dir: URL
-        if let container = fm.containerURL(forSecurityApplicationGroupIdentifier: appGroupId) {
-            dir = container.appendingPathComponent("NoteOne", isDirectory: true)
-        } else {
-            dir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("NoteOne", isDirectory: true)
-        }
+        let dir = Self.storageDirectory(
+            applicationSupportDirectory: fm.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0],
+            appGroupContainer: { fm.containerURL(forSecurityApplicationGroupIdentifier: Self.appGroupId) }
+        )
         try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
         self.fileURL = dir.appendingPathComponent("sync_queue.json")
         self.imageQueueURL = dir.appendingPathComponent("image_queue.json")
         self.shareImagesDir = dir.appendingPathComponent("share-images", isDirectory: true)
         try? fm.createDirectory(at: shareImagesDir, withIntermediateDirectories: true)
+    }
+
+    static func storageDirectory(
+        applicationSupportDirectory: URL,
+        appGroupContainer: () -> URL?
+    ) -> URL {
+        #if os(iOS)
+        if let container = appGroupContainer() {
+            return container.appendingPathComponent("NoteOne", isDirectory: true)
+        }
+        #endif
+        return applicationSupportDirectory.appendingPathComponent("NoteOne", isDirectory: true)
     }
 
     func warmUp() {
@@ -50,7 +57,8 @@ actor SyncQueue {
     /// Pull notes captured by the iOS Share Extension (written to App Group UserDefaults)
     /// into the unified queue so the main app actually syncs them.
     private func drainSharedPending() {
-        guard let defaults = UserDefaults(suiteName: appGroupId) else { return }
+        #if os(iOS)
+        guard let defaults = UserDefaults(suiteName: Self.appGroupId) else { return }
         let pending = defaults.array(forKey: pendingNotesKey) as? [[String: String]] ?? []
         guard !pending.isEmpty else { return }
 
@@ -73,6 +81,7 @@ actor SyncQueue {
         }
         defaults.removeObject(forKey: pendingNotesKey)
         saveToDisk()
+        #endif
     }
 
     /// Flush queued notes (and pending images) to the server. Returns count synced.

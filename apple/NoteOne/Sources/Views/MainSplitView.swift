@@ -82,7 +82,7 @@ struct MainSplitView: View {
                                         isDraggingDrawer = true
                                         dragStartWidth = drawerWidth
                                     }
-                                    drawerWidth = min(max(dragStartWidth - value.translation.width, 280), 640)
+                                    drawerWidth = min(max(dragStartWidth - value.translation.width, 320), 640)
                                 }
                                 .onEnded { _ in
                                     isDraggingDrawer = false
@@ -90,10 +90,11 @@ struct MainSplitView: View {
                                 }
                         )
                     drawer
-                        .frame(width: min(max(drawerWidth, 280), 640))
+                        .frame(width: min(max(drawerWidth, 320), 640))
                 }
             }
         }
+        .frame(minWidth: 1120, minHeight: 680)
         .toolbar { toolbarContent }
         .task { await initialLoad() }
         .onChange(of: selection) { _, newSelection in handleSelectionChange(newSelection) }
@@ -269,7 +270,6 @@ struct MainSplitView: View {
         case "GitHub": return "GitHub"
         case "博客": return "Blog"
         case "会议论文": return "Conference Papers"
-        case "微信公众号": return "WeChat"
         case "官方文档": return "Official Docs"
         default: return label
         }

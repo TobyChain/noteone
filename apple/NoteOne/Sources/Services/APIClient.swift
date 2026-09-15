@@ -63,8 +63,8 @@ private struct ServerErrorResponse: Decodable {
 
 /// Events streamed from POST /api/chat-sessions/:id/messages (SSE).
 enum ChatStreamEvent {
-    case toolStart(name: String, argsSummary: String?)
-    case toolEnd(name: String, durationMs: Int, preview: String)
+    case toolStart(callId: String, name: String, argsSummary: String?)
+    case toolEnd(callId: String, name: String, durationMs: Int, preview: String, isError: Bool)
     /// Mid-reply assistant text emitted between tool rounds ("我先看看页面源码…").
     case intermediate(content: String)
     case message(ChatResponseMessage)
@@ -340,15 +340,6 @@ actor APIClient {
         }
     }
 
-    // MARK: - WeChat config page (server-hosted, embedded in a WebView)
-
-    func wechatConfigURL() -> URL? {
-        guard let token else { return nil }
-        var comps = URLComponents(string: "\(baseURL)/wechat/")
-        comps?.queryItems = [URLQueryItem(name: "token", value: token)]
-        return comps?.url
-    }
-
     func newloreConfigURL() -> URL? {
         guard let token else { return nil }
         var comps = URLComponents(string: "\(baseURL)/newlore/")
@@ -441,17 +432,17 @@ actor APIClient {
     }
 
     private static func parseStreamEvent(_ name: String, data: Data) -> ChatStreamEvent? {
-        struct ToolStart: Decodable { let name: String; let argsSummary: String? }
-        struct ToolEnd: Decodable { let name: String; let durationMs: Int?; let preview: String? }
+        struct ToolStart: Decodable { let callId: String; let name: String; let argsSummary: String? }
+        struct ToolEnd: Decodable { let callId: String; let name: String; let durationMs: Int?; let preview: String?; let isError: Bool? }
         struct ErrorPayload: Decodable { let error: String }
         struct IntermediatePayload: Decodable { let content: String }
         switch name {
         case "tool_start":
             guard let p = try? JSONDecoder().decode(ToolStart.self, from: data) else { return nil }
-            return .toolStart(name: p.name, argsSummary: p.argsSummary)
+            return .toolStart(callId: p.callId, name: p.name, argsSummary: p.argsSummary)
         case "tool_end":
             guard let p = try? JSONDecoder().decode(ToolEnd.self, from: data) else { return nil }
-            return .toolEnd(name: p.name, durationMs: p.durationMs ?? 0, preview: p.preview ?? "")
+            return .toolEnd(callId: p.callId, name: p.name, durationMs: p.durationMs ?? 0, preview: p.preview ?? "", isError: p.isError ?? false)
         case "intermediate":
             guard let p = try? JSONDecoder().decode(IntermediatePayload.self, from: data),
                   !p.content.isEmpty else { return nil }
@@ -591,10 +582,6 @@ actor APIClient {
     func getNewLoreDocsPath() async throws -> String {
         let resp: NewLoreDocsPath = try await get("/api/newlore/docs-path")
         return resp.path
-    }
-
-    func getWechatHealth() async throws -> WechatHealthResponse {
-        return try await get("/api/newlore/wechat-health")
     }
 
     struct NewLoreSummarizeResponse: Decodable { let date: String; let summary: String }

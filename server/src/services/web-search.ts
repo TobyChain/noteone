@@ -6,6 +6,7 @@
 
 import { config } from "../config.js";
 import { fetchUrlContent } from "./web-fetch.js";
+import * as cheerio from "cheerio";
 
 export interface SearchResult {
   title: string;
@@ -16,6 +17,15 @@ export interface SearchResult {
 export interface SearchOptions {
   maxResults?: number;
   provider?: "duckduckgo" | "tavily" | "bing";
+  signal?: AbortSignal;
+}
+
+type SearchProvider = "duckduckgo" | "tavily" | "bing";
+
+export interface SearchResponse {
+  provider: SearchProvider;
+  results: SearchResult[];
+  error?: string;
 }
 
 const DEFAULT_MAX_RESULTS = 5;
@@ -27,31 +37,38 @@ const DEFAULT_MAX_RESULTS = 5;
 export async function searchWeb(
   query: string,
   options: SearchOptions = {},
-): Promise<SearchResult[]> {
+): Promise<SearchResponse> {
   const provider = options.provider || config.search.provider;
-  const maxResults = options.maxResults || DEFAULT_MAX_RESULTS;
+  const maxResults = Math.max(1, Math.min(options.maxResults || DEFAULT_MAX_RESULTS, 10));
+  const signal = options.signal;
 
   try {
     switch (provider) {
       case "tavily":
-        return await searchTavily(query, maxResults);
+        return { provider, results: await searchTavily(query, maxResults, signal) };
       case "bing":
-        return await searchBing(query, maxResults);
+        return { provider, results: await searchBing(query, maxResults, signal) };
       case "duckduckgo":
       default:
-        return await searchDuckDuckGo(query, maxResults);
+        return await searchDuckDuckGo(query, maxResults, signal);
     }
   } catch (err) {
+    if (signal?.aborted) throw err;
     console.error(`[web-search] ${provider} search failed:`, err);
     // Fallback to DuckDuckGo if the primary provider fails
     if (provider !== "duckduckgo") {
       try {
-        return await searchDuckDuckGo(query, maxResults);
+        return await searchDuckDuckGo(query, maxResults, signal);
       } catch (fallbackErr) {
+        if (signal?.aborted) throw fallbackErr;
         console.error("[web-search] DuckDuckGo fallback also failed:", fallbackErr);
       }
     }
-    return [];
+    return {
+      provider,
+      results: [],
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
@@ -59,14 +76,18 @@ export async function searchWeb(
  * DuckDuckGo Instant Answer API (no API key required).
  * Limited results but reliable for basic queries.
  */
-async function searchDuckDuckGo(query: string, maxResults: number): Promise<SearchResult[]> {
+async function searchDuckDuckGo(query: string, maxResults: number, externalSignal?: AbortSignal): Promise<SearchResponse> {
   const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
 
+  let primaryError: unknown;
   try {
+    const signal = externalSignal
+      ? AbortSignal.any([externalSignal, controller.signal])
+      : controller.signal;
     const res = await fetch(url, {
-      signal: controller.signal,
+      signal,
       headers: { "User-Agent": "NoteOne/0.1 (AI Knowledge Assistant)" },
     });
 
@@ -127,9 +148,112 @@ async function searchDuckDuckGo(query: string, maxResults: number): Promise<Sear
       }
     }
 
-    return results.slice(0, maxResults);
+    if (results.length > 0) return { provider: "duckduckgo", results: results.slice(0, maxResults) };
+  } catch (error) {
+    if (externalSignal?.aborted) throw error;
+    primaryError = error;
   } finally {
     clearTimeout(timeout);
+  }
+
+  try {
+    const fallback = await searchPublicHtml(query, maxResults, externalSignal);
+    if (fallback.results.length > 0 || primaryError === undefined) return fallback;
+  } catch (fallbackError) {
+    if (externalSignal?.aborted) throw fallbackError;
+    if (primaryError === undefined) throw fallbackError;
+  }
+  throw primaryError;
+}
+
+/** The Instant Answer API is sparse for current topics; HTML results provide normal links. */
+async function searchPublicHtml(
+  query: string,
+  maxResults: number,
+  externalSignal?: AbortSignal,
+): Promise<SearchResponse> {
+  try {
+    const results = await searchDuckDuckGoHtml(query, maxResults, externalSignal);
+    if (results.length > 0) return { provider: "duckduckgo", results };
+  } catch (error) {
+    if (externalSignal?.aborted) throw error;
+  }
+  return { provider: "bing", results: await searchBingHtml(query, maxResults, externalSignal) };
+}
+
+async function searchDuckDuckGoHtml(
+  query: string,
+  maxResults: number,
+  externalSignal?: AbortSignal,
+): Promise<SearchResult[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  const signal = externalSignal
+    ? AbortSignal.any([externalSignal, controller.signal])
+    : controller.signal;
+  try {
+    const res = await fetch("https://html.duckduckgo.com/html/?q=" + encodeURIComponent(query), {
+      signal,
+      headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
+    });
+    if (!res.ok) throw new Error("DuckDuckGo HTML error: " + res.status);
+    const $ = cheerio.load(await res.text());
+    const results: SearchResult[] = [];
+    $(".result").each((_index, element) => {
+      if (results.length >= maxResults) return false;
+      const anchor = $(element).find(".result__a").first();
+      const rawUrl = anchor.attr("href") || "";
+      const url = decodeDuckDuckGoRedirect(rawUrl);
+      const title = anchor.text().trim();
+      const snippet = $(element).find(".result__snippet").first().text().replace(/\s+/g, " ").trim();
+      if (title && /^https?:\/\//.test(url)) results.push({ title, url, snippet });
+      return undefined;
+    });
+    return results;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function searchBingHtml(
+  query: string,
+  maxResults: number,
+  externalSignal?: AbortSignal,
+): Promise<SearchResult[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  const signal = externalSignal
+    ? AbortSignal.any([externalSignal, controller.signal])
+    : controller.signal;
+  try {
+    const res = await fetch("https://www.bing.com/search?q=" + encodeURIComponent(query), {
+      signal,
+      headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
+    });
+    if (!res.ok) throw new Error("Bing HTML error: " + res.status);
+    const $ = cheerio.load(await res.text());
+    const results: SearchResult[] = [];
+    $("li.b_algo").each((_index, element) => {
+      if (results.length >= maxResults) return false;
+      const anchor = $(element).find("h2 a").first();
+      const url = anchor.attr("href") || "";
+      const title = anchor.text().trim();
+      const snippet = $(element).find(".b_caption p").first().text().replace(/\s+/g, " ").trim();
+      if (title && /^https?:\/\//.test(url)) results.push({ title, url, snippet });
+      return undefined;
+    });
+    return results;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function decodeDuckDuckGoRedirect(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl, "https://duckduckgo.com");
+    return parsed.searchParams.get("uddg") || parsed.href;
+  } catch {
+    return rawUrl;
   }
 }
 
@@ -137,7 +261,7 @@ async function searchDuckDuckGo(query: string, maxResults: number): Promise<Sear
  * Tavily Search API (designed for AI agents).
  * Requires TAVILY_API_KEY.
  */
-async function searchTavily(query: string, maxResults: number): Promise<SearchResult[]> {
+async function searchTavily(query: string, maxResults: number, signal?: AbortSignal): Promise<SearchResult[]> {
   const apiKey = config.search.tavilyApiKey;
   if (!apiKey) {
     throw new Error("TAVILY_API_KEY not configured");
@@ -146,6 +270,7 @@ async function searchTavily(query: string, maxResults: number): Promise<SearchRe
   const res = await fetch("https://api.tavily.com/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    signal,
     body: JSON.stringify({
       api_key: apiKey,
       query,
@@ -170,7 +295,7 @@ async function searchTavily(query: string, maxResults: number): Promise<SearchRe
  * Bing Web Search API v7.
  * Requires BING_SEARCH_API_KEY.
  */
-async function searchBing(query: string, maxResults: number): Promise<SearchResult[]> {
+async function searchBing(query: string, maxResults: number, signal?: AbortSignal): Promise<SearchResult[]> {
   const apiKey = config.search.bingApiKey;
   if (!apiKey) {
     throw new Error("BING_SEARCH_API_KEY not configured");
@@ -179,6 +304,7 @@ async function searchBing(query: string, maxResults: number): Promise<SearchResu
   const url = `https://api.bing.microsoft.com/v7.0/search?q=${encodeURIComponent(query)}&count=${maxResults}`;
   const res = await fetch(url, {
     headers: { "Ocp-Apim-Subscription-Key": apiKey },
+    signal,
   });
 
   if (!res.ok) {

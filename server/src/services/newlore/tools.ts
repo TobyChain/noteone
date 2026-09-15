@@ -1,14 +1,13 @@
 /**
  * Shared newlore tool definitions + handler factory for 闹闹 (chat-sessions).
- * Includes module execution, WeChat MP management, blog source management,
- * and config read/update tools so 闹闹 can manage the whole NewLore pipeline.
+ * Includes module execution, blog source management, and config read/update
+ * tools so 闹闹 can manage the whole NewLore pipeline.
  */
 import type { ToolDefinition } from "../notty/agent-loop.js";
 import { listReports, getReport, deleteReport, stripHtml } from "./reports.js";
 import { startNewLoreSupplement, startNewLoreModules, getRunStatus } from "./runner.js";
 import { getUserChatConfig } from "../user-config.js";
 import { getEffectiveConfig, updateEffectiveConfig, maskConfig } from "./config.js";
-import { searchAccounts } from "../wechat/service.js";
 
 export const newloreToolDefinitions: ToolDefinition[] = [
   {
@@ -60,13 +59,13 @@ export const newloreToolDefinitions: ToolDefinition[] = [
     type: "function",
     function: {
       name: "run_newlore_modules",
-      description: "只运行指定的爬取模块（而非全部）。用户说\"今天只跑微信公众号\"或\"只补充 arxiv 和 github\"时使用。可选模块：official(官方动态)、blog(独立博客)、github(GitHub)、arxiv(arXiv)、conference(会议论文)、wechat(微信公众号)。",
+      description: "只运行指定的爬取模块（而非全部）。用户说\"只补充 arxiv 和 github\"时使用。可选模块：official(官方动态)、blog(独立博客)、github(GitHub)、arxiv(arXiv)、conference(会议论文)。",
       parameters: {
         type: "object",
         properties: {
           modules: {
             type: "array",
-            items: { type: "string", enum: ["official", "blog", "github", "arxiv", "conference", "wechat"] },
+            items: { type: "string", enum: ["official", "blog", "github", "arxiv", "conference"] },
             description: "要运行的模块列表",
           },
           date: { type: "string", description: "报告日期 YYYYMMDD，默认今天" },
@@ -81,54 +80,6 @@ export const newloreToolDefinitions: ToolDefinition[] = [
       name: "get_newlore_status",
       description: "查看新知补充的运行状态和进度。",
       parameters: { type: "object", properties: {} },
-    },
-  },
-  // ── 公众号管理 ──
-  {
-    type: "function",
-    function: {
-      name: "list_wechat_mps",
-      description: "列出当前配置抓取的微信公众号。",
-      parameters: { type: "object", properties: {} },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "search_wechat_mp",
-      description: "按关键词搜索微信公众号，返回候选公众号及其 fakeid（用于添加）。需要已登录公众平台。",
-      parameters: {
-        type: "object",
-        properties: { keyword: { type: "string", description: "搜索关键词，如公众号名称" } },
-        required: ["keyword"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "add_wechat_mp",
-      description: "添加一个微信公众号到抓取列表。可直接给 fakeid；只给名字时会先搜索并添加最匹配的一个。用户说\"添加公众号XX\"时使用。",
-      parameters: {
-        type: "object",
-        properties: {
-          name: { type: "string", description: "公众号名称" },
-          fakeid: { type: "string", description: "公众号 fakeid（可选，不提供时自动搜索）" },
-        },
-        required: ["name"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "remove_wechat_mp",
-      description: "从抓取列表移除一个微信公众号（按名称或 fakeid）。用户说\"删除/不再抓取公众号XX\"时使用。",
-      parameters: {
-        type: "object",
-        properties: { name: { type: "string", description: "公众号名称或 fakeid" } },
-        required: ["name"],
-      },
     },
   },
   // ── 博客信息源管理 ──
@@ -180,7 +131,7 @@ export const newloreToolDefinitions: ToolDefinition[] = [
     type: "function",
     function: {
       name: "update_newlore_config",
-      description: "更新新知 pipeline 的配置项，如 enabled_modules(启用模块列表)、arxiv_subjects(arXiv分类)、github_topics(GitHub主题)、max_total_papers(论文上限)、blog_max_per_source(每博客条数)、wechat_limit_per_mp(每公众号条数)、enabled_modules(启用模块)等。用户说\"把XX改成YY\"时使用。不支持修改 API Key/Token。",
+      description: "更新新知 pipeline 的配置项，如 enabled_modules(启用模块列表)、arxiv_subjects(arXiv分类)、github_topics(GitHub主题)、max_total_papers(论文上限)、blog_max_per_source(每博客条数)等。用户说\"把XX改成YY\"时使用。不支持修改 API Key/Token。",
       parameters: {
         type: "object",
         properties: {
@@ -194,7 +145,7 @@ export const newloreToolDefinitions: ToolDefinition[] = [
 ];
 
 const BLOCKED_CONFIG_KEYS = new Set([
-  "llm_api_key", "github_token", "semantic_scholar_api_key", "wechat_auth_key",
+  "llm_api_key", "github_token", "semantic_scholar_api_key",
 ]);
 
 /**
@@ -232,7 +183,7 @@ export function makeNewLoreHandlers(userId: string): Record<string, (args: any) 
     run_newlore_modules: async ({ modules, date }: any) => {
       try {
         if (!Array.isArray(modules) || modules.length === 0) {
-          return "请提供要运行的模块列表，如 [\"wechat\"] 或 [\"arxiv\", \"github\"]";
+          return "请提供要运行的模块列表，如 [\"arxiv\", \"github\"]";
         }
         const llmConfig = await getUserChatConfig(userId);
         const r = await startNewLoreModules(modules, date, llmConfig, userId);
@@ -255,64 +206,6 @@ export function makeNewLoreHandlers(userId: string): Record<string, (args: any) 
       if (supp.phase === "done") return "新知补充已完成";
       if (supp.phase === "failed") return `新知补充失败：${supp.error ?? "未知错误"}`;
       return "当前无新知补充任务";
-    },
-    // ── 公众号管理 ──
-    list_wechat_mps: async () => {
-      const config = await getEffectiveConfig(userId);
-      const mps = config.wechat_mp_ids || [];
-      if (mps.length === 0) return "当前未配置任何公众号。可用 add_wechat_mp 添加。";
-      return `当前共 ${mps.length} 个公众号：\n` + mps.map((m, i) => `${i + 1}. ${m.name}（${m.id}）`).join("\n");
-    },
-    search_wechat_mp: async ({ keyword }: any) => {
-      const config = await getEffectiveConfig(userId);
-      if (!config.wechat_auth_key) return "未登录微信公众平台，请先在设置中扫码登录。";
-      try {
-        const result: any = await searchAccounts(config.wechat_auth_key, String(keyword ?? ""));
-        const list = result?.list || result?.biz_list || [];
-        if (list.length === 0) return `未找到匹配"${keyword}"的公众号`;
-        const lines = list.slice(0, 5).map((item: any, i: number) =>
-          `${i + 1}. ${item.nickname || item.alias || "未知"}（fakeid: ${item.fakeid || item.fake_id || "?"}）${item.signature ? " — " + String(item.signature).slice(0, 40) : ""}`,
-        );
-        return `找到 ${list.length} 个候选公众号：\n${lines.join("\n")}\n\n用 add_wechat_mp({ name, fakeid }) 添加其中一个。`;
-      } catch (err: any) {
-        return `搜索失败: ${err?.message || err}`;
-      }
-    },
-    add_wechat_mp: async ({ name, fakeid }: any) => {
-      const config = await getEffectiveConfig(userId);
-      const mps = [...(config.wechat_mp_ids || [])];
-      let id = typeof fakeid === "string" && fakeid ? fakeid : "";
-      let displayName = String(name ?? "").trim();
-      if (!id) {
-        if (!config.wechat_auth_key) return "未登录微信公众平台，请先在设置中扫码登录；或直接提供 fakeid。";
-        try {
-          const result: any = await searchAccounts(config.wechat_auth_key, displayName);
-          const list = result?.list || result?.biz_list || [];
-          if (list.length === 0) return `未找到匹配"${displayName}"的公众号，请尝试 search_wechat_mp 查看候选或提供 fakeid。`;
-          const top = list[0];
-          id = top.fakeid || top.fake_id || "";
-          displayName = top.nickname || top.alias || displayName;
-          if (!id) return "搜索结果中没有 fakeid，请提供 fakeid。";
-        } catch (err: any) {
-          return `搜索公众号失败: ${err?.message || err}`;
-        }
-      }
-      if (mps.some((m) => m.id === id)) return `公众号 ${displayName} 已在抓取列表中。`;
-      mps.push({ id, name: displayName });
-      await updateEffectiveConfig(userId, { wechat_mp_ids: mps });
-      return `已添加公众号：${displayName}（${id}）。当前共 ${mps.length} 个公众号。`;
-    },
-    remove_wechat_mp: async ({ name }: any) => {
-      const config = await getEffectiveConfig(userId);
-      const mps = config.wechat_mp_ids || [];
-      const key = String(name ?? "").trim().toLowerCase();
-      const remaining = mps.filter((m) => m.name.toLowerCase() !== key && m.id !== name);
-      if (remaining.length === mps.length) {
-        return `未找到公众号"${name}"。当前列表：${mps.map((m) => m.name).join("、") || "（空）"}`;
-      }
-      const removed = mps.filter((m) => m.name.toLowerCase() === key || m.id === name);
-      await updateEffectiveConfig(userId, { wechat_mp_ids: remaining });
-      return `已移除公众号：${removed.map((m) => m.name).join("、")}。当前共 ${remaining.length} 个。`;
     },
     // ── 博客信息源管理 ──
     list_blog_sources: async () => {

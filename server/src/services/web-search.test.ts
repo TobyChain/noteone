@@ -15,11 +15,15 @@ vi.mock("../config.js", () => ({
   },
 }));
 
-import { searchWeb, SearchResult } from "./web-search.js";
+import { searchWeb } from "./web-search.js";
 
 describe("searchWeb", () => {
   beforeEach(() => {
     fetchMock.mockReset();
+    return import("../config.js").then(({ config }) => {
+      (config.search as any).provider = "duckduckgo";
+      (config.search as any).tavilyApiKey = "";
+    });
   });
 
   afterEach(() => {
@@ -48,15 +52,16 @@ describe("searchWeb", () => {
       }),
     });
 
-    const results = await searchWeb("TypeScript", { provider: "duckduckgo" });
+    const response = await searchWeb("TypeScript", { provider: "duckduckgo" });
 
-    expect(results.length).toBeGreaterThanOrEqual(1);
-    expect(results[0].url).toBe("https://en.wikipedia.org/wiki/TypeScript");
-    expect(results[0].title).toBe("TypeScript");
-    expect(results[0].snippet).toContain("programming language");
+    expect(response.provider).toBe("duckduckgo");
+    expect(response.results.length).toBeGreaterThanOrEqual(1);
+    expect(response.results[0].url).toBe("https://en.wikipedia.org/wiki/TypeScript");
+    expect(response.results[0].title).toBe("TypeScript");
+    expect(response.results[0].snippet).toContain("programming language");
   });
 
-  it("returns empty array when DuckDuckGo returns no results", async () => {
+  it("returns an empty result set when DuckDuckGo returns no results", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -68,16 +73,49 @@ describe("searchWeb", () => {
         Results: [],
       }),
     });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => "<html><body></body></html>",
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => "<html><body></body></html>",
+    });
 
-    const results = await searchWeb("nonexistent-topic-xyz");
-    expect(results).toEqual([]);
+    const response = await searchWeb("nonexistent-topic-xyz");
+    expect(response.results).toEqual([]);
   });
 
-  it("returns empty array on network error (graceful fallback)", async () => {
+  it("falls back to DuckDuckGo HTML results for current-topic queries", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ Heading: "", Abstract: "", AbstractURL: "", RelatedTopics: [], Results: [] }),
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => "<div class='result'><a class='result__a' href='//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Fnews'>Current result</a><a class='result__snippet'>Fresh source summary</a></div>",
+    });
+
+    const response = await searchWeb("current agent news");
+
+    expect(response.provider).toBe("duckduckgo");
+    expect(response.results).toEqual([{
+      title: "Current result",
+      url: "https://example.com/news",
+      snippet: "Fresh source summary",
+    }]);
+  });
+
+  it("returns an explicit error on network failure", async () => {
     fetchMock.mockRejectedValueOnce(new Error("Network error"));
 
-    const results = await searchWeb("test query", { provider: "duckduckgo" });
-    expect(results).toEqual([]);
+    const response = await searchWeb("test query", { provider: "duckduckgo" });
+    expect(response.results).toEqual([]);
+    expect(response.error).toBe("Network error");
   });
 
   it("respects maxResults limit", async () => {
@@ -99,8 +137,8 @@ describe("searchWeb", () => {
       }),
     });
 
-    const results = await searchWeb("test", { provider: "duckduckgo", maxResults: 3 });
-    expect(results.length).toBeLessThanOrEqual(3);
+    const response = await searchWeb("test", { provider: "duckduckgo", maxResults: 3 });
+    expect(response.results.length).toBeLessThanOrEqual(3);
   });
 
   it("falls back to DuckDuckGo when Tavily is configured but fails", async () => {
@@ -122,9 +160,22 @@ describe("searchWeb", () => {
     // Override config to use tavily
     const { config } = await import("../config.js");
     (config.search as any).provider = "tavily";
+    (config.search as any).tavilyApiKey = "test-key";
 
-    const results = await searchWeb("test query");
+    const response = await searchWeb("test query");
     // Should fall back to DuckDuckGo since Tavily has no API key
-    expect(results.length).toBeGreaterThanOrEqual(0);
+    expect(response.provider).toBe("duckduckgo");
+    expect(response.results.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it("propagates user cancellation without degrading to an empty result", async () => {
+    const controller = new AbortController();
+    fetchMock.mockImplementationOnce(async (_url, init) => {
+      controller.abort();
+      throw (init.signal as AbortSignal).reason ?? new DOMException("aborted", "AbortError");
+    });
+
+    await expect(searchWeb("cancel me", { provider: "duckduckgo", signal: controller.signal }))
+      .rejects.toMatchObject({ name: "AbortError" });
   });
 });

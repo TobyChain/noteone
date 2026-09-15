@@ -48,28 +48,9 @@ struct NewLoreConfig: Codable, Hashable {
 
     var blogMaxPerSource: Int = 2
 
-    var wechatServiceUrl: String = ""
-    var wechatAuthKey: String = ""
-    var wechatMpIds: [WechatMpId] = []
-    var wechatLimitPerMp: Int = 20
-    var wechatDaysRecent: Int = 30
-
     var outputDir: String = "./docs"
     var logLevel: String = "INFO"
     var farviewMinimumCount: Int = 2
-}
-
-struct WechatMpId: Codable, Hashable {
-    var id: String
-    var name: String
-}
-
-struct WechatHealthResponse: Decodable {
-    let status: String  // unconfigured | ready | rate_limited | auth_expired | unreachable
-    let mpCount: Int?
-    let nickname: String?
-    let expiresAt: String?
-    let message: String?
 }
 
 struct NewLoreModuleProgress: Decodable, Hashable {

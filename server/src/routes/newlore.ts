@@ -23,7 +23,6 @@ import {
 } from "../services/newlore/runner.js";
 import { moduleNames } from "../services/newlore/pipeline/index.js";
 import { getUserChatConfig } from "../services/user-config.js";
-import { checkWechatHealth } from "../services/wechat/service.js";
 import { isLLMConfigured } from "../services/llm.js";
 import { PRESETS, applyPreset } from "../services/newlore/presets.js";
 import { getStudyReportProgress } from "../services/notty/learn-art.js";
@@ -174,10 +173,6 @@ newloreRouter.post("/abort", async (_req: AuthRequest, res) => {
 
 newloreRouter.get("/docs-path", async (_req: AuthRequest, res) => {
   res.json({ path: getDocsPath() });
-});
-
-newloreRouter.get("/wechat-health", async (req: AuthRequest, res) => {
-  res.json(await checkWechatHealth(req.userId));
 });
 
 newloreRouter.post("/summarize", async (req: AuthRequest, res) => {

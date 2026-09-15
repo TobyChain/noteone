@@ -257,7 +257,7 @@ export function getSupplementProgress(): SupplementProgress | null {
 }
 
 /**
- * Run a specific subset of modules in the background (e.g. "今天只跑微信公众号").
+ * Run a specific subset of modules in the background (e.g. "只跑 arXiv 和 GitHub").
  * Same engine as startNewLoreSupplement but with an explicit module list.
  */
 export async function startNewLoreModules(

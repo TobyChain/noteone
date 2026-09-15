@@ -369,9 +369,10 @@ ${historyIndex ? `用户的历史笔记索引（供关联参考）：\n${history
     search_web: async (args: Record<string, any>) => {
       const query = args.query as string;
       const maxResults = (args.maxResults as number) || 5;
-      const results = await searchWeb(query, { maxResults });
-      if (results.length === 0) return "未找到相关结果";
-      return results.map((r, i) =>
+      const response = await searchWeb(query, { maxResults });
+      if (response.error) return `联网搜索失败: ${response.error}`;
+      if (response.results.length === 0) return "未找到相关结果";
+      return response.results.map((r, i) =>
         `${i + 1}. ${r.title}\n   URL: ${r.url}\n   ${r.snippet}`
       ).join("\n\n");
     },

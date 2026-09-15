@@ -1,6 +1,6 @@
 # NoteOne 架构与实现现状（ARCHITECTURE）
 
-> 状态：历史架构说明 · 最后全面核对于 2026-06-15（迭代 6 之后）
+> 状态：历史架构说明 · 关键运行时差异更新至 2026-09-10
 > 本文档以**代码为准**，描述系统当前真实形态；产品愿景与决策背景见 [design/2026-06-08-noteone-design.md](design/2026-06-08-noteone-design.md)。
 > 文件路径均相对仓库根 `noteone/`。
 
@@ -10,14 +10,14 @@
 > - 搜索使用用户 LLM 配置生成向量，不可用或无结果时自动降级为全文检索
 > - 数据导出默认不含密钥，并覆盖每日报告、定时任务、NewLore 去重历史与报告文件
 > - 删除"记实"模块（Writer）—— 本文中涉及 记实/WriterView/WriterAssistantView/markdown 编辑器/writer-messages 路由的部分均已移除
-> - 微信抓取已内置于 server（`services/wechat/` + `/api/wechat` + `/wechat/` 配置页），不再依赖外部 wechat-article-exporter 部署
-> - 新知（NewLore）pipeline 已从 Python 移植为 TypeScript（`server/src/services/newlore/pipeline/`，单入口编排 6 模块，进程内运行），Python `newlore/` 目录已删除（配置 schema 迁至 `server/.newlore/config.schema.json`）
-> - 高见（FarView）从 NewLore 六类结构化数据读取最近 7 天内容，过滤噪声后确定性提取话题并持久化全局热度快照；用户偏好只在 API 读取时重排，不修改全局分数
+> - 微信公众号抓取模块、扫码管理页和相关 API 已移除；历史迁移与旧导出数据兼容保留
+> - 新知（NewLore）pipeline 已从 Python 移植为 TypeScript（`server/src/services/newlore/pipeline/`，单入口编排 5 模块，进程内运行），Python `newlore/` 目录已删除（配置 schema 迁至 `server/.newlore/config.schema.json`）
+> - 高见（FarView）从 NewLore 五类结构化数据读取最近 7 天内容，过滤噪声后确定性提取话题并持久化全局热度快照；用户偏好只在 API 读取时重排，不修改全局分数
 > - 支持 dmg 单体分发：`scripts/package-dmg.sh` 打包内嵌 Node 运行时 + PGlite（Postgres-in-WASM，`NOTEONE_DATA_DIR` 内嵌模式）；App 侧 `ServerLauncher.swift` 自动拉起内置 server
 > - 新增 `scheduled_tasks` 表 + `services/scheduler.ts` + `services/schedule-tools.ts`（闹闹可创建 cron 定时任务）
 > - 新增 `services/local-tools.ts`（闹闹可调白名单本地终端命令）
 > - newlore 拆分为 `services/newlore/{config,reports,runner,tools}.ts` 子模块
-> - 多模块去重机制全面修复（WeChat known_ids、arXiv 跨日、Conference days_recent + DOI 跨模块）
+> - 多模块去重机制覆盖 arXiv 跨日、Conference days_recent 与 DOI 跨模块
 > - 完整变更见 `git log --since=2026-06-15`
 
 ---
@@ -71,7 +71,7 @@ NoteOne 由三个主要运行组件组成：
 | `0004_flippant_layla_miller` | 时间列统一转 `timestamptz`（按 `Asia/Shanghai` 保留历史数据） |
 | `0005_daily_reports` | 新增每日报告表 |
 | `0006_safe_vulcan` | 新增定时任务、NewLore 数据表和相关索引 |
-| `0007_glossy_victor_mancha` | 新增微信会话与文章采集字段 |
+| `0007_glossy_victor_mancha` | 新增已停用抓取模块的历史会话与文章字段（保留迁移兼容） |
 | `0008_silky_thena` | 完善 NewLore 多来源字段和索引 |
 | `0009_learn_art_content_types` | 增加 `html` 与 `md` 笔记类型 |
 | `0010_farview_snapshots` | 新增论文首次观察日期与 FarView 全局快照 |
@@ -247,17 +247,18 @@ test/                集成测试辅助(db.ts / setup.ts)
 
 ## 8. Apple 客户端（`apple/NoteOne/Sources/`）
 
-**Bundle**：主 App `com.noteone.app`，分享扩展 `com.noteone.app.share`，App Group `group.com.noteone.app`。
+**Bundle**：主 App `com.noteone.app`，分享扩展 `com.noteone.app.share`。App Group `group.com.noteone.app` 只用于 iOS 主 App 与分享扩展；macOS 不声明或访问该容器，避免 ad-hoc 更新后触发跨 App 数据访问提示。
 
 ### 8.1 文件清单
 - **Models/**：`Note`（含 `ContentType` / `NoteStatus`） · `Tag`(`TagDimension`) · `NoteTag` · `ChatMessage`(会话模型) · `NoteDragPayload`(Transferable 拖出) · `AuthModels`。
 - **Views/**：`ContentView`(根 split/tab + iOS 顶层 onDrop) · `CaptureView`(统一录入,图文+剪贴板+拖拽+离线兜底) · `NoteListView`(分时段分组+轮询+语义搜索+NoteRowView 可拖) · `NoteDetailView`(详情+AIProcessing/Failed/Trashed 三态 banner+FlowTags+懒分块) · `NottyView`(会话 UI+SessionListPopover+ChatBubble) · `SettingsView`(主题/本地数据/服务器/快捷键/LLM/统计/标签) · `TrashView`(恢复/永久删/清空) · `MCPInstallView`(macOS 一键装 MCP)。
-- **Services/**：`APIClient`(actor，全部 API) · `LocalSessionService`(@MainActor，在服务健康后建立内部本地会话，失败可重试) · `SyncQueue`(actor，离线队列+消化 App Group 共享待传) · `DropPayloadStore`(actor，跨视图拖拽内存中转)。
-- **macOS/**：`HotkeyManager`(Carbon 全局快捷键+辅助功能选区读取+定向复制回退+浏览器 meta 捕获) · `PermissionCoordinator`(一次性权限说明与状态协调) · `FloatingCaptureWindow`(可拖拽、可关闭的标准 NSWindow)。
+- **Services/**：`APIClient`(actor，全部 API) · `LocalSessionService`(@MainActor，在服务健康后建立内部本地会话，失败可重试) · `SyncQueue`(actor；macOS 使用 Application Support 离线队列，iOS 消化 App Group 共享待传) · `DropPayloadStore`(actor，跨视图拖拽内存中转)。
+- **macOS/**：`HotkeyManager`(Carbon 全局快捷键+已授权时读取选区+定向复制回退+用户主动开启的浏览器 meta 捕获) · `PermissionCoordinator`(显式授权与状态协调) · `FloatingCaptureWindow`(可拖拽、可关闭的标准 NSWindow)。普通启动和快捷键本身都不主动请求跨 App 权限。
 - **Theme/**：`Theme`(system/light/dark + 命名色板)。
 
 ### 8.2 捕获流
-- **macOS**：`⌘⇧O`(默认) → Carbon hotkey 记录源 App → 优先通过 Accessibility 读取选区，失败时向源进程定向发送 `⌘C` 并确认剪贴板变化 → 抓浏览器 URL+标题与剪贴板图片 → `FloatingCaptureWindow` 内 `CaptureView` 预填 → 保存。
+- **macOS**：`⌘⇧O`(默认) → Carbon hotkey 记录源 App → 已授权时通过 Accessibility 读取选区，否则直接使用剪贴板 → 仅在用户主动开启“读取浏览器页面信息”后抓 URL+标题 → `FloatingCaptureWindow` 内 `CaptureView` 预填 → 保存。辅助功能和浏览器自动化权限都只由用户在设置中主动开启，不在应用启动或普通快捷记录时请求。
+- **统一阅读界面**：往事、新知、高见和报告共用 `ReaderHeader`、`ReaderActionBar`、`ReaderSelectionFeedback` 与受限阅读宽度。普通文本可按段多选；HTML/Markdown 正文使用 WebKit 原生选区。选中片段后可复制、保存到往事（适用时），或把明确的内容与来源上下文交给 Notty；编辑失败保留在当前编辑界面。
 - **iOS 手动**：「记一条」Tab → CaptureView（无剪贴板自动读，检查 DropPayloadStore）。
 - **iOS Share Extension**：分享菜单 → 写 App Group `UserDefaults["pendingNotes"]` + 图片落 `share-images/` → 主 App 激活 `SyncQueue.drainSharedPending()` → `flush()` 补传。
 - **iOS 拖入**：顶层 `.onDrop([.image,.url,.plainText])`（image>url>text）→ DropPayloadStore → 通知切到「记一条」Tab。

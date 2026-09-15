@@ -20,17 +20,13 @@ import { importRouter } from "./routes/import.js";
 import { reportsRouter } from "./routes/reports.js";
 import { newloreRouter } from "./routes/newlore.js";
 import { farviewRouter } from "./routes/farview.js";
-import { wechatRouter } from "./routes/wechat.js";
 import { startTrashCleanup } from "./services/trash-cleanup.js";
-import { seedReportIfNeeded } from "./services/newlore/reports.js";
 import { restoreTasks } from "./services/scheduler.js";
 import { requestLogger } from "./middleware/logger.js";
 
 const app = express();
 
 app.disable("x-powered-by");
-// upgrade-insecure-requests is dropped: the /wechat config page is typically served
-// over plain http (localhost/LAN) and the directive would break its same-origin fetches.
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -91,13 +87,8 @@ app.use("/api/farview", requireAuth, farviewRouter);
 app.use("/api/newsee", requireAuth, newloreRouter);
 // Compatibility alias for clients upgrading from pre-NewLore releases.
 app.use("/api/ascan", requireAuth, newloreRouter);
-// WeChat MP integration: login flow uses WeChat uuid cookies, data endpoints use auth-key.
-app.use("/api/wechat", wechatRouter);
-
-// Built-in WeChat config page (embedded by the app's WebView).
 const PUBLIC_DIR = process.env.NOTEONE_PUBLIC_DIR
   || fileURLToPath(new URL("../public", import.meta.url));
-app.use("/wechat", express.static(join(PUBLIC_DIR, "wechat")));
 app.use("/newlore", express.static(join(PUBLIC_DIR, "newlore")));
 // Compatibility alias for the previous embedded configuration page.
 app.use("/newsee", express.static(join(PUBLIC_DIR, "newlore")));
@@ -120,7 +111,6 @@ const onListening = () => {
   const address = config.isEmbedded ? `127.0.0.1:${config.port} (embedded)` : `port ${config.port}`;
   console.log(`NoteOne server running on ${address}`);
   startTrashCleanup();
-  seedReportIfNeeded();
   restoreTasks();
 };
 app.listen(config.port, config.host, onListening);

@@ -27,7 +27,6 @@ const MODULE_REGISTRY: Record<NewLoreModuleName, () => Promise<{ run: ModuleRunn
   github: () => import("./modules/github.js"),
   arxiv: () => import("./modules/arxiv.js"),
   conference: () => import("./modules/conference.js"),
-  wechat: () => import("./modules/wechat.js"),
 };
 
 export function moduleNames(): NewLoreModuleName[] {
@@ -35,12 +34,16 @@ export function moduleNames(): NewLoreModuleName[] {
 }
 
 export function selectMergeModules(
-  moduleOrder?: NewLoreModuleName[],
+  moduleOrder?: string[],
   activeModules?: string[],
 ): NewLoreModuleName[] {
-  const ordered = moduleOrder?.length ? moduleOrder : moduleNames();
+  const all = moduleNames();
+  const validOrder = (moduleOrder ?? []).filter(
+    (name): name is NewLoreModuleName => all.includes(name as NewLoreModuleName),
+  );
+  const ordered = validOrder.length > 0 ? validOrder : all;
   if (activeModules === undefined) return ordered;
-  const enabled = new Set(activeModules.filter((name) => moduleNames().includes(name as NewLoreModuleName)));
+  const enabled = new Set(activeModules.filter((name) => all.includes(name as NewLoreModuleName)));
   return ordered.filter((name) => enabled.has(name));
 }
 
@@ -49,8 +52,7 @@ export function enabledModuleNames(config: { enabled_modules?: string[] }): stri
   const all = moduleNames() as string[];
   const enabled = config.enabled_modules;
   if (!enabled || enabled.length === 0) return all;
-  const filtered = enabled.filter((m) => all.includes(m));
-  return filtered.length > 0 ? filtered : all;
+  return enabled.filter((m) => all.includes(m));
 }
 
 export interface ModuleRunResult {
@@ -183,16 +185,14 @@ export async function mergePipelineReport(
     official: fragments.official?.html ?? "",
     blog: fragments.blog?.html ?? "",
     conference: fragments.conference?.html ?? "",
-    wechat: fragments.wechat?.html ?? "",
-  }, moduleOrder, language);
+  }, names, language);
   const unifiedMd = buildUnifiedMd(dateCompact, {
     arxiv: fragments.arxiv?.md ?? "",
     github: fragments.github?.md ?? "",
     official: fragments.official?.md ?? "",
     blog: fragments.blog?.md ?? "",
     conference: fragments.conference?.md ?? "",
-    wechat: fragments.wechat?.md ?? "",
-  }, moduleOrder, language);
+  }, names, language);
 
   await mkdir(NEWLORE_DOCS, { recursive: true });
   const htmlPath = join(NEWLORE_DOCS, `NewLore-${dateCompact}.html`);

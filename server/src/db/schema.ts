@@ -152,7 +152,7 @@ export const scheduledTasks = pgTable("scheduled_tasks", {
   index("scheduled_tasks_enabled_idx").on(table.enabled),
 ]);
 
-// --- WeChat MP login sessions (auth-key -> token + cookies) ---
+// --- Retired crawler login sessions, retained for migration and cleanup compatibility ---
 
 export const wechatSessions = pgTable("wechat_sessions", {
   authKey: text("auth_key").primaryKey(),
@@ -315,6 +315,7 @@ export const newloreConferencePapers = pgTable("conference_papers", {
   index("conference_papers_venue_idx").on(table.venue),
 ]);
 
+// Retired crawler history retained for old exports and cleanup compatibility.
 export const newloreWechatArticles = pgTable("wechat_articles", {
   id: serial("id").primaryKey(),
   articleId: text("article_id").notNull().unique(),

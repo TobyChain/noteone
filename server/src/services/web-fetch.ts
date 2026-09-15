@@ -33,7 +33,11 @@ async function readBodyLimited(res: Response, maxBytes: number): Promise<string>
   return Buffer.concat(chunks).toString("utf-8");
 }
 
-export async function fetchUrlContent(url: string, maxLength = 15000): Promise<FetchResult> {
+export async function fetchUrlContent(
+  url: string,
+  maxLength = 15000,
+  externalSignal?: AbortSignal,
+): Promise<FetchResult> {
   const start = Date.now();
   try {
     let currentUrl = url;
@@ -44,9 +48,12 @@ export async function fetchUrlContent(url: string, maxLength = 15000): Promise<F
       const safe = await assertSafeUrl(currentUrl);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
+      const signal = externalSignal
+        ? AbortSignal.any([externalSignal, controller.signal])
+        : controller.signal;
       try {
         res = await fetch(safe, {
-          signal: controller.signal,
+          signal,
           headers: {
             "User-Agent": "NoteOne/0.1 (AI Knowledge Assistant)",
             "Accept": "text/html,text/plain,application/xhtml+xml",
@@ -92,6 +99,7 @@ export async function fetchUrlContent(url: string, maxLength = 15000): Promise<F
 
     return { url, title, content, author, siteName, publishedDate };
   } catch (err: any) {
+    if (externalSignal?.aborted) throw err;
     const msg = err.name === "AbortError" ? "Timeout after 10s" : err.message;
     console.log(`[web-fetch] url=${url.slice(0, 80)} duration=${Date.now() - start}ms status=error error=${msg}`);
     return { url, title: "", content: "", error: msg };

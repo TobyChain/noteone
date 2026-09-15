@@ -324,7 +324,7 @@ class GitHubFetcher {
   }
 }
 
-// ── LLM topic filter (similar to wechat's llmFilterArticles) ─────────────
+// ── LLM topic filter ─────────────────────────────────────────────────────
 
 const LLM_FILTER_THRESHOLD = 6;
 

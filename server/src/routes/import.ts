@@ -419,7 +419,7 @@ router.post("/", express.raw({ type: "*/*", limit: "500mb" }), async (req: AuthR
             };
         });
 
-        // Restore NewLore / WeChat pipeline config (lives in newlore/.env). sanitizeConfigUpdates
+        // Restore NewLore pipeline config (lives in newlore/.env). sanitizeConfigUpdates
         // drops unknown keys and "***" placeholders, so a secrets-stripped export simply leaves
         // existing sensitive values untouched on the target device.
         let configRestored = false;

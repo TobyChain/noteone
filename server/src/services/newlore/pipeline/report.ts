@@ -471,7 +471,6 @@ export interface ModuleFragments {
   official: string;
   blog: string;
   conference: string;
-  wechat: string;
 }
 
 const MODULE_LABELS_ZH: Record<string, string> = {
@@ -480,7 +479,6 @@ const MODULE_LABELS_ZH: Record<string, string> = {
   github: "GitHub 项目挖掘",
   arxiv: "arXiv 论文精选",
   conference: "会议论文追踪",
-  wechat: "微信公众号",
 };
 
 const MODULE_LABELS_EN: Record<string, string> = {
@@ -489,7 +487,6 @@ const MODULE_LABELS_EN: Record<string, string> = {
   github: "GitHub Projects",
   arxiv: "arXiv Papers",
   conference: "Conference Papers",
-  wechat: "WeChat Articles",
 };
 
 const EMPTY_STATE_ZH: Record<string, string> = {
@@ -498,7 +495,6 @@ const EMPTY_STATE_ZH: Record<string, string> = {
   github: "今日无 GitHub 数据。",
   arxiv: "今日无 arXiv 数据。",
   conference: "今日无会议论文数据。",
-  wechat: "今日无微信公众号数据。",
 };
 
 const EMPTY_STATE_EN: Record<string, string> = {
@@ -507,15 +503,14 @@ const EMPTY_STATE_EN: Record<string, string> = {
   github: "No GitHub data today.",
   arxiv: "No arXiv data today.",
   conference: "No conference paper data today.",
-  wechat: "No WeChat article data today.",
 };
 
 /**
- * Combine arXiv, GitHub, official tracker, blog, conference and WeChat
+ * Combine arXiv, GitHub, official tracker, blog and conference
  * fragments into one standalone HTML daily report.
  */
 export function buildUnifiedHtml(dateCompact: string, fragments: ModuleFragments, moduleOrder?: string[], language: "zh" | "en" = "zh"): string {
-  const DEFAULT_ORDER = ["official", "blog", "github", "arxiv", "conference", "wechat"];
+  const DEFAULT_ORDER = ["official", "blog", "github", "arxiv", "conference"];
   const order = moduleOrder?.length ? moduleOrder : DEFAULT_ORDER;
   const labels = language === "en" ? MODULE_LABELS_EN : MODULE_LABELS_ZH;
   const emptyStates = language === "en" ? EMPTY_STATE_EN : EMPTY_STATE_ZH;
@@ -549,13 +544,6 @@ export function buildUnifiedHtml(dateCompact: string, fragments: ModuleFragments
       body: (fragments.conference?.trim() && !fragments.conference.includes("empty-state"))
         ? fragments.conference.trim()
         : `<p class="empty-state">${emptyStates.conference}</p>`,
-    },
-    wechat: {
-      id: "wechat-mp",
-      label: labels.wechat,
-      body: (fragments.wechat?.trim() && !fragments.wechat.includes("empty-state"))
-        ? fragments.wechat.trim()
-        : `<p class="empty-state">${emptyStates.wechat}</p>`,
     },
   };
 
@@ -638,7 +626,7 @@ ${tocDotsHtml}
 
 /** Combine module Markdown fragments into one unified Markdown daily report. */
 export function buildUnifiedMd(dateCompact: string, fragments: ModuleFragments, moduleOrder?: string[], language: "zh" | "en" = "zh"): string {
-  const DEFAULT_ORDER = ["official", "blog", "github", "arxiv", "conference", "wechat"];
+  const DEFAULT_ORDER = ["official", "blog", "github", "arxiv", "conference"];
   const order = moduleOrder?.length ? moduleOrder : DEFAULT_ORDER;
   const dateDisplay = `${dateCompact.slice(0, 4)}-${dateCompact.slice(4, 6)}-${dateCompact.slice(6, 8)}`;
   const labels = language === "en" ? MODULE_LABELS_EN : MODULE_LABELS_ZH;
@@ -652,7 +640,6 @@ export function buildUnifiedMd(dateCompact: string, fragments: ModuleFragments, 
     github: { label: labels.github, body: fragments.github?.trim() || `_${emptyStates.github}_` },
     arxiv: { label: labels.arxiv, body: fragments.arxiv?.trim() || `_${emptyStates.arxiv}_` },
     conference: { label: labels.conference, body: fragments.conference?.trim() || `_${emptyStates.conference}_` },
-    wechat: { label: labels.wechat, body: fragments.wechat?.trim() || `_${emptyStates.wechat}_` },
   };
 
   const subtitleParts = order.filter((k) => bodies[k]).map((k) => bodies[k].label);

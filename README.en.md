@@ -1,188 +1,119 @@
 # NoteOne · 壹识
 
-> I saw the mountains so enchanting, I suppose the mountains see me the same.
-> —— Xin Qiji
-
-NoteOne is an AI-powered personal knowledge system.
-
-- **Capture → Organize**: Capture anything, AI silently tags / summarizes / embeds
-- **Notty (闹闹)**: Core agent — searches permitted local files, schedules tasks, and orchestrates the NewLore pipeline
-- **NewLore (新知)**: Daily scan of arXiv / GitHub / official blogs / conference papers / WeChat, curated HTML report
-- **FarView (高见)**: The ten hottest valid topics from the latest seven days across all collected sources
-- **MCP**: Claude / Cursor / Codex talk directly to your note database
-
 [中文](README.md) · [English](README.en.md) · [License](#license)
 
----
+## TL;DR
 
-### Highlights
+**Capture once. Reuse it from any AI, with provenance intact.**
 
-| Module | Capability |
+NoteOne is a local-first personal context library for AI. It captures text, links, and images on macOS and iOS; preserves the original material, author, source, and time; creates summaries, tags, and semantic indexes; and makes the result available through in-app search, Notty, and MCP.
+
+The macOS package embeds its Node.js service and PGlite database, so it needs no separate backend. NoteOne does not bundle an LLM: notes remain usable without an API key, while AI-dependent steps are explicitly skipped.
+
+## Introduction
+
+Most note-taking tools preserve information but leave organization, review, and rediscovery to the user. Ordinary AI chats only see temporary conversation context. NoteOne connects both sides in one local workflow: low-friction capture, asynchronous organization, retrieval with provenance, and reuse from any AI.
+
+The product follows one primary workflow:
+
+- **Capture:** receive material through shortcuts, system sharing, drag-and-drop, or MCP.
+- **Contextualize:** preserve originals and provenance, then create summaries, tags, and semantic indexes.
+- **Retrieve and cite:** find material by topic, copy it with provenance, or continue with Notty and external AI clients.
+- **Optional sources:** NewLore collects public information, while FarView provides a seven-day trend view.
+
+## What NoteOne Adds
+
+| Area | What it does |
 |---|---|
-| **Capture** | macOS global hotkey, iOS Share Extension, drag-and-drop. Auto-grabs URL, title, selected text, clipboard image |
-| **AI Pipeline** | Async: fetch link → title/summary → 4-dim tagging → 1536-d embedding |
-| **OldEcho (往事)** | Time-grouped list, semantic search, tag filter, one-tap new note, AI summary cards |
-| **Notty (闹闹)** | 3-layer context mgmt, doom-loop detection, tool persistence, Markdown. Tools: terminal / cron / NewLore / web / notes |
-| **NewLore (新知)** | 6-module daily pipeline (arXiv · GitHub · official · blog · conference · WeChat), TOC-navigated HTML report |
-| **FarView (高见)** | Globally shared top-ten topic ranking for the last seven days, with noise filtering, source mix, and representative items |
-| **Scheduled Tasks** | Natural-language cron via Notty, DB-persisted, auto-restored on boot |
-| **MCP** | 8 tools for Claude / Cursor / Codex to read/write notes |
-| **Reports** | Notty reads today's notes → web search → 4 styles × 3 depths HTML report |
-| **Sovereignty** | ZIP export · cascade deletion · 30-day trash auto-purge |
+| **Capture** | Saves text, URLs, selections, and clipboard images through a macOS global shortcut, iOS Share Extension, and drag-and-drop |
+| **Quiet AI organization** | Fetches source content, creates titles and summaries, applies format/topic/domain/module tags, and writes embeddings asynchronously |
+| **Personal context library** | Provides Today, Library, hybrid search, processing states, and copy-with-citation actions |
+| **Context assistant** | Notty reads the source material before retrieving, comparing, summarizing, and producing cited output |
+| **NewLore daily** | Runs five information modules concurrently and produces TOC-navigated HTML and Markdown reports after LLM filtering and translation |
+| **FarView trends** | Removes generic noise and shows seven-day topic heat, source composition, and representative items |
+| **MCP server** | Lets Claude, Cursor, Codex, and other clients search, read, create, update, and manage notes |
+| **Data control** | Offers complete ZIP export, secret exclusion by default, a 30-day trash, and full local-data deletion |
 
-### Architecture
+## How It Works
 
-```
-                          NoteOne · 壹识
-  ┌──────────────────────────────────────────────────────────────┐
-  │                        Client (SwiftUI)                        │
-  │                                                               │
-  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
-  │  │ FarView  │  │ NewLore  │  │ OldEcho  │  │ Capture  │     │
-  │  │  高见     │  │  新知     │  │  往事     │  │  记一条   │     │
-  │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘     │
-  │       └─────────────┴─────────────┴─────────────┘            │
-  │                  Settings · Reports · Trash                    │
-  └────────────────────────┬──────────────────────────────────────┘
-                           │ HTTPS (JWT)
-  ┌────────────────────────┴──────────────────────────────────────┐
-  │                   REST API (Express 5 + TypeScript)            │
-  │                                                                │
-  │  auth · notes · tags · search · chat-sessions · reports        │
-  │  uploads · settings · account · export                         │
-  │  newlore (reports / config / run-module / merge / status)        │
-  │  sidecar (scheduler · local-tools)                             │
-  │                                                                │
-  │  ┌─────────────────────┐  ┌──────────────────────────────┐    │
-  │  │  Async AI Pipeline  │  │  Notty Context Manager        │    │
-  │  │  fetch → tag → sum  │  │  token trim · compaction      │    │
-  │  │  → embed            │  │  doom-loop detection           │    │
-  │  └─────────────────────┘  └──────────────────────────────┘    │
-  │                                                                │
-  │  PGlite embedded (WASM) / PostgreSQL 16   NewLore TS Pipeline     │
-  │  notes · tags · chat · reports           arXiv · GitHub · blog   │
-  │  scheduled_tasks · newlore_*                                       │
-  └────────────────────────────────────────────────────────────────┘
-                           │ stdio (MCP)
-  ┌────────────────────────┴──────────────────────────────────────┐
-  │  MCP Servers — Claude / Cursor / Codex direct DB access        │
-  └────────────────────────────────────────────────────────────────┘
+```text
+                         NoteOne client (SwiftUI)
+          Today · Library · Capture · Search · More · Context Assistant
+                                  │
+                         localhost HTTP + JWT
+                                  │
+                  Embedded Express 5 + TypeScript service
+       notes · tags · search · chat · reports · scheduler · MCP
+                     │                         │
+          Async AI organization          NewLore five-module pipeline
+       fetch → summarize → tag → embed   arXiv · GitHub · official · blog · conference
+                     │                         │
+                     └──────────┬──────────────┘
+                                │
+                  PGlite (embedded) / PostgreSQL 16
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
+The macOS app starts the embedded service and calls `/auth/local` to create or reuse one local data owner. Desktop data lives in PGlite under `~/Library/Application Support/NoteOne`; development and self-hosted deployments can use PostgreSQL 16 with pgvector.
 
-### Quick Start
+See [Architecture](docs/ARCHITECTURE.md) for the detailed design.
 
-#### macOS app (recommended)
+## Getting Started
 
-**Homebrew (recommended):**
+### Requirements
+
+- Apple Silicon Mac
+- macOS 14 or newer
+- Xcode 16, Swift 6, and XcodeGen when building from source
+
+### Install with Homebrew
 
 ```bash
 brew tap TobyChain/tap https://github.com/TobyChain/homebrew-tap.git
 brew install --cask noteone
 ```
 
-Update to the latest version:
+Open `/Applications/NoteOne.app`. Because the current DMG is ad-hoc signed rather than notarized, the first launch may require **System Settings → Privacy & Security → Open Anyway**.
+
+Update:
 
 ```bash
-brew update && brew upgrade --cask noteone
+brew update
+brew upgrade --cask noteone
 ```
 
-Uninstall:
+Uninstall the app:
 
 ```bash
 brew uninstall --cask noteone
 ```
 
-> Data is not automatically removed on uninstall (stored in `~/Library/Application Support/NoteOne`). Remove that directory manually to fully clean up.
+Uninstalling does not remove data from `~/Library/Application Support/NoteOne`.
 
-**DMG download:**
+### Install from DMG
 
-Download the latest `NoteOne.dmg` from [Releases](https://github.com/TobyChain/noteone/releases), drag to Applications, and double-click. The app bundles a Node runtime and PGlite database — no external dependencies, auto-migrates on first launch.
+Download the latest `NoteOne.dmg` from [GitHub Releases](https://github.com/TobyChain/noteone/releases) and drag the app into Applications. Updating replaces only the app bundle; it does not overwrite the external data directory.
 
-> The DMG is ad-hoc signed (personal open-source project, no Apple Developer certificate). If macOS says "cannot verify the developer" on first launch, go to System Settings → Privacy & Security and click "Open Anyway".
+## Configure and Use
 
-**Homebrew installation notes:**
+### Configure an LLM
 
-- **Apple Silicon only (arm64)**: The DMG is built for darwin-arm64; Intel Macs are not currently supported
-- **macOS 14+ (Sonoma)**: The app uses SwiftUI 6 + WKWebView system frameworks requiring macOS 14 or later
-- **Gatekeeper prompt on first launch**: The DMG is ad-hoc signed (no Apple Developer certificate); first launch may say "cannot verify developer" — go to System Settings → Privacy & Security and click "Open Anyway"
-- **Tap is a separate repo**: `TobyChain/tap` points to `github.com/TobyChain/homebrew-tap`, separate from the main noteone repo — Cask version updates must be pushed to the tap repo
-- **Version upgrades**: `brew upgrade` downloads the new DMG and replaces the app binary. Data lives in `~/Library/Application Support/NoteOne`, separate from the app, so upgrades are non-destructive
-- **Migrating from DMG to Homebrew**: If previously installed via DMG, remove `/Applications/NoteOne.app` first, then `brew install --cask noteone` — your data directory is unaffected
-
-#### Backend + database (Docker)
-
-```bash
-git clone https://github.com/TobyChain/noteone.git
-cd noteone
-
-cp server/.env.example server/.env
-# At minimum, set JWT_SECRET (>= 16 chars)
-
-POSTGRES_PASSWORD=your-strong-pwd \
-JWT_SECRET=$(openssl rand -hex 24) \
-docker compose up -d
-```
-
-API listens on `127.0.0.1:3000`, Postgres on localhost only.
-The server listens on the container network internally, while Compose publishes it on host
-loopback only. If you bind `HOST` to a non-loopback address yourself, set a
-`NOTEONE_ACCESS_TOKEN` of at least 16 characters and send it as `X-NoteOne-Access-Token` when
-opening `/auth/local`. `/auth/dev-token` is disabled unless `ENABLE_DEV_LOGIN=true` is set.
-
-#### Local dev (no Docker)
-
-```bash
-cd server
-cp .env.example .env       # Fill DATABASE_URL / JWT_SECRET
-npm install
-npm run db:migrate         # Apply migrations (requires DB + pgvector extension)
-npm run dev                # Default :3000
-npm test                   # Vitest
-```
-
-No registration or login is required. The app starts its localhost service first, then calls `POST /auth/local` to open the installation's single local data space. The returned JWT only protects internal calls between the app and its localhost service. Notes, tags, chats, and settings persist under `~/Library/Application Support/NoteOne`.
-
-#### Apple client
-
-```bash
-# Requires XcodeGen
-cd apple && xcodegen generate
-open NoteOne.xcodeproj
-```
-
-Requires Xcode 16 / iOS 17 / macOS 14 / Swift 6. See [apple/README.md](apple/README.md).
-
-- The macOS app connects to its embedded service at `http://localhost:3000`
-- There is no account or login flow; startup opens the local data space automatically
-- The macOS global hotkey does not require Accessibility access; only automatic copying of selected text from another app needs it. The first launch explains why, and the system permission is requested only when needed
-
-### Usage
-
-#### Configure LLM
-
-NoteOne is open-source and does not bundle an LLM. All AI features (tagging, summaries, Notty chat, reports, NewLore daily) require your own API key. Open **Settings → AI Model**:
+Open **Settings → AI Model** and enter an OpenAI-compatible endpoint:
 
 | Field | Example |
 |---|---|
-| API Key | Your OpenAI / DashScope / self-hosted vLLM key |
-| Base URL | `https://api.openai.com/v1` or `https://dashscope.aliyuncs.com/compatible-mode/v1` |
-| Model | `qwen-turbo` / `gpt-4o-mini` / any OpenAI-compatible model |
+| API Key | An OpenAI, DashScope, or self-hosted service key |
+| Base URL | `https://api.openai.com/v1` |
+| Model | `gpt-4o-mini`, `qwen-turbo`, or another compatible model |
 
-> Base URL should include the version prefix; the system auto-appends `/chat/completions` and `/embeddings`.
+Provide the version-level Base URL; NoteOne appends `/chat/completions` and `/embeddings`. Without an LLM, capture and basic note management remain available.
 
-Without config, notes still save normally — AI steps are skipped.
+### Configure NewLore
 
-#### NewLore config
+Use **Settings → NewLore** to choose enabled modules and configure arXiv categories, GitHub topics, paper limits, conference ranks, and blog sources. Start it in the UI or ask Notty to supplement today's NewLore.
 
-**Settings → NewLore** configures daily report parameters: arXiv categories, GitHub topics, paper limits, conference rank filter, blog sources, WeChat public accounts. Click "Run" or tell Notty "supplement today's new knowledge" to trigger the pipeline.
+### Connect through MCP
 
-WeChat crawling is built into the NoteOne server (`/api/wechat`). Open "Settings → WeChat" to scan the login QR code and manage subscribed accounts — no external service required.
-
-#### MCP integration
-
-macOS settings can one-click install into Claude Code / Cursor. Manual config (embedded MCP, direct DB):
+The macOS settings page can install MCP configuration for Claude Code or Cursor. Manual example:
 
 ```jsonc
 {
@@ -202,51 +133,77 @@ macOS settings can one-click install into Claude Code / Cursor. Manual config (e
 }
 ```
 
-Tools: `list_notes` · `get_note` · `create_note` · `update_note` · `delete_note` · `restore_note` · `search_notes` · `list_tags`. `create_note` accepts `source_app` and auto-tags `#prompt + #{app}`.
+The server exposes `list_notes`, `get_note`, `create_note`, `update_note`, `delete_note`, `restore_note`, `search_notes`, and `list_tags`. `create_note` accepts `source_app` and automatically applies `#prompt` and `#{app}` tags.
 
-### Security
+## Storage and Security
 
-- **Local session**: no account is required; the embedded server binds to `127.0.0.1`, and the app opens the internal local data owner after the service becomes healthy. An in-memory JWT protects localhost API calls
-- **SSRF guard**: link fetch filters private/loopback/CGNAT/link-local/cloud-metadata
-- **Rate limit**: `/auth/*` 20 req/15 min; `/api/*` 300 req/min
-- **Data ownership**: queries remain scoped by an internal `user_id`; the desktop app uses one local data owner
-- **Upload safety**: UUID naming + extension whitelist + path-traversal guard
-- **Production hardening**: weak `JWT_SECRET` rejected
-- **Notty local file tools**: structured search/list/read operations without a shell; resolved paths are restricted to `~/Documents`, `~/Desktop`, and `~/Downloads`
-- **helmet** HTTP headers
+- The embedded service binds to `127.0.0.1`; the app uses an internal JWT for localhost API calls.
+- Binding `HOST` to a non-loopback address requires a `NOTEONE_ACCESS_TOKEN` of at least 16 characters.
+- Link fetching blocks private, loopback, CGNAT, link-local, and cloud-metadata addresses.
+- Uploads use UUID filenames, an extension allowlist, and path-traversal checks.
+- Notty exposes structured local file operations rather than a general shell, with resolved paths restricted to `~/Documents`, `~/Desktop`, and `~/Downloads`.
+- Exports omit API keys by default and include them only after explicit selection.
+- Production rejects a weak `JWT_SECRET`; authentication and API routes use separate rate limits.
 
-### Tech Stack
+## Documentation
 
-| Layer | Choice |
-|-------|--------|
-| Client | SwiftUI (iOS 17 / macOS 14, Swift 6 strict concurrency) |
-| Backend | Node.js + TypeScript, Express 5, Drizzle ORM |
-| DB | PGlite (WASM, embedded) / PostgreSQL 16 + pgvector |
-| AI | Any OpenAI-compatible API (chat temp 0.3, text-embedding-3-small 1536-d) |
-| NewLore | TypeScript pipeline (6 modules, in-process) |
-| MCP | @modelcontextprotocol/sdk (stdio) |
-| Local session | Single local data owner + internal JWT (30 d) |
+| Document | Purpose |
+|---|---|
+| [Architecture](docs/ARCHITECTURE.md) | Runtime components, data model, security boundaries, and migrations |
+| [Apple client](apple/README.md) | Xcode project, platform requirements, and client structure |
+| [Backend](server/README.md) | Service configuration, API, NewLore pipeline, and data maintenance |
+| [Design](docs/design/) | Product goals and early design rationale |
+| [History](docs/history/) | Implementation records from completed iterations |
 
-### API Surface
+## Development
 
-All `/api/*` need `Authorization: Bearer <JWT>`.
+### Backend and database
 
-| Group | Endpoints |
-|-------|-----------|
-| Session | `POST /auth/local` (open local data space) · `POST /auth/dev-token` (development compatibility) |
-| Notes | `POST/GET /api/notes` · `GET/PATCH/DELETE /api/notes/:id` · `/restore` · `/permanent` · `/retry` · `/tags` · `GET /api/notes/trash` |
-| Tags | `POST/GET /api/tags` · `DELETE /api/tags/:id` |
-| Search | `POST /api/search` (pgvector) |
-| Notty | `GET/POST /api/chat-sessions` · `GET/DELETE /api/chat-sessions/:id` · `POST /:id/messages` |
-| NewLore · Reports | `GET /api/newlore/reports` · `/:date` · `/:date/path` · `DELETE /:date` |
-| NewLore · Config | `GET` / `PATCH /api/newlore/config` |
-| NewLore · Run | `POST /api/newlore/trigger` · `/run-module` · `/merge` · `/abort` · `GET /status` |
-| NewLore · Misc | `GET /api/newlore/wechat-health` · `POST /api/newlore/summarize` |
-| Reports | `GET /api/reports` · `POST /api/reports/daily` · `GET/DELETE /api/reports/:id` |
-| Misc | `POST /api/uploads/image` · `GET /api/stats` · `GET/PATCH /api/settings` · `GET /api/export` · `DELETE /api/account` |
+Run with Docker:
 
----
+```bash
+git clone https://github.com/TobyChain/noteone.git
+cd noteone
+cp server/.env.example server/.env
+
+POSTGRES_PASSWORD=your-strong-pwd \
+JWT_SECRET=$(openssl rand -hex 24) \
+docker compose up -d
+```
+
+Run locally:
+
+```bash
+cd server
+cp .env.example .env
+npm install
+npm run db:migrate
+npm run dev
+npm test
+```
+
+### Apple client
+
+```bash
+cd apple
+xcodegen generate
+open NoteOne.xcodeproj
+```
+
+### Technology
+
+| Layer | Technology |
+|---|---|
+| Client | SwiftUI, iOS 17, macOS 14, Swift 6 |
+| Backend | Node.js, TypeScript, Express 5, Drizzle ORM |
+| Database | PGlite (WASM) or PostgreSQL 16 + pgvector |
+| AI | OpenAI-compatible chat and embedding APIs |
+| Agent interface | MCP stdio server |
+
+## Project Status
+
+NoteOne is a personal open-source project. The macOS distribution is ad-hoc signed, and current release builds target Apple Silicon. Report bugs and improvement requests through GitHub Issues.
 
 ## License
 
-Licensed under the [Apache License 2.0](LICENSE).
+NoteOne is licensed under the [Apache License 2.0](LICENSE).

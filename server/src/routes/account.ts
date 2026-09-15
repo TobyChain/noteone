@@ -43,7 +43,7 @@ router.delete("/", async (req: AuthRequest, res) => {
         if (removed.length === 0) return { removed, isLastUser: false };
         const remainingUser = await tx.query.users.findFirst({ columns: { id: true } });
         const isLastUser = !remainingUser;
-        // NewLore history and WeChat sessions are installation-scoped legacy tables. NoteOne is
+        // NewLore history and retired-crawler sessions are installation-scoped legacy tables. NoteOne is
         // single-user, so clear them when the installation has no other owner.
         if (isLastUser) {
             await tx.delete(newloreWechatArticles);

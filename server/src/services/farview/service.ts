@@ -52,10 +52,6 @@ export async function loadFarViewSourceItems(through: string | Date): Promise<Fa
     SELECT 'official', id::text, COALESCE(title, slug), COALESCE(summary, summary_cn, one_liner), '[]'::jsonb,
            LEFT(COALESCE(first_seen_date, date, created_at_ts::date::text), 10), url
       FROM official_items WHERE LEFT(COALESCE(first_seen_date, date, created_at_ts::date::text), 10) BETWEEN ${from} AND ${to}
-    UNION ALL
-    SELECT 'wechat', id::text, title, COALESCE(summary, summary_cn, one_liner), keywords,
-           LEFT(COALESCE(first_seen_date, publish_time, created_at_ts::date::text), 10), url
-      FROM wechat_articles WHERE LEFT(COALESCE(first_seen_date, publish_time, created_at_ts::date::text), 10) BETWEEN ${from} AND ${to}
   `);
   return rowsOf<SourceRow>(result).flatMap((row) => row.title && row.observed_date ? [{
     sourceType: row.source_type, sourceId: String(row.source_id), title: row.title, summary: row.summary,

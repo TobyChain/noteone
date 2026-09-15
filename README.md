@@ -1,209 +1,119 @@
 # 壹识 · NoteOne
 
-> 问渠那得清如许？为有源头活水来。
-> —— 朱熹《观书有感》
+[中文](README.md) · [English](README.en.md) · [License](#许可证)
 
-壹识是一个以 AI 为内核的个人知识系统。
+## TL;DR
 
-- **捕获 → 整理**：随手记下所见所闻，AI 静默打标、摘要、向量化
-- **闹闹（Notty）**：核心 Agent，可调度本地终端、定时任务、新知补充等工具
-- **新知（NewLore）**：每日扫遍 arXiv / GitHub / 官方博客 / 独立笔耕 / 会议论文 / 微信公众号，生成科技前沿日报
-- **高见（FarView）**：汇总多源内容，计算最近 7 天内热度最高的 10 个有效话题
-- **MCP**：让 Claude / Cursor 等外部 AI 直连你的笔记库
+**顺手记一次，带出处地被任何 AI 调用。**
 
-[中文](README.md) · [English](README.en.md) · [License](#license)
+NoteOne 是本地优先的个人 AI 上下文库。它在 macOS 和 iOS 上顺手记下文本、链接与图片，保留原文、作者、来源和时间，自动完成摘要、标签和语义索引，并通过应用内搜索、闹闹（Notty）和 MCP 让这些材料在未来被可靠地检索、引用和继续使用。
 
----
+macOS 安装包内嵌 Node.js 服务和 PGlite 数据库，无需单独部署后端。NoteOne 不内置 LLM 服务：未配置 API Key 时仍可正常保存和管理笔记，AI 功能会明确跳过。
 
-### 核心功能
+## 项目简介
 
-> 随风潜入夜，润物细无声。
-> —— 杜甫《春夜喜雨》
+笔记工具通常能保存内容，却把整理、回顾和发现关系留给用户；普通 AI 对话又只能看到当前会话中的临时上下文。NoteOne 将两者连成一条本地工作流：低摩擦顺手记、异步整理、带出处检索，再交给任意 AI 继续使用。
 
-| 模块 | 能力 |
+产品围绕一条主线组织：
+
+- **顺手记**：从快捷键、系统分享、拖拽或 MCP 接收材料。
+- **上下文化**：保存原文和出处，生成摘要、标签和语义索引。
+- **检索与引用**：按主题找回材料，复制带出处内容，或交给闹闹和外部 AI。
+- **可选信息源**：新知（NewLore）自动采集公开信息，高见（FarView）提供七天趋势视图。
+
+## NoteOne 提供什么
+
+| 能力 | 作用 |
 |---|---|
-| **顺手捕获** | macOS 全局快捷键悬浮窗 / iOS Share Extension / 拖拽。自动抓取 URL、标题、选中文本、剪贴板图片 |
-| **AI 静默整理** | 异步流水线：抓链接正文 → 生成标题与一句话摘要 → 四维度打标（format/topic/domain/module）→ 向量化入库 |
-| **往事（OldEcho，笔记）** | 时间分组列表 + 语义搜索（不可用时全文降级）+ 标签筛选；完整分页加载；一键新建笔记；每条附 AI 摘要、来源、作者、标签 |
-| **闹闹（Notty）** | 三层上下文管理 + doom-loop 检测 + 工具调用持久化 + Markdown 渲染。可调本地终端、定时任务、新知补充、联网检索等工具 |
-| **新知（NewLore）** | 每日 6 模块并发抓取（arXiv / GitHub / 官方 / 博客 / 会议 / 微信），LLM 筛选翻译，生成带大纲导航的 HTML 日报；闹闹可逐模块编排 |
-| **高见（FarView）** | 基于新知数据计算全局共享的最近 7 天话题热度榜；过滤通用噪声词，并展示来源构成和代表内容 |
-| **定时任务** | 闹闹通过自然语言创建 cron 任务（如"每天 8 点补充新知"），DB 持久化 + 服务启动自动恢复 |
-| **MCP Server** | Claude / Cursor / Codex 等 AI 直连笔记库：检索、读取、创建、更新、软删、恢复 |
-| **每日报告** | 闹闹读取当天笔记 → 联网检索 → 生成 4 风格 × 3 深度的 HTML 报告 |
-| **数据主权** | ZIP 全量导出（密钥默认排除）· 完整清除本地数据 · 垃圾箱 30 天自动清理 |
+| **顺手记** | 通过 macOS 全局快捷键、iOS Share Extension 和拖拽保存文本、URL、选中文本与剪贴板图片 |
+| **AI 静默整理** | 异步抓取正文，生成标题和摘要，按 format/topic/domain/module 四个维度打标并写入向量 |
+| **个人上下文库** | 提供今日、资料库、混合检索、处理状态和带出处复制 |
+| **上下文助手** | 闹闹先读取原始材料，再完成检索、比较、总结和带引用输出 |
+| **新知日报** | 并发运行 5 个信息模块，经 LLM 筛选与翻译后生成带大纲导航的 HTML/Markdown 日报 |
+| **高见趋势** | 过滤通用噪声，展示 7 天话题热度、来源构成和代表内容 |
+| **MCP Server** | 让 Claude、Cursor、Codex 等外部 AI 检索、读取、创建、更新和管理笔记 |
+| **数据主权** | 支持 ZIP 全量导出、密钥默认排除、30 天垃圾箱和完整本地数据清除 |
 
-### 架构
+## 工作原理
 
-> 横看成岭侧成峰，远近高低各不同。
-> —— 苏轼《题西林壁》
-
-```
-                          壹识 NoteOne
-  ┌──────────────────────────────────────────────────────────────┐
-  │                        客户端 (SwiftUI)                        │
-  │                                                               │
-  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
-  │  │  高见    │  │  新知    │  │  往事    │  │  记一条  │     │
-  │  │  热度    │  │  日报    │  │  笔记    │  │  捕获    │     │
-  │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘     │
-  │       └─────────────┴─────────────┴─────────────┘            │
-  │                  设置 · 报告 · 垃圾箱                          │
-  └────────────────────────┬──────────────────────────────────────┘
-                           │ HTTPS (JWT)
-  ┌────────────────────────┴──────────────────────────────────────┐
-  │                   REST API (Express 5 + TypeScript)            │
-  │                                                                │
-  │  auth · notes · tags · search · chat-sessions · reports        │
-  │  uploads · settings · account · export                         │
-  │  newlore (reports / config / run-module / merge / status)       │
-  │  sidecar (scheduler · local-tools)                             │
-  │                                                                │
-  │  ┌─────────────────────┐  ┌──────────────────────────────┐    │
-  │  │  异步 AI 流水线      │  │  闹闹上下文管理器             │    │
-  │  │  抓取 → 打标 → 摘要  │  │  token 裁剪 · 渐进摘要       │    │
-  │  │  → 向量化            │  │  doom-loop 检测              │    │
-  │  └─────────────────────┘  └──────────────────────────────┘    │
-  │                                                                │
-  │  PGlite 内嵌 (WASM) / PostgreSQL 16   NewLore TS Pipeline         │
-  │  notes · tags · chat · reports        arXiv · GitHub · 博客 ... │
-  │  scheduled_tasks · NewLore content tables                       │
-  └────────────────────────────────────────────────────────────────┘
-                           │ stdio (MCP)
-  ┌────────────────────────┴──────────────────────────────────────┐
-  │  MCP Servers — Claude / Cursor / Codex 直连笔记库              │
-  └────────────────────────────────────────────────────────────────┘
+```text
+                         NoteOne 客户端（SwiftUI）
+          今日 · 往事 · 顺手记 · 搜索 · 我的 · 上下文助手
+                                  │
+                         localhost HTTP + JWT
+                                  │
+                Express 5 + TypeScript 内嵌服务
+       notes · tags · search · chat · reports · scheduler · MCP
+                     │                         │
+          异步 AI 整理流水线             NewLore 5 模块流水线
+       抓取 → 摘要 → 标签 → 向量化   arXiv · GitHub · 官方 · 博客 · 会议
+                     │                         │
+                     └──────────┬──────────────┘
+                                │
+                  PGlite（应用内嵌）/ PostgreSQL 16
 ```
 
-详细架构见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+macOS App 启动后会拉起内嵌服务，通过 `/auth/local` 创建或复用唯一的本地数据所有者。桌面版默认使用 `~/Library/Application Support/NoteOne` 中的 PGlite 数据；开发和自部署场景也可连接 PostgreSQL 16 + pgvector。
 
-### 安装
+详细设计见 [架构文档](docs/ARCHITECTURE.md)。
 
-> 工欲善其事，必先利其器。
-> —— 《论语·卫灵公》
+## 快速开始
 
-#### macOS 客户端（推荐）
+### 系统要求
 
-**Homebrew 安装（推荐）：**
+- Apple Silicon Mac
+- macOS 14 或更高版本
+- 使用源码构建时需要 Xcode 16、Swift 6 和 XcodeGen
+
+### Homebrew 安装（推荐）
 
 ```bash
 brew tap TobyChain/tap https://github.com/TobyChain/homebrew-tap.git
 brew install --cask noteone
 ```
 
-更新到最新版：
+点击 `/Applications/NoteOne.app` 即可启动。首次打开若提示无法验证开发者，请在“系统设置 → 隐私与安全性”中选择“仍要打开”。当前 DMG 使用 ad-hoc 签名，未进行 Apple notarization。
+
+更新：
 
 ```bash
-brew update && brew upgrade --cask noteone
+brew update
+brew upgrade --cask noteone
 ```
 
-卸载：
+卸载应用：
 
 ```bash
 brew uninstall --cask noteone
 ```
 
-> 卸载后数据不会自动清理（保留在 `~/Library/Application Support/NoteOne`），如需彻底删除请手动移除该目录。
+卸载不会自动删除 `~/Library/Application Support/NoteOne` 中的数据。
 
-**DMG 安装：**
+### DMG 安装
 
-从 [Releases](https://github.com/TobyChain/noteone/releases) 下载最新 `NoteOne.dmg`，拖入 Applications 双击即可。App 内嵌 Node 运行时与 PGlite 数据库，无需安装任何外部环境，首次启动自动建库迁移。
+从 [GitHub Releases](https://github.com/TobyChain/noteone/releases) 下载最新 `NoteOne.dmg`，将应用拖入 Applications。更新只替换应用本体，不会覆盖应用外的数据目录。
 
-> DMG 采用 ad-hoc 签名（个人开源项目，无 Apple Developer 证书）。首次打开若提示“无法验证开发者”，在「系统设置 → 隐私与安全性」中点击“仍要打开”。
+## 配置与使用
 
-**自动更新：**
+### 配置 LLM
 
-App 启动后会自动检查 [GitHub Releases](https://github.com/TobyChain/noteone/releases) 的新版本，发现新版本时弹窗提示下载；也可在「设置 → 本地数据 → 检查更新」手动触发。更新只替换应用本体，不影响你的数据。
-
-> 数据存放在 `~/Library/Application Support/NoteOne`（PGlite 数据库，应用包之外），升级/重装不会丢失笔记、标签、对话与日报。
-
-**Homebrew 安装注意事项：**
-
-- **仅支持 Apple Silicon（arm64）**：当前 DMG 只构建了 darwin-arm64 架构，Intel Mac 暂不支持
-- **macOS 14+（Sonoma）**：App 使用了 SwiftUI 6 + WKWebView 等系统框架，需要 macOS 14 或更高版本
-- **首次启动 Gatekeeper 提示**：DMG 采用 ad-hoc 签名（无 Apple Developer 证书），首次打开可能提示“无法验证开发者”，在「系统设置 → 隐私与安全性」点击“仍要打开”即可
-- **Homebrew tap 是独立仓库**：`TobyChain/tap` 指向 `github.com/TobyChain/homebrew-tap`，与 noteone 主仓库分离，更新 Cask 版本时需要同步更新 tap 仓库
-- **版本更新**：`brew upgrade` 会自动下载新版 DMG 替换旧版，但不会迁移数据——数据存储在 `~/Library/Application Support/NoteOne`，与 App 二进制分离，升级不影响数据
-- **从 DMG 迁移到 Homebrew**：如果之前通过 DMG 安装过，先手动移除 `/Applications/NoteOne.app`，再执行 `brew install --cask noteone`，数据目录不受影响
-
-#### 后端 + 数据库（Docker 推荐）
-
-```bash
-git clone https://github.com/TobyChain/noteone.git
-cd noteone
-
-cp server/.env.example server/.env
-# 至少填 JWT_SECRET（>= 16 位）
-
-POSTGRES_PASSWORD=your-strong-pwd \
-JWT_SECRET=$(openssl rand -hex 24) \
-docker compose up -d
-```
-
-API 监听 `127.0.0.1:3000`，PostgreSQL 仅监听本机。
-Docker 内的服务进程监听容器网络，但 Compose 只将端口发布到宿主机回环地址。若自行将
-`HOST` 设置为非回环地址，必须同时设置至少 16 位的 `NOTEONE_ACCESS_TOKEN`，并在首次请求
-`/auth/local` 时通过 `X-NoteOne-Access-Token` 提供。`/auth/dev-token` 默认关闭，仅在明确设置
-`ENABLE_DEV_LOGIN=true` 时启用。
-
-#### 后端本地开发
-
-```bash
-cd server
-cp .env.example .env       # 填 DATABASE_URL / JWT_SECRET
-npm install
-npm run db:migrate         # 应用迁移（需先建库 + 启用 pgvector 扩展）
-npm run dev                # 默认 :3000
-npm test                   # Vitest
-```
-
-无需注册或登录账号。App 会先启动本机服务，再通过 `POST /auth/local` 打开唯一的本地数据空间；该接口返回的 JWT 仅用于保护 App 与 localhost 服务之间的内部调用。笔记、标签、对话和设置默认持久化在 `~/Library/Application Support/NoteOne`。
-
-#### Apple 客户端
-
-```bash
-# 需先安装 XcodeGen
-cd apple && xcodegen generate
-open NoteOne.xcodeproj
-```
-
-要求 Xcode 16 / iOS 17 / macOS 14 / Swift 6。详见 [apple/README.md](apple/README.md)。
-
-- macOS App 固定连接内嵌的 `http://localhost:3000` 服务
-- 无账号和登录流程：启动时自动打开本地数据空间
-- macOS 全局快捷键无需辅助功能权限；自动复制其他 App 的选中文本时才需要该权限。首次启动会说明用途，系统权限仅按需请求
-
-### 使用
-
-#### 配置 LLM
-
-> 巧妇难为无米之炊。
-> —— 《古诗源》
-
-壹识是开源项目，不内置 LLM 服务。所有 AI 功能（打标、摘要、闹闹对话、报告、新知日报）需要你自带 API Key。打开「设置 → AI 模型」：
+打开“设置 → AI 模型”，填写 OpenAI 兼容接口：
 
 | 字段 | 示例 |
 |---|---|
-| API Key | 你的 OpenAI / DashScope / 自部署 vLLM 的 key |
-| Base URL | `https://api.openai.com/v1` 或 `https://dashscope.aliyuncs.com/compatible-mode/v1` |
-| Model | `qwen-turbo` / `gpt-4o-mini` / 任意 OpenAI 兼容模型 |
+| API Key | OpenAI、DashScope 或自部署服务的 Key |
+| Base URL | `https://api.openai.com/v1` |
+| Model | `gpt-4o-mini`、`qwen-turbo` 或其他兼容模型 |
 
-> Base URL 填到版本号即可，系统自动拼接 `/chat/completions` 与 `/embeddings` 端点。
+Base URL 填到版本前缀即可，NoteOne 会拼接 `/chat/completions` 和 `/embeddings`。未配置 LLM 时，笔记保存和基础管理仍然可用。
 
-未配置时笔记仍可正常保存，AI 步骤自动跳过。
+### 配置新知
 
-#### 新知配置
+“设置 → 新知”用于选择启用模块并配置 arXiv 分类、GitHub topics、论文上限、会议等级和博客源。点击运行，或让闹闹“补充今日新知”，即可生成当日日报。
 
-「设置 → 新知」配置科技日报参数：ArXiv 分类、GitHub topics、论文数量上限、会议等级、博客源、微信公众号等。点击「运行」或跟闹闹说"补充今日新知"即可触发 pipeline 生成当日日报。
+### 接入 MCP
 
-微信公众号抓取已内置于 NoteOne server（`/api/wechat`），在「设置 → 微信公众号」中扫码登录公众平台并搜索添加订阅的公众号即可，无需部署任何外部服务。
-
-#### MCP 接入
-
-> 海内存知己，天涯若比邻。
-> —— 王勃《送杜少府之任蜀州》
-
-macOS 设置中可一键写入 Claude Code / Cursor 配置。手动配置示例（内嵌 MCP，直连 DB）：
+macOS 设置页可为 Claude Code 或 Cursor 写入 MCP 配置。手动配置示例：
 
 ```jsonc
 {
@@ -223,49 +133,77 @@ macOS 设置中可一键写入 Claude Code / Cursor 配置。手动配置示例�
 }
 ```
 
-工具：`list_notes` `get_note` `create_note` `update_note` `delete_note` `restore_note` `search_notes` `list_tags`。`create_note` 接受 `source_app` 入参，会自动打 `#prompt + #{app}` 标签。
+MCP 提供 `list_notes`、`get_note`、`create_note`、`update_note`、`delete_note`、`restore_note`、`search_notes` 和 `list_tags`。`create_note` 可接收 `source_app`，并自动添加 `#prompt` 和 `#{app}` 标签。
 
-### 安全
+## 存储与安全
 
-> 君子以思患而豫防之。
-> —— 《周易·既济》
+- 内嵌服务默认只监听 `127.0.0.1`，App 使用内部 JWT 调用 localhost API。
+- 如果主动将 `HOST` 绑定到非回环地址，必须设置至少 16 位的 `NOTEONE_ACCESS_TOKEN`。
+- 链接抓取会拦截私网、回环、CGNAT、链路本地和云元数据地址。
+- 上传文件使用 UUID 命名、扩展名白名单和路径穿越检查。
+- 闹闹的本地文件工具不提供通用 shell，只能访问 `~/Documents`、`~/Desktop` 和 `~/Downloads`。
+- 导出默认移除 API Key；只有显式选择时才会将密钥写入导出包。
+- 生产模式拒绝弱 `JWT_SECRET`；`/auth/*` 和 `/api/*` 分别应用独立速率限制。
 
-- **本地会话**：无需账号；内嵌服务仅监听 `127.0.0.1`，App 在服务健康后自动创建/复用内部本地数据所有者，并用进程内 JWT 保护 localhost API
-- **SSRF 防护**：链接抓取过滤私网 / 回环 / CGNAT / 链路本地 / 云元数据
-- **速率限制**：`/auth/*` 20 次/15 分；`/api/*` 300 次/分
-- **数据归属**：所有查询按内部 `user_id` 限定；单机 App 默认只使用一个本地数据所有者
-- **上传安全**：UUID 命名 + 扩展名白名单 + 路径穿越校验
-- **生产硬约束**：弱 `JWT_SECRET` 拒绝启动
-- **闹闹本地文件工具**：无 shell 的结构化搜索、列目录和读取文件；真实路径限定在 `~/Documents` `~/Desktop` `~/Downloads`
-- **helmet** 加固 HTTP 响应头
+## 文档
 
-### 仓库结构
+| 文档 | 内容 |
+|---|---|
+| [架构](docs/ARCHITECTURE.md) | 运行组件、数据模型、安全边界和历史迁移 |
+| [Apple 客户端](apple/README.md) | Xcode 工程、平台要求和客户端结构 |
+| [后端](server/README.md) | 服务配置、API、新知流水线和数据维护 |
+| [设计资料](docs/design/) | 产品目标和早期设计依据 |
+| [历史记录](docs/history/) | 已完成迭代的实现记录 |
 
-```
-noteone/
-├── apple/                      # iOS + macOS SwiftUI 客户端
-│   ├── NoteOne/Sources/        #   Models · Views · Services · Theme
-│   └── README.md               #   构建说明
-├── server/                     # REST API + 内嵌 MCP（Express 5 + TS）
-│   ├── src/routes/             #   auth · notes · tags · search · chat-sessions · newlore · wechat · reports
-│   ├── src/services/           #   notty/ · llm · newlore/pipeline/（按模块组织）· wechat/ · scheduler
-│   ├── .newlore/                #   新知配置单一事实源（config.schema.json）+ dev 运行时数据
-│   └── README.md               #   后端说明
-├── scripts/package-dmg.sh      # dmg 单体分发打包（内嵌 Node + PGlite，双击即用）
-├── homebrew/Casks/noteone.rb   # Homebrew Cask 定义（brew tap TobyChain/tap）
-├── browser-extension/          # Chrome 扩展（Manifest V3）
-├── docs/
-│   ├── ARCHITECTURE.md         #   架构权威文档
-│   ├── design/                 #   早期设计稿
-│   ├── plans/                  #   早期实施计划
-│   └── history/                #   历史迭代日志
-├── docker-compose.yml
-├── README.md                   # 中文
-└── README.en.md                # English
+## 开发
+
+### 后端与数据库
+
+使用 Docker：
+
+```bash
+git clone https://github.com/TobyChain/noteone.git
+cd noteone
+cp server/.env.example server/.env
+
+POSTGRES_PASSWORD=your-strong-pwd \
+JWT_SECRET=$(openssl rand -hex 24) \
+docker compose up -d
 ```
 
----
+本地开发：
 
-## License
+```bash
+cd server
+cp .env.example .env
+npm install
+npm run db:migrate
+npm run dev
+npm test
+```
 
-本项目采用 [Apache License 2.0](LICENSE)。
+### Apple 客户端
+
+```bash
+cd apple
+xcodegen generate
+open NoteOne.xcodeproj
+```
+
+### 主要技术栈
+
+| 层 | 技术 |
+|---|---|
+| 客户端 | SwiftUI、iOS 17、macOS 14、Swift 6 |
+| 后端 | Node.js、TypeScript、Express 5、Drizzle ORM |
+| 数据库 | PGlite（WASM）或 PostgreSQL 16 + pgvector |
+| AI | OpenAI 兼容 Chat/Embedding API |
+| Agent 接口 | MCP stdio server |
+
+## 项目状态
+
+NoteOne 是个人开源项目。macOS 分发采用 ad-hoc 签名；当前发布构建面向 Apple Silicon。问题反馈和改进建议可通过 GitHub Issues 提交。
+
+## 许可证
+
+NoteOne 采用 [Apache License 2.0](LICENSE)。
