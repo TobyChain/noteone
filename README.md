@@ -72,7 +72,7 @@ brew tap TobyChain/tap https://github.com/TobyChain/homebrew-tap.git
 brew install --cask noteone
 ```
 
-点击 `/Applications/NoteOne.app` 即可启动。首次打开若提示无法验证开发者，请在“系统设置 → 隐私与安全性”中选择“仍要打开”。当前 DMG 使用 ad-hoc 签名，未进行 Apple notarization。
+点击 `/Applications/NoteOne.app` 即可启动。当前发布流程要求 DMG 使用 Developer ID 签名并通过 Apple 公证；旧版本仍可能使用 ad-hoc 签名。
 
 更新：
 
@@ -202,7 +202,7 @@ open NoteOne.xcodeproj
 
 ## 项目状态
 
-NoteOne 是个人开源项目。macOS 分发采用 ad-hoc 签名；当前发布构建面向 Apple Silicon。问题反馈和改进建议可通过 GitHub Issues 提交。
+NoteOne 是个人开源项目。macOS 正式发布流程要求 Developer ID 签名和 Apple 公证，缺少凭据时会停止发布；当前发布构建面向 Apple Silicon。签名配置见 [macOS 发布说明](docs/RELEASING.md)。问题反馈和改进建议可通过 GitHub Issues 提交。
 
 ## 许可证
 

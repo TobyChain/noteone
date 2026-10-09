@@ -19,13 +19,6 @@ targets:
     platform: [iOS, macOS]
     sources:
       - path: NoteOne/Sources
-        excludes:
-          # Local Ascan migration drafts duplicate the active NewLore module.
-          - Models/AscanModels.swift
-          - Views/AscanReportDetailView.swift
-          - Views/AscanReportListView.swift
-          - Views/AscanView.swift
-          - Views/Settings/AscanConfigSheet.swift
       - path: NoteOne/Resources/Assets.xcassets
     settings:
       base:
@@ -34,6 +27,7 @@ targets:
         CURRENT_PROJECT_VERSION: "6"
         "CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]": NoteOne/NoteOne.entitlements
         "CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]": NoteOne/NoteOne.entitlements
+        "CODE_SIGN_ENTITLEMENTS[sdk=macosx*]": NoteOne/NoteOne-macOS.entitlements
     info:
       path: NoteOne/Info.plist
       properties:

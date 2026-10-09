@@ -72,7 +72,7 @@ brew tap TobyChain/tap https://github.com/TobyChain/homebrew-tap.git
 brew install --cask noteone
 ```
 
-Open `/Applications/NoteOne.app`. Because the current DMG is ad-hoc signed rather than notarized, the first launch may require **System Settings → Privacy & Security → Open Anyway**.
+Open `/Applications/NoteOne.app`. The current release pipeline requires Developer ID signing and Apple notarization; older releases may still use ad-hoc signatures.
 
 Update:
 
@@ -202,7 +202,7 @@ open NoteOne.xcodeproj
 
 ## Project Status
 
-NoteOne is a personal open-source project. The macOS distribution is ad-hoc signed, and current release builds target Apple Silicon. Report bugs and improvement requests through GitHub Issues.
+NoteOne is a personal open-source project. Formal macOS releases require Developer ID signing and Apple notarization, and publishing stops when credentials are missing. Current release builds target Apple Silicon. See the [macOS release guide](docs/RELEASING.md) for signing setup. Report bugs and improvement requests through GitHub Issues.
 
 ## License
 

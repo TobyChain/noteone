@@ -647,6 +647,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = NoteOne/NoteOne.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = NoteOne/NoteOne.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "NoteOne/NoteOne-macOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 6;
 				INFOPLIST_FILE = NoteOne/Info.plist;
@@ -751,6 +752,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = NoteOne/NoteOne.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = NoteOne/NoteOne.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "NoteOne/NoteOne-macOS.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 6;
 				INFOPLIST_FILE = NoteOne/Info.plist;
@@ -896,6 +898,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = NoteOne/NoteOne.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = NoteOne/NoteOne.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "NoteOne/NoteOne-macOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 6;
 				INFOPLIST_FILE = NoteOne/Info.plist;
@@ -917,6 +920,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = NoteOne/NoteOne.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = NoteOne/NoteOne.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "NoteOne/NoteOne-macOS.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 6;
 				INFOPLIST_FILE = NoteOne/Info.plist;

@@ -247,7 +247,7 @@ test/                集成测试辅助(db.ts / setup.ts)
 
 ## 8. Apple 客户端（`apple/NoteOne/Sources/`）
 
-**Bundle**：主 App `com.noteone.app`，分享扩展 `com.noteone.app.share`。App Group `group.com.noteone.app` 只用于 iOS 主 App 与分享扩展；macOS 不声明或访问该容器，避免 ad-hoc 更新后触发跨 App 数据访问提示。
+**Bundle**：主 App `com.noteone.app`，分享扩展 `com.noteone.app.share`。App Group `group.com.noteone.app` 只用于 iOS 主 App 与分享扩展；macOS 不声明或访问该容器。正式 macOS DMG 使用固定 Developer ID 签名并通过 Apple 公证，以便覆盖安装时保持稳定的 TCC 权限身份。
 
 ### 8.1 文件清单
 - **Models/**：`Note`（含 `ContentType` / `NoteStatus`） · `Tag`(`TagDimension`) · `NoteTag` · `ChatMessage`(会话模型) · `NoteDragPayload`(Transferable 拖出) · `AuthModels`。
