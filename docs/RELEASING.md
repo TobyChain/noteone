@@ -62,6 +62,12 @@ open /Applications/NoteOne.app
 
 随后进入“NoteOne → 设置 → 快捷键与权限”点击“请求权限”。
 
+## 临时签名预览版
+
+经过明确选择后，可以将本地构建作为 GitHub 预览版发布。使用 `vX.Y.Z-preview.N` 标签并启用 `prerelease`，安装包命名为 `NoteOne-preview.dmg`，同时提供对应的 SHA-256 文件。正式发布 workflow 跳过这些预览标签，正式 DMG 继续要求 Developer ID 签名与 Apple 公证。
+
+预览版发布说明必须写明 ad-hoc 签名、尚未进行 Apple 公证、首次打开的系统确认方式，以及覆盖安装后重新授予辅助功能权限的步骤。预览版保持独立下载入口，Homebrew 继续提供最近的正式版本。
+
 ## 发布验证
 
 ```bash
