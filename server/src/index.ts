@@ -19,6 +19,7 @@ import { exportRouter } from "./routes/export.js";
 import { importRouter } from "./routes/import.js";
 import { reportsRouter } from "./routes/reports.js";
 import { newloreRouter } from "./routes/newlore.js";
+import { dailyHighlightsRouter } from "./routes/daily-highlights.js";
 import { farviewRouter } from "./routes/farview.js";
 import { startTrashCleanup } from "./services/trash-cleanup.js";
 import { restoreTasks } from "./services/scheduler.js";
@@ -82,6 +83,7 @@ app.use("/api/export", requireAuth, exportRouter);
 app.use("/api/import", requireAuth, importRouter);
 app.use("/api/reports", requireAuth, reportsRouter);
 app.use("/api/newlore", requireAuth, newloreRouter);
+app.use("/api/newlore", requireAuth, dailyHighlightsRouter);
 app.use("/api/farview", requireAuth, farviewRouter);
 // Compatibility alias for the previous NewSee API name.
 app.use("/api/newsee", requireAuth, newloreRouter);

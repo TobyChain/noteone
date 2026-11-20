@@ -110,8 +110,8 @@ struct FarViewView: View {
                    "Heat is calculated from unique items and source coverage over the last seven days, with up to ten topics."))
                 .font(.subheadline)
                 .foregroundStyle(Color.inkSecondary)
-            Text(L("覆盖 \(snapshot.totalItems) 条内容 · \(snapshot.periodStart) 至 \(snapshot.periodEnd)",
-                   "\(snapshot.totalItems) items · \(snapshot.periodStart) to \(snapshot.periodEnd)"))
+            Text(L("覆盖 \(snapshot.totalItems) 条内容，\(snapshot.periodStart) 至 \(snapshot.periodEnd)",
+                   "\(snapshot.totalItems) items, \(snapshot.periodStart) to \(snapshot.periodEnd)"))
                 .font(.caption)
                 .foregroundStyle(Color.inkTertiary)
         }
@@ -209,50 +209,123 @@ private struct FarViewTopicRow: View {
 private struct FarViewTopicDetailView: View {
     let topic: FarViewTopic
     let onBack: () -> Void
+    @State private var response: FarViewTopicResponse?
+    @State private var isLoadingEvidence = true
+    @State private var errorMessage: String?
+
+    /// Keep the selected ranking visible while loading its current source evidence.
+    private var displayedTopic: FarViewTopic {
+        if let loaded = response?.topic, loaded.id == topic.id { return loaded }
+        return topic
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DG.sp16) {
                 Button(action: onBack) { Label(L("返回榜单", "Back to ranking"), systemImage: "chevron.left") }
-                Text(topic.name).font(.largeTitle.bold())
+                Text(displayedTopic.name).font(.largeTitle.bold())
                 HStack(spacing: DG.sp16) {
-                    Label(L("最近 7 天 \(topic.currentCount) 条", "\(topic.currentCount) items in 7 days"), systemImage: "doc.text")
-                    Label(L("\(topic.sourceDiversity) 类来源", "\(topic.sourceDiversity) source types"), systemImage: "square.stack.3d.up")
-                    Text(L("热度 \(topic.formattedScore)", "Heat \(topic.formattedScore)"))
+                    Label(L("最近 7 天 \(displayedTopic.currentCount) 条", "\(displayedTopic.currentCount) items in 7 days"), systemImage: "doc.text")
+                    Label(L("\(displayedTopic.sourceDiversity) 类来源", "\(displayedTopic.sourceDiversity) source types"), systemImage: "square.stack.3d.up")
+                    Text(L("热度 \(displayedTopic.formattedScore)", "Heat \(displayedTopic.formattedScore)"))
                 }
                 .font(.subheadline)
                 .foregroundStyle(Color.inkSecondary)
-                Text(L("来源构成", "Source mix")).font(.headline)
-                ForEach(topic.sourceCounts.keys.sorted(), id: \.self) { source in
-                    HStack { Text(source.capitalized); Spacer(); Text("\(topic.sourceCounts[source] ?? 0)") }
+                if let snapshot = response?.snapshot {
+                    Text("\(snapshot.periodStart) — \(snapshot.periodEnd)")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.inkSecondary)
                 }
-                Text(L("代表内容", "Representative items")).font(.headline)
-                ForEach(topic.representatives) { item in
-                    Group {
-                        if let rawURL = item.url, let url = URL(string: rawURL) {
-                            Link(destination: url) { representativeLabel(item, showsArrow: true) }
-                        } else {
-                            representativeLabel(item, showsArrow: false)
-                        }
+                Text(L("来源构成", "Source mix")).font(.headline)
+                ForEach(displayedTopic.sourceCounts.keys.sorted(), id: \.self) { source in
+                    HStack { Text(sourceName(source)); Spacer(); Text("\(displayedTopic.sourceCounts[source] ?? 0)") }
+                }
+                HStack {
+                    Text(L("代表内容", "Representative items")).font(.headline)
+                    Spacer()
+                    if isLoadingEvidence { ProgressView().controlSize(.small) }
+                }
+                if let errorMessage {
+                    InlineErrorBanner(message: errorMessage, retryTitle: L("重试", "Retry")) {
+                        Task { await loadEvidence() }
                     }
-                    .cardStyle(padding: DG.sp12)
+                }
+                ForEach(displayedTopic.representatives) { item in
+                    representativeLabel(item)
+                        .cardStyle(padding: DG.sp16)
                 }
             }
             .padding(DG.sp20)
             .frame(maxWidth: 820, alignment: .leading)
         }
+        .task(id: topic.id) { await loadEvidence() }
     }
 
-    private func representativeLabel(_ item: FarViewRepresentative, showsArrow: Bool) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
+    /// Display the supporting summary separately so its text stays selectable.
+    private func representativeLabel(_ item: FarViewRepresentative) -> some View {
+        VStack(alignment: .leading, spacing: DG.sp8) {
+            HStack(alignment: .top) {
                 Text(item.title).font(.subheadline.bold()).foregroundStyle(Color.ink)
-                Text("\(item.sourceType.capitalized) · \(item.observedDate)")
-                    .font(.caption).foregroundStyle(Color.inkTertiary)
+                Spacer()
+                if let url = sourceURL(item.url) {
+                    Link(destination: url) {
+                        Image(systemName: "arrow.up.right").foregroundStyle(Color.accent)
+                    }
+                    .help(L("打开来源", "Open source"))
+                }
             }
-            Spacer()
-            if showsArrow { Image(systemName: "arrow.up.right").foregroundStyle(Color.accent) }
+            Text(L("\(sourceName(item.sourceType))，收录于 \(item.observedDate)",
+                   "\(sourceName(item.sourceType)), observed \(item.observedDate)"))
+                .font(.caption).foregroundStyle(Color.inkSecondary)
+            if let summary = item.summary?.trimmingCharacters(in: .whitespacesAndNewlines), !summary.isEmpty {
+                Text(summary)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.ink)
+                    .textSelection(.enabled)
+            }
+            if let url = sourceURL(item.url) {
+                Link(url.host ?? url.absoluteString, destination: url)
+                    .font(.caption)
+                    .textSelection(.enabled)
+            }
         }
+    }
+
+    /// Open article links using the same HTTP boundary as the source service.
+    private func sourceURL(_ raw: String?) -> URL? {
+        guard let raw, let url = URL(string: raw),
+              ["http", "https"].contains(url.scheme?.lowercased() ?? ""), url.host != nil else { return nil }
+        return url
+    }
+
+    /// Keep source categories consistent with the five NewLore modules.
+    private func sourceName(_ source: String) -> String {
+        switch source {
+        case "paper": return L("arXiv 精选", "arXiv")
+        case "conference": return L("会议期刊", "Conferences and journals")
+        case "github": return L("GitHub 项目", "GitHub projects")
+        case "blog": return L("个人博客", "Personal blogs")
+        case "official": return L("官方动态", "Official updates")
+        default: return source
+        }
+    }
+
+    /// Load evidence for the selected topic without changing the ranking or calling a model.
+    @MainActor
+    private func loadEvidence() async {
+        guard !Task.isCancelled else { return }
+        isLoadingEvidence = true
+        errorMessage = nil
+        if response?.topic.id != topic.id { response = nil }
+        do {
+            let loaded = try await APIClient.shared.getFarViewTopic(id: topic.id)
+            try Task.checkCancellation()
+            response = loaded
+        } catch {
+            guard !Task.isCancelled else { return }
+            errorMessage = error.localizedDescription
+        }
+        isLoadingEvidence = false
     }
 }
 

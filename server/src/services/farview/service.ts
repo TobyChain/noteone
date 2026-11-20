@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, lte, sql } from "drizzle-orm";
 import { db, rowsOf } from "../../db/client.js";
 import { farviewSnapshots } from "../../db/schema.js";
 import { getConfig } from "../newlore/config.js";
@@ -99,8 +99,10 @@ export function startFarViewRefresh(through: string | Date = new Date()): { star
   return { started: true };
 }
 
-export async function getLatestFarViewSnapshot(): Promise<FarViewSnapshotPayload | null> {
+/** Read a cached seven-day ranking, optionally bounded by a report's calendar date. */
+export async function getLatestFarViewSnapshot(through?: string): Promise<FarViewSnapshotPayload | null> {
   const rows = await db.query.farviewSnapshots.findMany({
+    where: through ? lte(farviewSnapshots.weekStart, dateKey(through)) : undefined,
     orderBy: [desc(farviewSnapshots.generatedAt)],
     limit: 32,
   });
@@ -113,10 +115,26 @@ export async function getLatestFarViewSnapshot(): Promise<FarViewSnapshotPayload
   return null;
 }
 
-export async function getFarViewTopic(id: string): Promise<{ snapshot: FarViewSnapshotPayload; topic: FarViewSnapshotPayload["topics"][number] } | null> {
-  const snapshot = await getLatestFarViewSnapshot();
-  const topic = snapshot?.topics.find((candidate) => candidate.id === id);
-  return snapshot && topic ? { snapshot, topic } : null;
+/** Fill summaries in historical snapshots from their original source IDs and seven-day window. */
+export async function getFarViewTopic(id: string, through?: string): Promise<{ snapshot: FarViewSnapshotPayload; topic: FarViewSnapshotPayload["topics"][number] } | null> {
+  const snapshot = await getLatestFarViewSnapshot(through);
+  const cachedTopic = snapshot?.topics.find((candidate) => candidate.id === id);
+  if (!snapshot || !cachedTopic) return null;
+  if (cachedTopic.representatives.every((item) => item.summary != null)) {
+    return { snapshot, topic: cachedTopic };
+  }
+
+  const sources = new Map((await loadFarViewSourceItems(snapshot.periodEnd))
+    .filter((item) => item.observedDate >= snapshot.periodStart && item.observedDate <= snapshot.periodEnd)
+    .map((item) => [`${item.sourceType}:${item.sourceId}`, item]));
+  const topic = {
+    ...cachedTopic,
+    representatives: cachedTopic.representatives.map((item) => ({
+      ...item,
+      summary: item.summary ?? sources.get(`${item.sourceType}:${item.sourceId}`)?.summary ?? null,
+    })),
+  };
+  return { snapshot, topic };
 }
 
 export async function getFarViewStatus(): Promise<FarViewStatus> {

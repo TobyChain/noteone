@@ -46,29 +46,30 @@ router.patch("/", async (req: AuthRequest, res) => {
     return;
   }
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, req.userId!),
-    columns: { settings: true },
+  const { merged, mergedLlm } = await db.transaction(async (tx) => {
+    const [user] = await tx.select({ settings: users.settings }).from(users)
+      .where(eq(users.id, req.userId!)).for("update");
+    const current = (user?.settings ?? {}) as any;
+    const currentLlm = current.llm ?? {};
+    const incoming = parsed.data.llm ?? {};
+
+    const mergedLlm: Record<string, string> = { ...currentLlm };
+    for (const key of ["apiKey", "baseUrl", "model"] as const) {
+      if (incoming[key] === undefined) continue;
+      if (incoming[key] === "") delete mergedLlm[key]; // empty string clears
+      else mergedLlm[key] = incoming[key] as string;
+    }
+
+    const merged: Record<string, unknown> = { ...current, llm: mergedLlm };
+    if (parsed.data.language !== undefined) {
+      merged.language = parsed.data.language;
+    }
+
+    await tx.update(users)
+      .set({ settings: merged, updatedAt: new Date() })
+      .where(eq(users.id, req.userId!));
+    return { merged, mergedLlm };
   });
-  const current = (user?.settings ?? {}) as any;
-  const currentLlm = current.llm ?? {};
-  const incoming = parsed.data.llm ?? {};
-
-  const mergedLlm: Record<string, string> = { ...currentLlm };
-  for (const key of ["apiKey", "baseUrl", "model"] as const) {
-    if (incoming[key] === undefined) continue;
-    if (incoming[key] === "") delete mergedLlm[key]; // empty string clears
-    else mergedLlm[key] = incoming[key] as string;
-  }
-
-  const merged: Record<string, unknown> = { ...current, llm: mergedLlm };
-  if (parsed.data.language !== undefined) {
-    merged.language = parsed.data.language;
-  }
-
-  await db.update(users)
-    .set({ settings: merged, updatedAt: new Date() })
-    .where(eq(users.id, req.userId!));
 
   res.json({
     llm: {

@@ -7,6 +7,7 @@ struct FarViewRepresentative: Decodable, Hashable, Identifiable {
     let title: String
     let url: String?
     let observedDate: String
+    let summary: String?
 }
 
 struct FarViewTopic: Decodable, Hashable, Identifiable {
@@ -34,6 +35,11 @@ struct FarViewSnapshot: Decodable, Hashable {
 struct FarViewOverviewResponse: Decodable {
     let state: String
     let snapshot: FarViewSnapshot?
+}
+
+struct FarViewTopicResponse: Decodable {
+    let snapshot: FarViewSnapshot
+    let topic: FarViewTopic
 }
 
 struct FarViewStatusResponse: Decodable {

@@ -5,6 +5,7 @@
  */
 
 import { db, rowsOf } from "../db/client.js";
+import { randomUUID } from "node:crypto";
 import { notes, noteTags, tags, dailyReports } from "../db/schema.js";
 import { eq, and, gte, lte, ne, inArray, sql, desc } from "drizzle-orm";
 import { generateEmbedding } from "./llm.js";
@@ -12,6 +13,8 @@ import { runAgentLoop, ToolDefinition, ToolHandler } from "./notty/agent-loop.js
 import { searchWeb, fetchSearchResult, SearchResult } from "./web-search.js";
 import { fetchUrlContent } from "./web-fetch.js";
 import { getUserChatConfig } from "./user-config.js";
+import { farviewToolDefinitions, makeFarViewHandlers } from "./notty/tools.js";
+import type { FarViewRepresentativeItem } from "./farview/engine.js";
 
 export type ReportStyle = "minimal" | "academic" | "dashboard" | "handwritten";
 export type ReportDepth = "brief" | "deep" | "action";
@@ -32,6 +35,7 @@ interface ReportData {
   expandedKnowledge: Array<{ topic: string; finding: string; source: string }>;
   actionItems: string[];
   noteCount: number;
+  sourceDetails?: Record<string, FarViewRepresentativeItem>;
 }
 
 /**
@@ -190,6 +194,8 @@ async function runReportPipeline(
   date: string,
   depth: ReportDepth,
 ): Promise<ReportData> {
+  const availableSources = new Set([...todayNotes, ...allNotes].map((note) => note.title || "无标题"));
+  const sourceDetails: Record<string, FarViewRepresentativeItem> = Object.create(null);
   // Build note index for system prompt
   const noteIndex = todayNotes.map((n, i) =>
     `[${i + 1}] ${n.title || "无标题"} | ${n.aiSummary?.slice(0, 80) || "无摘要"} | tags: ${n.tags.join(", ") || "无"}`
@@ -217,8 +223,8 @@ ${historyIndex ? `用户的历史笔记索引（供关联参考）：\n${history
 请按以下步骤执行：
 
 1. **了解背景**：用 read_note 读取今天每条笔记的完整内容，理解用户的思考脉络。
-2. **关键词搜索**：从笔记中提取 2-3 个关键主题，用 search_web 搜索相关外部信息。
-3. **扩展知识**：对搜索结果中最相关的 1-2 个 URL，用 web_fetch 获取详细内容，补充笔记的知识盲区。
+2. **按需取材**：从笔记中提取关键主题。涉及高见或七天趋势时，用 get_farview_overview 查看已缓存概览，再用 get_farview_topic_evidence 读取相关主题的代表材料。外部知识需要补充时用 search_web 搜索。
+3. **扩展知识**：对需要核实原文细节的来源 URL，用 web_fetch 获取详细内容，补充笔记的知识盲区。
 4. **观点整理**：把笔记观点和外部知识交叉对比，找出：
    - 用户关注的核心主题
    - 笔记之间的关联和矛盾
@@ -250,10 +256,14 @@ ${historyIndex ? `用户的历史笔记索引（供关联参考）：\n${history
 - 用中文回答
 - sections 数量：brief 版 3-5 个，deep 版 6-10 个，action 版以 actionItems 为主
 - 每个 section 的 content 支持 markdown（**粗体**、- 列表、> 引用）
-- 必须先 read_note 读取正文再分析，不要凭摘要臆测`;
+- 必须先 read_note 读取正文再分析，不要凭摘要臆测
+- sources 和 expandedKnowledge.source 只能填写工具实际返回的笔记标题或来源 URL；引用高见时使用代表材料的原文 URL，并在正文注明观察窗口
+- 高见七天热度描述窗口内已观察材料与来源模块构成；不得推导前周增长或未来预测。仅有摘要时限于概括，需要原文细节时先 web_fetch
+- 工具按报告主题需要调用，缺少趋势缓存时继续依据笔记与其他已取得材料生成报告`;
 
   // Define tools for the report pipeline
   const tools: ToolDefinition[] = [
+    ...farviewToolDefinitions,
     {
       type: "function",
       function: {
@@ -315,6 +325,17 @@ ${historyIndex ? `用户的历史笔记索引（供关联参考）：\n${history
   ];
 
   const toolHandlers: Record<string, ToolHandler> = {
+    ...makeFarViewHandlers({
+      through: date,
+      onEvidence: (items) => {
+        for (const item of items) {
+          if (item.url) {
+            availableSources.add(item.url);
+            sourceDetails[item.url] = item;
+          }
+        }
+      },
+    }),
     read_note: async ({ index, id }: { index?: number; id?: string }) => {
       let noteId = typeof id === "string" && id.length > 0 ? id : undefined;
       if (!noteId && typeof index === "number") {
@@ -328,6 +349,8 @@ ${historyIndex ? `用户的历史笔记索引（供关联参考）：\n${history
         where: and(eq(notes.id, noteId), eq(notes.userId, userId)),
       });
       if (!note) return "笔记不存在";
+      availableSources.add(note.title || "无标题");
+      if (note.sourceUrl) availableSources.add(note.sourceUrl);
 
       const tagRows = await db.select({ name: tags.name })
         .from(noteTags).innerJoin(tags, eq(noteTags.tagId, tags.id))
@@ -372,6 +395,7 @@ ${historyIndex ? `用户的历史笔记索引（供关联参考）：\n${history
       const response = await searchWeb(query, { maxResults });
       if (response.error) return `联网搜索失败: ${response.error}`;
       if (response.results.length === 0) return "未找到相关结果";
+      for (const result of response.results) availableSources.add(result.url);
       return response.results.map((r, i) =>
         `${i + 1}. ${r.title}\n   URL: ${r.url}\n   ${r.snippet}`
       ).join("\n\n");
@@ -381,6 +405,7 @@ ${historyIndex ? `用户的历史笔记索引（供关联参考）：\n${history
       const url = args.url as string;
       const result = await fetchUrlContent(url);
       if (result.error) return `获取失败: ${result.error}`;
+      availableSources.add(url);
       return `标题: ${result.title}\n\n${result.content}`;
     },
   };
@@ -391,7 +416,10 @@ ${historyIndex ? `用户的历史笔记索引（供关联参考）：\n${history
     { role: "user", content: `请为今天的笔记生成报告。今天是 ${date}，我记了 ${todayNotes.length} 条笔记。请按照计划执行。` },
   ];
 
-  const reply = await runAgentLoop(messages, tools, toolHandlers, chatConfig, 8);
+  // Source registration belongs to this report run, including regeneration of the same date.
+  const reply = await runAgentLoop(messages, tools, toolHandlers, {
+    llmConfig: chatConfig, maxIterations: 8, cacheScope: `report:${userId}:${date}:${randomUUID()}`,
+  });
 
   // Parse the JSON output
   let reportData: ReportData;
@@ -409,15 +437,16 @@ ${historyIndex ? `用户的历史笔记索引（供关联参考）：\n${history
           type: s.type || "insight",
           title: s.title || "",
           content: s.content || "",
-          sources: s.sources || [],
+          sources: Array.isArray(s.sources) ? s.sources.filter((source: unknown) => typeof source === "string" && availableSources.has(source)) : [],
         })),
-        expandedKnowledge: (parsed.expandedKnowledge || []).map((k: any) => ({
+        expandedKnowledge: (parsed.expandedKnowledge || []).filter((k: any) => typeof k.source === "string" && availableSources.has(k.source)).map((k: any) => ({
           topic: k.topic || "",
           finding: k.finding || "",
           source: k.source || "",
         })),
         actionItems: parsed.actionItems || [],
         noteCount: todayNotes.length,
+        sourceDetails,
       };
     } else {
       throw new Error("No JSON found in LLM response");
@@ -462,7 +491,7 @@ function renderEmptyReport(date: string, style: ReportStyle, depth: ReportDepth)
 
 function renderReportHtml(data: ReportData, style: ReportStyle, depth: ReportDepth): string {
   const styleCss = STYLE_CSS[style] || STYLE_CSS.minimal;
-  const sectionsHtml = data.sections.map(s => renderSection(s)).join("\n");
+  const sectionsHtml = data.sections.map(s => renderSection(s, data.sourceDetails)).join("\n");
   const themesHtml = data.themes.length > 0
     ? `<div class="themes">${data.themes.map(t => `<span class="theme-tag">${escapeHtml(t)}</span>`).join("")}</div>`
     : "";
@@ -473,7 +502,7 @@ function renderReportHtml(data: ReportData, style: ReportStyle, depth: ReportDep
           <div class="knowledge-item">
             <h3>${escapeHtml(k.topic)}</h3>
             <p>${escapeHtml(k.finding)}</p>
-            ${k.source ? `<a href="${escapeHtml(k.source)}" target="_blank" class="source-link">📎 来源</a>` : ""}
+            ${k.source ? `<div class="source-link">${renderSource(k.source, data.sourceDetails)}</div>` : ""}
           </div>
         `).join("")}
       </div>`
@@ -513,7 +542,20 @@ function renderReportHtml(data: ReportData, style: ReportStyle, depth: ReportDep
 </html>`;
 }
 
-function renderSection(section: ReportSection): string {
+/** Render retrieved source metadata beside the original link for a traceable citation. */
+function renderSource(source: string, details?: Record<string, FarViewRepresentativeItem>): string {
+  const item = details?.[source];
+  const label = item?.title ?? source.slice(0, 60);
+  const citation = /^https?:\/\//i.test(source)
+    ? `<a href="${escapeHtml(source)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`
+    : escapeHtml(source);
+  if (!item) return citation;
+  const modules = { paper: "arXiv 论文", conference: "会议论文", github: "GitHub", blog: "独立博客", official: "官方动态" };
+  return `${citation} <span>（${modules[item.sourceType]}、观察日期 ${escapeHtml(item.observedDate)}）</span>`;
+}
+
+/** Render a report section with references verified against retrieved tool output. */
+function renderSection(section: ReportSection, sourceDetails?: Record<string, FarViewRepresentativeItem>): string {
   const iconMap: Record<string, string> = {
     insight: "💡",
     knowledge: "📚",
@@ -523,9 +565,7 @@ function renderSection(section: ReportSection): string {
   };
   const icon = iconMap[section.type] || "📝";
   const sourcesHtml = section.sources && section.sources.length > 0
-    ? `<div class="sources">来源：${section.sources.map(s =>
-        s.startsWith("http") ? `<a href="${escapeHtml(s)}" target="_blank">${escapeHtml(s.slice(0, 60))}</a>` : escapeHtml(s)
-      ).join("、")}</div>`
+    ? `<div class="sources">来源：${section.sources.map(s => renderSource(s, sourceDetails)).join("、")}</div>`
     : "";
 
   const contentHtml = markdownToHtml(escapeHtml(section.content));

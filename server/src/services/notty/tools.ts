@@ -14,6 +14,8 @@ import { localToolDefinitions, makeLocalHandlers } from "../local-tools.js";
 import { scheduleToolDefinitions, makeScheduleHandlers } from "../schedule-tools.js";
 import { startStudyReport, getStudyReportProgress } from "./learn-art.js";
 import { getUserChatConfig } from "../user-config.js";
+import { getFarViewTopic, getLatestFarViewSnapshot } from "../farview/service.js";
+import type { FarViewRepresentativeItem } from "../farview/engine.js";
 import type { ToolDefinition, ToolHandler } from "./agent-loop.js";
 import type { NoteIndexEntry } from "./prompt-builder.js";
 import type { NewLorePreferences, NewLoreModuleName } from "../newlore/pipeline/types.js";
@@ -21,6 +23,60 @@ import type { NewLorePreferences, NewLoreModuleName } from "../newlore/pipeline/
 export interface NottyToolkit {
   tools: ToolDefinition[];
   handlers: Record<string, ToolHandler>;
+}
+
+export const farviewToolDefinitions: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "get_farview_overview",
+      description: "读取高见已缓存的七天热度概览，返回观察窗口、主题 ID、材料数与来源模块构成。讨论高见趋势时先调用，再用 get_farview_topic_evidence 读取代表材料。热度仅反映七天内已观察材料。",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_farview_topic_evidence",
+      description: "按高见概览的主题 ID 读取代表材料，包含来源 ID、模块、观察日期、标题、原文 URL 和已存摘要。引用趋势依据时调用；需要原文细节时再用 web_fetch 读取来源 URL。",
+      parameters: {
+        type: "object",
+        properties: { topicId: { type: "string", description: "get_farview_overview 返回的主题 ID" } },
+        required: ["topicId"],
+      },
+    },
+  },
+];
+
+/** Share read-only trend tools with chat and reports; reports bound evidence to their date. */
+export function makeFarViewHandlers(options: {
+  through?: string;
+  onEvidence?: (items: FarViewRepresentativeItem[]) => void;
+} = {}): Record<string, ToolHandler> {
+  return {
+    get_farview_overview: async () => {
+      const snapshot = await getLatestFarViewSnapshot(options.through);
+      if (!snapshot) return JSON.stringify({ state: "not_generated", snapshot: null });
+      return JSON.stringify({
+        state: snapshot.topics.length ? "ready" : "insufficient_data",
+        periodDays: snapshot.periodDays, periodStart: snapshot.periodStart, periodEnd: snapshot.periodEnd,
+        sourceThrough: snapshot.sourceThrough, totalItems: snapshot.totalItems, sourceCounts: snapshot.sourceCounts,
+        metricMeaning: "七天内已观察材料的热度与来源模块构成；观察日期以首次收录为主。",
+        topics: snapshot.topics.map(({ representatives, ...topic }) => topic),
+      });
+    },
+    get_farview_topic_evidence: async (args: Record<string, any>) => {
+      if (typeof args.topicId !== "string" || !args.topicId.trim()) return "请提供高见主题 ID";
+      const result = await getFarViewTopic(args.topicId, options.through);
+      if (!result) return JSON.stringify({ state: "topic_unavailable", topicId: args.topicId });
+      options.onEvidence?.(result.topic.representatives);
+      return JSON.stringify({
+        state: "ready", periodDays: result.snapshot.periodDays,
+        periodStart: result.snapshot.periodStart, periodEnd: result.snapshot.periodEnd,
+        sourceThrough: result.snapshot.sourceThrough, topic: result.topic,
+      });
+    },
+  };
 }
 
 const noteToolDefinitions: ToolDefinition[] = [
@@ -256,21 +312,22 @@ function makePreferenceHandlers(userId: string): Record<string, ToolHandler> {
       return parts.length > 0 ? parts.join("\n") : "尚未设置新知挖取偏好（使用默认配置）。";
     },
     update_newlore_preferences: async (args: Record<string, any>) => {
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, userId),
-        columns: { settings: true },
+      const prefs = await db.transaction(async (tx) => {
+        const [user] = await tx.select({ settings: users.settings }).from(users)
+          .where(eq(users.id, userId)).for("update");
+        const current = (user?.settings ?? {}) as any;
+        const prefs: NewLorePreferences = { ...(current.newlorePreferences ?? current.newseePreferences ?? current.ascanPreferences ?? {}) };
+        if (typeof args.focus === "string") prefs.focus = args.focus || undefined;
+        if (typeof args.topics === "string") prefs.topics = args.topics || undefined;
+        if (Array.isArray(args.moduleOrder)) {
+          const valid = ["official", "blog", "github", "arxiv", "conference"] as const;
+          prefs.moduleOrder = args.moduleOrder.filter((m: string) => valid.includes(m as any)) as NewLoreModuleName[];
+        }
+        await tx.update(users)
+          .set({ settings: { ...current, newlorePreferences: prefs }, updatedAt: new Date() })
+          .where(eq(users.id, userId));
+        return prefs;
       });
-      const current = (user?.settings ?? {}) as any;
-      const prefs: NewLorePreferences = { ...(current.newlorePreferences ?? current.newseePreferences ?? current.ascanPreferences ?? {}) };
-      if (typeof args.focus === "string") prefs.focus = args.focus || undefined;
-      if (typeof args.topics === "string") prefs.topics = args.topics || undefined;
-      if (Array.isArray(args.moduleOrder)) {
-        const valid = ["official", "blog", "github", "arxiv", "conference"] as const;
-        prefs.moduleOrder = args.moduleOrder.filter((m: string) => valid.includes(m as any)) as NewLoreModuleName[];
-      }
-      await db.update(users)
-        .set({ settings: { ...current, newlorePreferences: prefs }, updatedAt: new Date() })
-        .where(eq(users.id, userId));
       const parts: string[] = ["已更新新知挖取偏好："];
       if (prefs.focus) parts.push(`  今日重点: ${prefs.focus}`);
       if (prefs.topics) parts.push(`  兴趣主题: ${prefs.topics}`);
@@ -343,6 +400,7 @@ export function buildNottyToolkit(userId: string, allNotes: NoteIndexEntry[], no
       ...localToolDefinitions,
       ...scheduleToolDefinitions,
       ...learnArtToolDefinitions,
+      ...farviewToolDefinitions,
     ];
   }
 
@@ -359,6 +417,7 @@ export function buildNottyToolkit(userId: string, allNotes: NoteIndexEntry[], no
     ...makeLocalHandlers(),
     ...makeScheduleHandlers(userId),
     ...makeLearnArtHandlers(userId),
+    ...makeFarViewHandlers(),
   };
 
   handlerCache.set(userId, { noteVersion, handlers });

@@ -24,7 +24,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.noteone.app
         MARKETING_VERSION: "0.2.5"
-        CURRENT_PROJECT_VERSION: "7"
+        CURRENT_PROJECT_VERSION: "8"
         "CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]": NoteOne/NoteOne.entitlements
         "CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]": NoteOne/NoteOne.entitlements
         "CODE_SIGN_ENTITLEMENTS[sdk=macosx*]": NoteOne/NoteOne-macOS.entitlements

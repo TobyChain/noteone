@@ -59,18 +59,18 @@ export async function setUserNewLoreConfig(
   userId: string,
   updates: Partial<NewLoreConfig>,
 ): Promise<Partial<NewLoreConfig>> {
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-    columns: { settings: true },
+  return db.transaction(async (tx) => {
+    const [user] = await tx.select({ settings: users.settings }).from(users)
+      .where(eq(users.id, userId)).for("update");
+    const currentSettings = (user?.settings ?? {}) as any;
+    const currentNewLore = currentSettings.newloreConfig ?? currentSettings.newseeConfig ?? currentSettings.ascanConfig ?? {};
+    const merged = { ...currentNewLore, ...updates };
+    await tx.update(users)
+      .set({
+        settings: { ...currentSettings, newloreConfig: merged },
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+    return merged;
   });
-  const currentSettings = (user?.settings ?? {}) as any;
-  const currentNewLore = currentSettings.newloreConfig ?? currentSettings.newseeConfig ?? currentSettings.ascanConfig ?? {};
-  const merged = { ...currentNewLore, ...updates };
-  await db.update(users)
-    .set({
-      settings: { ...currentSettings, newloreConfig: merged },
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, userId));
-  return merged;
 }

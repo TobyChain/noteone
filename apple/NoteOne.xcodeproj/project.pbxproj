@@ -39,6 +39,7 @@
 		3F5C09D2FEC610090FABBFF6 /* DailyReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 096AC32613C23DFBA4FE9C76 /* DailyReport.swift */; };
 		42CC348E8287CFB43DE32808 /* DropPayloadStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09673A90D04295D8ADE17C3E /* DropPayloadStore.swift */; };
 		42EB627D9FCCA905E02A9744 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CAE42C45E7C1F386B7D82FD /* SettingsView.swift */; };
+		438E0C1C775386BD4EF6E448 /* NewLoreHighlightScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01EF989B32653D5FFA6E94C8 /* NewLoreHighlightScript.swift */; };
 		4459BFB7C1293B7493ACD5AD /* MainSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E875B6C24D11D9C0898293C /* MainSplitView.swift */; };
 		44C8046955AC4D6D3DE2DD6B /* CaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73BC93FEB9429E19B23B5E29 /* CaptureView.swift */; };
 		4755C26A0BAF8D8F98E701AE /* PermissionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3209DBAABBCAFA02465832EF /* PermissionViews.swift */; };
@@ -49,6 +50,7 @@
 		5B58EE786CB9CAD87EDAD099 /* NewLoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E83B35FC70B0B774078D27 /* NewLoreView.swift */; };
 		5E37CEDE27F2B3C18154E873 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BD15B7D499E6E1E88A3232 /* AuthModels.swift */; };
 		5E832B4DC576E1968F35A1D0 /* FarViewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5352661C215A0B69D893E5 /* FarViewView.swift */; };
+		5F169CC4BF05F381FA9145B4 /* NewLoreHighlight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72DDFBC97023D23C424EF91D /* NewLoreHighlight.swift */; };
 		62B3E429A88D8775DCFA5CB6 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B602EDB986B9E9A44D794F /* ChatMessage.swift */; };
 		65AD1E945DF9261DF7353C04 /* NewLoreConfigSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22EE3101A64438BCED0107F8 /* NewLoreConfigSheet.swift */; };
 		6678F0BA6C787462B330AEDF /* NewLoreModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E042B723C124B7859F6C5F /* NewLoreModels.swift */; };
@@ -74,6 +76,7 @@
 		B53C64BD271955A8ED4CBC62 /* ReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BEA8C791A16C5CC865643D6 /* ReportsView.swift */; };
 		B71C4E81A9A2EEF6987D2B43 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B602EDB986B9E9A44D794F /* ChatMessage.swift */; };
 		B73B4E0F7C9199E1D24D78C2 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09BC0033D2386FF0223874AF /* AuthService.swift */; };
+		B7F464A90C0CE44746EE90DE /* NewLoreHighlightScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01EF989B32653D5FFA6E94C8 /* NewLoreHighlightScript.swift */; };
 		BBAA2D7DC0A86FF6A76208E1 /* PermissionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3209DBAABBCAFA02465832EF /* PermissionViews.swift */; };
 		BC8E8FD081842A91B3B44E19 /* NewLoreConfigSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22EE3101A64438BCED0107F8 /* NewLoreConfigSheet.swift */; };
 		BE542556499CAE7E9BEB758B /* ReportScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E6049FD1E08FF125D9F2C7 /* ReportScheduler.swift */; };
@@ -82,6 +85,7 @@
 		C64FD9F10DD2AECEDF6F27A8 /* NewLoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E83B35FC70B0B774078D27 /* NewLoreView.swift */; };
 		C9059888FEE4DD5E1FFE574B /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E32898665D7F1037FCA772A /* Strings.swift */; };
 		C9D7063EF8E499B5BE1ECFAC /* ServerLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E200FAAB3020409357DC43 /* ServerLauncher.swift */; };
+		CA941743F2D78E1D1B438E4E /* NewLoreHighlight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72DDFBC97023D23C424EF91D /* NewLoreHighlight.swift */; };
 		CB6B65E525BD4E0FD9A4737F /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37F332F07FEEED5830F8D113 /* ShareSheet.swift */; };
 		CE803CC25812D868463936C7 /* DailyReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 096AC32613C23DFBA4FE9C76 /* DailyReport.swift */; };
 		D0C3980D68CD8C8468A34135 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F84A6A953D9085E34489D38F /* UpdateChecker.swift */; };
@@ -122,6 +126,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		01EF989B32653D5FFA6E94C8 /* NewLoreHighlightScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewLoreHighlightScript.swift; sourceTree = "<group>"; };
 		04E851A2481E24C52DA0DF93 /* HotkeyRecorderField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderField.swift; sourceTree = "<group>"; };
 		05E042B723C124B7859F6C5F /* NewLoreModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewLoreModels.swift; sourceTree = "<group>"; };
 		09673A90D04295D8ADE17C3E /* DropPayloadStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropPayloadStore.swift; sourceTree = "<group>"; };
@@ -152,6 +157,7 @@
 		6BC21B5D1B84C2D44EB0B7A2 /* NewLoreReportListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewLoreReportListView.swift; sourceTree = "<group>"; };
 		6BEA8C791A16C5CC865643D6 /* ReportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsView.swift; sourceTree = "<group>"; };
 		71CF96D60D564E9C8477248C /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		72DDFBC97023D23C424EF91D /* NewLoreHighlight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewLoreHighlight.swift; sourceTree = "<group>"; };
 		73BC93FEB9429E19B23B5E29 /* CaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureView.swift; sourceTree = "<group>"; };
 		76C21DFC46974BFDA55F2506 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
 		77E200FAAB3020409357DC43 /* ServerLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLauncher.swift; sourceTree = "<group>"; };
@@ -203,6 +209,7 @@
 				37B602EDB986B9E9A44D794F /* ChatMessage.swift */,
 				096AC32613C23DFBA4FE9C76 /* DailyReport.swift */,
 				334A05E1B66ADF7D18635A54 /* FarViewModels.swift */,
+				72DDFBC97023D23C424EF91D /* NewLoreHighlight.swift */,
 				05E042B723C124B7859F6C5F /* NewLoreModels.swift */,
 				1079E75DF4BD08C37A84A968 /* Note.swift */,
 				83FCC5C0224750CD7B2821EC /* NoteDragPayload.swift */,
@@ -218,6 +225,7 @@
 				A147139B5F8A558D8AB007CC /* APIClient.swift */,
 				09BC0033D2386FF0223874AF /* AuthService.swift */,
 				09673A90D04295D8ADE17C3E /* DropPayloadStore.swift */,
+				01EF989B32653D5FFA6E94C8 /* NewLoreHighlightScript.swift */,
 				D1E6049FD1E08FF125D9F2C7 /* ReportScheduler.swift */,
 				77E200FAAB3020409357DC43 /* ServerLauncher.swift */,
 				14E6C7017395B182C0EB0733 /* SyncQueue.swift */,
@@ -528,6 +536,8 @@
 				16E3680BEE83F8BA9584A1C3 /* MainSplitView.swift in Sources */,
 				1A44A732C96AF0A116E21BAE /* MarkdownRenderer.swift in Sources */,
 				BC8E8FD081842A91B3B44E19 /* NewLoreConfigSheet.swift in Sources */,
+				CA941743F2D78E1D1B438E4E /* NewLoreHighlight.swift in Sources */,
+				B7F464A90C0CE44746EE90DE /* NewLoreHighlightScript.swift in Sources */,
 				6678F0BA6C787462B330AEDF /* NewLoreModels.swift in Sources */,
 				33B4CC413235ADFB4F98AF3F /* NewLoreReportDetailView.swift in Sources */,
 				C5E65E39F73F6E3C41DBD2F3 /* NewLoreReportListView.swift in Sources */,
@@ -596,6 +606,8 @@
 				4459BFB7C1293B7493ACD5AD /* MainSplitView.swift in Sources */,
 				FB6AEF4BCEB015BD1D56E3F0 /* MarkdownRenderer.swift in Sources */,
 				65AD1E945DF9261DF7353C04 /* NewLoreConfigSheet.swift in Sources */,
+				5F169CC4BF05F381FA9145B4 /* NewLoreHighlight.swift in Sources */,
+				438E0C1C775386BD4EF6E448 /* NewLoreHighlightScript.swift in Sources */,
 				68BAB25C8B39A2379ACB02CC /* NewLoreModels.swift in Sources */,
 				0426F2E1CC4C8B60DE048D0E /* NewLoreReportDetailView.swift in Sources */,
 				7F51EFC3A41E980A9208DA89 /* NewLoreReportListView.swift in Sources */,
@@ -649,7 +661,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = NoteOne/NoteOne.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "NoteOne/NoteOne-macOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				INFOPLIST_FILE = NoteOne/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -754,7 +766,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = NoteOne/NoteOne.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "NoteOne/NoteOne-macOS.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				INFOPLIST_FILE = NoteOne/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -900,7 +912,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = NoteOne/NoteOne.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "NoteOne/NoteOne-macOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				INFOPLIST_FILE = NoteOne/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -922,7 +934,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = NoteOne/NoteOne.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "NoteOne/NoteOne-macOS.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				INFOPLIST_FILE = NoteOne/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

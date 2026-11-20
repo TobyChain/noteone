@@ -20,6 +20,7 @@ export interface FarViewRepresentativeItem {
   title: string;
   url: string | null;
   observedDate: string;
+  summary?: string | null;
 }
 
 export interface FarViewTopic {
@@ -265,6 +266,7 @@ export function buildFarViewSnapshot(
         aggregate.items.push({
           sourceType: item.sourceType, sourceId: item.sourceId, title: item.title,
           url: item.url ?? null, observedDate: item.observedDate.slice(0, 10),
+          summary: item.summary ?? null,
         });
       }
       topics.set(name, aggregate);

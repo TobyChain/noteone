@@ -436,14 +436,17 @@ router.post("/", express.raw({ type: "*/*", limit: "500mb" }), async (req: AuthR
         // Merge user settings (LLM provider/baseUrl/model/apiKey, etc.) into the current user.
         // Deep-merge so an import without secrets doesn't clobber an existing apiKey.
         let settingsRestored = false;
-        if (payload.user?.settings) {
+        const importedSettings = payload.user?.settings;
+        if (importedSettings) {
             try {
-                const current = await db.query.users.findFirst({ where: eq(users.id, userId) });
-                if (current) {
-                    const merged = deepMergeSettings(current.settings ?? {}, payload.user.settings);
-                    await db.update(users).set({ settings: merged, updatedAt: new Date() }).where(eq(users.id, userId));
-                    settingsRestored = true;
-                }
+                settingsRestored = await db.transaction(async (tx) => {
+                    const [current] = await tx.select({ settings: users.settings }).from(users)
+                        .where(eq(users.id, userId)).for("update");
+                    if (!current) return false;
+                    const merged = deepMergeSettings(current.settings ?? {}, importedSettings);
+                    await tx.update(users).set({ settings: merged, updatedAt: new Date() }).where(eq(users.id, userId));
+                    return true;
+                });
             } catch (err) {
                 console.warn("[import] user settings restore failed:", err);
             }

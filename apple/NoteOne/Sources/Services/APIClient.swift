@@ -546,6 +546,26 @@ actor APIClient {
         return try await get("/api/newlore/reports/\(date)")
     }
 
+    /// Restore the report's independent formatting marks.
+    func getNewLoreHighlights(date: String) async throws -> NewLoreHighlightsResponse {
+        try await get("/api/newlore/reports/\(date)/highlights")
+    }
+
+    /// Persist formatting without creating a note.
+    func saveNewLoreHighlight(date: String, request: NewLoreHighlightRequest) async throws -> NewLoreHighlightsResponse {
+        try await post("/api/newlore/reports/\(date)/highlights", body: request)
+    }
+
+    /// Remove formatting while preserving previously captured excerpts.
+    func cancelNewLoreHighlight(date: String, id: String) async throws -> NewLoreHighlightsResponse {
+        try await delete("/api/newlore/reports/\(date)/highlights/\(id)")
+    }
+
+    /// Append one persisted excerpt to this report's ordered note.
+    func quickNoteNewLoreHighlight(date: String, id: String) async throws -> NewLoreHighlightsResponse {
+        try await post("/api/newlore/reports/\(date)/highlights/\(id)/quick-note", body: EmptyBody())
+    }
+
     struct NewLoreReportPath: Decodable { let date: String; let path: String }
 
     func getNewLoreReportPath(date: String) async throws -> String {
@@ -601,6 +621,15 @@ actor APIClient {
 
     func getFarViewOverview() async throws -> FarViewOverviewResponse {
         return try await get("/api/farview/overview")
+    }
+
+    /// Read one topic's evidence using a single encoded path component.
+    func getFarViewTopic(id: String) async throws -> FarViewTopicResponse {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+        guard let encodedID = id.addingPercentEncoding(withAllowedCharacters: allowed) else {
+            throw APIError.invalidURL
+        }
+        return try await get("/api/farview/topics/\(encodedID)")
     }
 
     func getFarViewStatus() async throws -> FarViewStatusResponse {
