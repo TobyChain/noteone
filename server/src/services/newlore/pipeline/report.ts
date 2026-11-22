@@ -6,435 +6,7 @@
  *   - newlore/src/tools/report_md.py       (build_unified_md)
  */
 import { escapeHtml } from "./util.js";
-
-const REPORT_CSS = `
-/* ── Notion-inspired Design System for NewLore Daily Report ── */
-:root {
-  color-scheme: light;
-  /* Surface & Canvas */
-  --canvas: #ffffff;
-  --surface: #f7f7f5;
-  --surface-soft: #f1f1ef;
-  /* Borders */
-  --hairline: #e8e7e4;
-  --hairline-soft: #eeeeed;
-  --hairline-strong: #d3d1cb;
-  /* Text */
-  --ink-deep: #0f0f0f;
-  --ink: #191919;
-  --charcoal: #37352f;
-  --slate: #6b6b6b;
-  --steel: #9b9a97;
-  --stone: #b4b3af;
-  --muted: #c4c3bf;
-  /* Brand Accents */
-  --primary: #6c47ff;
-  --primary-pressed: #5a3ad6;
-  --link-blue: #2383e2;
-  /* Semantic Tints */
-  --tint-lavender: #e8deee;
-  --tint-peach: #faebdd;
-  --tint-mint: #dbeddb;
-  --tint-sky: #d3e5ef;
-  --tint-yellow: #fdecc8;
-  --brand-purple-800: #4a2d8a;
-  --brand-orange-deep: #b05c1a;
-  --brand-green: #2d7d46;
-  /* Elevation */
-  --shadow-subtle: rgba(15, 15, 15, 0.04) 0px 1px 2px 0px;
-  --shadow-card: rgba(15, 15, 15, 0.06) 0px 3px 8px 0px;
-  /* Spacing base unit: 4px */
-  --sp-xs: 4px;
-  --sp-sm: 8px;
-  --sp-md: 12px;
-  --sp-lg: 16px;
-  --sp-xl: 24px;
-  --sp-xxl: 32px;
-  --sp-section: 48px;
-  /* Radius */
-  --r-sm: 6px;
-  --r-md: 8px;
-  --r-lg: 12px;
-  --r-full: 9999px;
-}
-
-/* Transitional dark values (defaultDark tokens): WKWebView inherits the app's
- * effective color scheme, so the report stops rendering as a white block under
- * dark themes/palettes until the unified reader replaces this stylesheet with
- * server-side fragments plus app-side theme injection (design doc step 2).
- * One-shot values; removed with REPORT_CSS in step 2. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --canvas: #1c1c1e;
-    --surface: #28282a;
-    --surface-soft: #2e2e30;
-    --hairline: #38383a;
-    --hairline-soft: #2f2f31;
-    --hairline-strong: #4a4a4d;
-    --ink-deep: #f5f5f7;
-    --ink: #ededf0;
-    --charcoal: #e3e3e6;
-    --slate: #9e9ea3;
-    --steel: #85858a;
-    --stone: #707075;
-    --muted: #5a5a5f;
-    --primary: #588eff;
-    --primary-pressed: #7aa4ff;
-    --link-blue: #6fa1ff;
-    --tint-lavender: #362f41;
-    --tint-peach: #3c302a;
-    --tint-mint: #243f2b;
-    --tint-sky: #262e40;
-    --tint-yellow: #3e3f2e;
-    --brand-purple-800: #b4a7ff;
-    --brand-orange-deep: #ffb37e;
-    --brand-green: #6fd693;
-    --shadow-subtle: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px;
-    --shadow-card: rgba(0, 0, 0, 0.4) 0px 3px 8px 0px;
-  }
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  background: var(--canvas);
-  color: var(--charcoal);
-  font-family: Inter, -apple-system, system-ui, "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
-  font-size: 16px;
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
-}
-
-a { color: var(--link-blue); text-decoration: none; transition: color 0.15s ease; }
-a:hover { text-decoration: underline; color: #1a6dc2; }
-
-/* ── Page Container ── */
-.page {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: var(--sp-xxl) var(--sp-xl) var(--sp-section);
-}
-
-/* ── Hero / Header ── */
-.hero {
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-lg);
-  padding: var(--sp-xxl) var(--sp-xl);
-  margin-bottom: var(--sp-section);
-}
-.hero h1 {
-  font-size: 36px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.5px;
-  color: var(--ink-deep);
-  margin-bottom: var(--sp-sm);
-}
-.hero p {
-  font-size: 16px;
-  color: var(--slate);
-  line-height: 1.55;
-}
-
-/* ── Section Headings ── */
-.report-section { margin-top: var(--sp-section); }
-.report-section > h2 {
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: 0;
-  color: var(--ink-deep);
-  margin-bottom: var(--sp-lg);
-  padding-bottom: var(--sp-sm);
-  border-bottom: 1px solid var(--hairline);
-}
-
-/* ── Cards ── */
-.card {
-  background: var(--canvas);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-lg);
-  padding: var(--sp-xl);
-  margin-bottom: var(--sp-lg);
-  transition: box-shadow 0.15s ease;
-}
-.card:hover { box-shadow: var(--shadow-card); }
-.card h3 {
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--ink-deep);
-  margin-bottom: var(--sp-sm);
-}
-.card h4 {
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--ink);
-  margin-bottom: var(--sp-xs);
-}
-
-/* ── Meta & Muted Text ── */
-.meta {
-  font-size: 14px;
-  color: var(--slate);
-  line-height: 1.5;
-  margin-bottom: var(--sp-sm);
-}
-.muted, .section-note, .empty-state {
-  font-size: 14px;
-  color: var(--steel);
-  line-height: 1.5;
-}
-.empty-state {
-  padding: var(--sp-xl);
-  text-align: center;
-  background: var(--surface);
-  border-radius: var(--r-md);
-}
-
-/* ── Lead (one-liner emphasis) ── */
-.lead {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--ink);
-  line-height: 1.55;
-  margin-bottom: var(--sp-sm);
-}
-
-/* ── Tags ── */
-.tags { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin: var(--sp-sm) 0; }
-.tag {
-  display: inline-flex;
-  align-items: center;
-  border-radius: var(--r-sm);
-  background: var(--tint-lavender);
-  color: var(--brand-purple-800);
-  padding: 2px 8px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-/* ── Recommendation Callout ── */
-.recommendation {
-  border-left: 3px solid var(--primary);
-  background: var(--surface);
-  padding: var(--sp-md) var(--sp-lg);
-  border-radius: var(--r-md);
-  margin-top: var(--sp-md);
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--charcoal);
-}
-
-/* ── Summary Block ── */
-.summary-block {
-  margin-top: var(--sp-md);
-  padding-top: var(--sp-md);
-  border-top: 1px solid var(--hairline-soft);
-}
-.summary-block h4 {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--slate);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: var(--sp-xs);
-}
-.summary-block p {
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--charcoal);
-}
-
-/* ── Links Row ── */
-.links {
-  font-size: 14px;
-  font-weight: 500;
-  margin: var(--sp-sm) 0;
-}
-.links a { margin-right: var(--sp-xs); }
-
-/* ── Tables ── */
-.table-wrapper { overflow-x: auto; margin: var(--sp-lg) 0; }
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--canvas);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-md);
-  overflow: hidden;
-  font-size: 14px;
-}
-th {
-  background: var(--surface);
-  font-weight: 600;
-  color: var(--ink);
-  padding: var(--sp-md) var(--sp-lg);
-  text-align: left;
-  border-bottom: 1px solid var(--hairline);
-}
-td {
-  padding: var(--sp-md) var(--sp-lg);
-  border-bottom: 1px solid var(--hairline-soft);
-  color: var(--charcoal);
-  vertical-align: top;
-}
-tr:last-child td { border-bottom: none; }
-
-/* ── Meta List (repo details) ── */
-.meta-list {
-  padding-left: var(--sp-xl);
-  margin: var(--sp-sm) 0;
-  font-size: 14px;
-  color: var(--slate);
-  line-height: 1.6;
-}
-.meta-list li { margin-bottom: var(--sp-xs); }
-.meta-list strong { color: var(--charcoal); font-weight: 500; }
-
-/* ── Footer ── */
-.footer {
-  margin-top: var(--sp-section);
-  padding-top: var(--sp-lg);
-  border-top: 1px solid var(--hairline);
-  color: var(--steel);
-  text-align: center;
-  font-size: 13px;
-}
-
-/* ── Responsive ── */
-@media (max-width: 768px) {
-  .page { padding: var(--sp-lg) var(--sp-md) var(--sp-xxl); }
-  .hero { padding: var(--sp-xl) var(--sp-lg); }
-  .hero h1 { font-size: 28px; }
-  .report-section > h2 { font-size: 22px; }
-  .card { padding: var(--sp-lg); }
-  .card h3 { font-size: 18px; }
-  th, td { padding: var(--sp-sm) var(--sp-md); }
-  .toc-floating { display: none !important; }
-}
-
-/* ── TOC Outline Card ── */
-.toc-card {
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-lg);
-  margin-bottom: var(--sp-section);
-  overflow: hidden;
-}
-.toc-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--sp-md) var(--sp-lg);
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.15s ease;
-}
-.toc-card-header:hover { background: var(--surface-soft); }
-.toc-card-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: 0.3px;
-}
-.toc-card-toggle {
-  font-size: 13px;
-  color: var(--steel);
-  transition: transform 0.2s ease;
-}
-.toc-card.collapsed .toc-card-toggle { transform: rotate(-90deg); }
-.toc-list {
-  list-style: none;
-  padding: 0 var(--sp-lg) var(--sp-md);
-  margin: 0;
-}
-.toc-card.collapsed .toc-list { display: none; }
-.toc-entry {
-  display: flex;
-  align-items: center;
-  padding: var(--sp-sm) var(--sp-md);
-  border-radius: var(--r-sm);
-  font-size: 14px;
-  color: var(--charcoal);
-  transition: background 0.15s ease, color 0.15s ease;
-  text-decoration: none;
-}
-.toc-entry:hover { background: var(--surface-soft); text-decoration: none; color: var(--ink); }
-.toc-entry.active { background: var(--tint-lavender); color: var(--brand-purple-800); font-weight: 500; }
-.toc-entry-num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--r-full);
-  background: var(--canvas);
-  border: 1px solid var(--hairline);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--slate);
-  margin-right: var(--sp-sm);
-  flex-shrink: 0;
-}
-.toc-entry.active .toc-entry-num { background: var(--primary); border-color: var(--primary); color: #fff; }
-.toc-entry-text { flex: 1; }
-.toc-entry-count {
-  font-size: 12px;
-  color: var(--steel);
-  margin-left: var(--sp-sm);
-  flex-shrink: 0;
-}
-
-/* ── Floating Side Navigator (desktop only) ── */
-.toc-floating {
-  position: fixed;
-  left: calc(50% - 500px);
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 90;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-md);
-  padding: var(--sp-md);
-}
-.toc-floating-label {
-  position: absolute;
-  left: 28px;
-  top: 50%;
-  transform: translateY(-50%);
-  white-space: nowrap;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--charcoal);
-  background: var(--canvas);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-sm);
-  padding: 4px 10px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-  box-shadow: var(--shadow-subtle);
-}
-.toc-dot {
-  display: block;
-  width: 10px;
-  height: 10px;
-  border-radius: var(--r-full);
-  background: var(--muted);
-  border: 2px solid transparent;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  position: relative;
-}
-.toc-dot:hover { background: var(--steel); }
-.toc-dot:hover .toc-floating-label { opacity: 1; }
-.toc-dot.active { background: var(--primary); border-color: var(--primary); transform: scale(1.3); }
-`.trim();
+import { renderPage } from "../../reader/themes-css.js";
 
 const REPORT_JS = `
 <script>
@@ -543,16 +115,16 @@ const EMPTY_STATE_EN: Record<string, string> = {
 };
 
 /**
- * Combine arXiv, GitHub, official tracker, blog and conference
- * fragments into one standalone HTML daily report.
+ * Build the body fragment of the daily report (outline nav, sections and TOC
+ * script) from arXiv, GitHub, official tracker, blog and conference fragments;
+ * styling and the page shell come from the unified reader assets.
  */
-export function buildUnifiedHtml(dateCompact: string, fragments: ModuleFragments, moduleOrder?: string[], language: "zh" | "en" = "zh"): string {
+export function buildReportBody(dateCompact: string, fragments: ModuleFragments, moduleOrder?: string[], language: "zh" | "en" = "zh"): string {
   const DEFAULT_ORDER = ["official", "blog", "github", "arxiv", "conference"];
   const order = moduleOrder?.length ? moduleOrder : DEFAULT_ORDER;
   const labels = language === "en" ? MODULE_LABELS_EN : MODULE_LABELS_ZH;
   const emptyStates = language === "en" ? EMPTY_STATE_EN : EMPTY_STATE_ZH;
   const outlineLabel = language === "en" ? "Outline" : "大纲";
-  const titlePrefix = language === "en" ? "NewLore" : "新知";
 
   const sectionConfigs: Record<string, { id: string; label: string; body: string }> = {
     official: {
@@ -638,17 +210,9 @@ ${tocDotsHtml}
   </div>
     `;
 
-  return `<!doctype html>
-<html lang="${language === "en" ? "en" : "zh-CN"}">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${escapeHtml(titlePrefix)}-${escapeHtml(dateCompact)}</title>
-  <style>${REPORT_CSS}</style>
-</head>
-<body>
+  return `
   ${tocFloatingHtml}
-  <main class="page">
+  <main class="page" lang="${language === "en" ? "en" : "zh-CN"}">
 
     ${tocCardHtml}
 
@@ -656,9 +220,19 @@ ${tocDotsHtml}
 
   </main>
   ${REPORT_JS}
-</body>
-</html>
 `;
+}
+
+/**
+ * Combine arXiv, GitHub, official tracker, blog and conference
+ * fragments into one standalone HTML daily report (self-contained page).
+ */
+export function buildUnifiedHtml(dateCompact: string, fragments: ModuleFragments, moduleOrder?: string[], language: "zh" | "en" = "zh"): string {
+  const titlePrefix = language === "en" ? "NewLore" : "新知";
+  // The body carries its own lang so the app shell (which never learns the
+  // report language) still picks fonts and quotes for the right locale.
+  const lang = language === "en" ? "en" : "zh-CN";
+  return renderPage(`${titlePrefix}-${dateCompact}`, buildReportBody(dateCompact, fragments, moduleOrder, language), lang);
 }
 
 /** Combine module Markdown fragments into one unified Markdown daily report. */

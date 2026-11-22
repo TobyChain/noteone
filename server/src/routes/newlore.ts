@@ -26,6 +26,7 @@ import { getUserChatConfig } from "../services/user-config.js";
 import { isLLMConfigured } from "../services/llm.js";
 import { PRESETS, applyPreset } from "../services/newlore/presets.js";
 import { getStudyReportProgress } from "../services/notty/learn-art.js";
+import { reportBodyFromPage } from "../services/reader/themes-css.js";
 
 export const newloreRouter = Router();
 
@@ -50,7 +51,7 @@ newloreRouter.get("/reports/:date", async (req: AuthRequest, res) => {
     res.status(404).json({ error: "Report not found" });
     return;
   }
-  res.json({ date, html });
+  res.json({ date, html: reportBodyFromPage(html) });
 });
 
 newloreRouter.get("/reports/:date/path", async (req: AuthRequest, res) => {

@@ -24,6 +24,7 @@ import { farviewRouter } from "./routes/farview.js";
 import { startTrashCleanup } from "./services/trash-cleanup.js";
 import { restoreTasks } from "./services/scheduler.js";
 import { requestLogger } from "./middleware/logger.js";
+import { themesCss } from "./services/reader/themes-css.js";
 
 const app = express();
 
@@ -92,9 +93,20 @@ app.use("/api/ascan", requireAuth, newloreRouter);
 const PUBLIC_DIR = process.env.NOTEONE_PUBLIC_DIR
   || fileURLToPath(new URL("../public", import.meta.url));
 app.use("/newlore", express.static(join(PUBLIC_DIR, "newlore")));
-// Reader assets (theme table now; stylesheet and runtime join in later steps).
-// Same gate as /uploads: loopback serves directly, other bindings need a JWT —
-// everything under public/reader must stay publishable under that rule.
+// Theme token stylesheet generated from public/reader/themes.json — served
+// before the static mount below, under the same gate as /uploads: loopback
+// serves directly, other bindings need a JWT — everything under public/reader
+// must stay publishable under that rule.
+const serveThemesCss = (_req: Request, res: Response) => {
+  res.set("Content-Type", "text/css; charset=utf-8").send(themesCss());
+};
+if (config.isLoopbackHost || config.trustExternalLoopbackBinding) {
+  app.get("/reader/themes.css", serveThemesCss);
+} else {
+  app.get("/reader/themes.css", requireAuth, serveThemesCss);
+}
+// Reader static assets (themes.json table, reader.css layout stylesheet).
+// Same gate as /uploads.
 if (config.isLoopbackHost || config.trustExternalLoopbackBinding) {
   app.use("/reader", express.static(join(PUBLIC_DIR, "reader")));
 } else {
