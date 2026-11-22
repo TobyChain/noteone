@@ -28,7 +28,7 @@ let llmPresets: [LLMPreset] = [
 
 struct SettingsView: View {
     @EnvironmentObject var localSession: LocalSessionService
-    @AppStorage("appTheme") private var selectedTheme: String = AppTheme.system.rawValue
+    private var themeStore = ThemeStore.shared
     @AppStorage("appLanguage") private var appLanguage = "zh"
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @State private var stats: StatsResponse?
@@ -73,8 +73,11 @@ struct SettingsView: View {
     }()
     #endif
 
-    private var theme: AppTheme {
-        AppTheme(rawValue: selectedTheme) ?? .system
+    private var themeSelection: Binding<ThemeStore.Selection> {
+        Binding(
+            get: { themeStore.selection },
+            set: { themeStore.selection = $0 }
+        )
     }
 
     var body: some View {
@@ -83,7 +86,7 @@ struct SettingsView: View {
                 Section {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Color.warning)
                         Text(L("AI 模型未配置，AI 功能将不可用", "AI model not configured, AI features will be unavailable"))
                             .font(.caption)
                     }
@@ -234,7 +237,7 @@ struct SettingsView: View {
                     } else {
                         Image(systemName: "arrow.down")
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Color.inkTertiary)
                     }
                 }
 
@@ -245,13 +248,13 @@ struct SettingsView: View {
                     HStack(spacing: DG.sp8) {
                         Image(systemName: "3.circle")
                             .font(.title3)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Color.inkTertiary)
                         Text(L("配置新知（可选）", "Configure NewLore (optional)"))
                             .font(.subheadline)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Color.inkTertiary)
                     }
                     .contentShape(Rectangle())
                 }
@@ -284,12 +287,13 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         Section {
-            Picker(L("主题", "Theme"), selection: $selectedTheme) {
-                ForEach(AppTheme.allCases, id: \.rawValue) { t in
-                    Text(t.label).tag(t.rawValue)
+            Picker(L("主题", "Theme"), selection: themeSelection) {
+                Text(L("跟随系统", "Match System")).tag(ThemeStore.Selection.system)
+                ForEach(themeStore.palettes) { palette in
+                    Text(palette.displayName).tag(ThemeStore.Selection.fixed(palette.id))
                 }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.menu)
         } header: {
             Label(L("外观", "Appearance"), systemImage: "paintbrush")
                 .sectionHeaderStyle()
@@ -300,7 +304,7 @@ struct SettingsView: View {
         Section {
             Text(L("无需账号。笔记、标签、对话和设置默认保存在这台设备上。", "No account is required. Notes, tags, chats, and settings are stored on this device by default."))
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.inkSecondary)
 
             Button {
                 exportMyData()
@@ -319,14 +323,14 @@ struct SettingsView: View {
                 L("包含 API Key 与访问令牌", "Include API keys and access tokens"),
                 isOn: $exportIncludesSecrets
             )
-            .tint(.orange)
+            .tint(Color.warning)
             if exportIncludesSecrets {
                 Text(L(
                     "导出文件将包含可直接使用的密钥。请勿通过不可信渠道分享。",
                     "The export will contain usable secrets. Do not share it through untrusted channels."
                 ))
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(Color.warning)
             }
             if let exportError = exportError {
                 Text(exportError).font(.caption).foregroundStyle(Color.danger)
@@ -480,7 +484,7 @@ struct SettingsView: View {
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.inkTertiary)
                 }
                 .contentShape(Rectangle())
             }

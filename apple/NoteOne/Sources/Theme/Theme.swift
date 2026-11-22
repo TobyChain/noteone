@@ -1,21 +1,172 @@
 import SwiftUI
 
-enum AppTheme: String, CaseIterable {
-    case system, light, dark
+// MARK: - Palette
 
-    var label: String {
-        switch self {
-        case .system: "跟随系统"
-        case .light: "浅色"
-        case .dark: "深色"
+/// One built-in theme: the 12 semantic tokens shared by native views and the
+/// web reader. Decoded from `server/public/reader/themes.json`, the single
+/// source of truth for both sides.
+struct Palette: Identifiable {
+    let id: String
+    /// Proper name from the table (kept identical across locales); falls back to the id.
+    let name: String
+
+    var displayName: String { name.isEmpty ? id : name }
+    let scheme: ColorScheme
+    let canvas: Color
+    let surface: Color
+    let ink: Color
+    let inkSecondary: Color
+    let inkTertiary: Color
+    let hairline: Color
+    let accent: Color
+    let series: [Color]
+    /// Relative luminance of the accent fill (0-1); decides which text reads on it.
+    let accentLuminance: Double
+
+    /// Text color that stays legible on accent fills. The luminance cutoff is
+    /// where white text stops clearing 4.5:1 (lum 0.18): every shipped accent
+    /// sits above it, so they all take deep ink (~7:1); only very dark accents
+    /// (lum <= 0.18, e.g. navy) flip to white.
+    var onAccent: Color { accentLuminance > 0.18 ? Color(hex: "#1D1D1F") : .white }
+
+    /// WCAG relative luminance of a #RRGGBB string.
+    static func luminance(_ hex: String) -> Double {
+        var value: UInt64 = 0
+        Scanner(string: hex.hasPrefix("#") ? String(hex.dropFirst()) : hex).scanHexInt64(&value)
+        func channel(_ raw: UInt64) -> Double {
+            let c = Double(raw & 0xFF) / 255
+            return c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * channel(value >> 16) + 0.7152 * channel(value >> 8) + 0.0722 * channel(value)
+    }
+
+    /// Offline fallback mirroring the defaultLight/defaultDark entries of
+    /// server/public/reader/themes.json (keep the two in sync). With these
+    /// bundled, a missing /reader route degrades to the default pair instead
+    /// of locking a saved dark theme to light or losing brand accent.
+    static let builtinDefaults: [Palette] = [
+        Palette(
+            id: "defaultLight", name: "Default Light", scheme: .light,
+            canvas: Color(hex: "#FBFAF6"), surface: Color(hex: "#F3EFE5"),
+            ink: Color(hex: "#1A1C2C"), inkSecondary: Color(hex: "#3B3F5C"),
+            inkTertiary: Color(hex: "#6C7395"), hairline: Color(hex: "#E6DFCD"),
+            accent: Color(hex: "#D96F3A"),
+            series: ["#D26C38", "#472DCF", "#0088FF", "#00A03C", "#CB30E0"].map(Color.init(hex:)),
+            accentLuminance: Palette.luminance("#D96F3A")
+        ),
+        Palette(
+            id: "defaultDark", name: "Default Dark", scheme: .dark,
+            canvas: Color(hex: "#1C1C1E"), surface: Color(hex: "#28282A"),
+            ink: Color(hex: "#F5F5F7"), inkSecondary: Color(hex: "#9E9EA3"),
+            inkTertiary: Color(hex: "#707075"), hairline: Color(hex: "#38383A"),
+            accent: Color(hex: "#588EFF"),
+            series: ["#0091FF", "#FF4245", "#C401DB", "#009E38", "#007E9C"].map(Color.init(hex:)),
+            accentLuminance: Palette.luminance("#588EFF")
+        ),
+    ]
+}
+
+extension Palette: Decodable {
+    private enum CodingKeys: String, CodingKey {
+        case id, name, scheme, canvas, surface, ink, inkSecondary, inkTertiary, hairline, accent, series
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let accentHex = try c.decode(String.self, forKey: .accent)
+        let series = try c.decode([String].self, forKey: .series)
+        // Tag dimensions pin series slots 0...3; a shorter table would crash
+        // those views, so reject it at the boundary instead of indexing guardedly.
+        guard series.count >= 4 else {
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: c.codingPath,
+                debugDescription: "palette \(try c.decode(String.self, forKey: .id)) needs >= 4 series colors"
+            ))
+        }
+        self.init(
+            id: try c.decode(String.self, forKey: .id),
+            name: (try? c.decode(String.self, forKey: .name)) ?? "",
+            scheme: try c.decode(String.self, forKey: .scheme) == "dark" ? .dark : .light,
+            canvas: Color(hex: try c.decode(String.self, forKey: .canvas)),
+            surface: Color(hex: try c.decode(String.self, forKey: .surface)),
+            ink: Color(hex: try c.decode(String.self, forKey: .ink)),
+            inkSecondary: Color(hex: try c.decode(String.self, forKey: .inkSecondary)),
+            inkTertiary: Color(hex: try c.decode(String.self, forKey: .inkTertiary)),
+            hairline: Color(hex: try c.decode(String.self, forKey: .hairline)),
+            accent: Color(hex: accentHex),
+            series: series.map(Color.init(hex:)),
+            accentLuminance: Palette.luminance(accentHex)
+        )
+    }
+}
+
+// MARK: - Theme Store
+
+/// App-wide theme state.
+///
+/// The store starts from the bundled default pair and adopts the server table
+/// once it arrives. If the fetch fails, the app keeps rendering with the
+/// defaults, so presentation assets never block or break startup.
+@MainActor
+@Observable
+final class ThemeStore {
+    static let shared = ThemeStore()
+
+    enum Selection: Hashable {
+        case system
+        case fixed(String)
+    }
+
+    /// Starts from the bundled default pair so the picker, saved selections and
+    /// brand accent survive even when the server table cannot be fetched.
+    private(set) var palettes: [Palette] = Palette.builtinDefaults
+    /// The window's effective light/dark trait; kept in sync by NoteOneApp so
+    /// "follow system" can pick defaultLight vs defaultDark.
+    var systemScheme: ColorScheme = .light
+    var selection: Selection {
+        didSet { persistSelection() }
+    }
+
+    private static let storageKey = "appTheme"
+
+    private init() {
+        selection = Self.loadSelection()
+    }
+
+    /// The palette views should render with right now.
+    var palette: Palette {
+        switch selection {
+        case .system:
+            let id = systemScheme == .dark ? "defaultDark" : "defaultLight"
+            return palettes.first { $0.id == id } ?? palettes.first!
+        case .fixed(let id):
+            return palettes.first { $0.id == id } ?? palettes.first!
         }
     }
 
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .system: nil
-        case .light: .light
-        case .dark: .dark
+    /// Decode and adopt a freshly fetched table; malformed data keeps the
+    /// previous state (startup must not fail over presentation assets).
+    func adoptTable(_ data: Data) {
+        struct Table: Decodable { let themes: [Palette] }
+        guard let table = try? JSONDecoder().decode(Table.self, from: data), !table.themes.isEmpty else { return }
+        palettes = table.themes
+    }
+
+    /// Legacy values ("system"/"light"/"dark") map onto the new selection so
+    /// existing installs keep their chosen appearance after the upgrade.
+    private static func loadSelection() -> Selection {
+        switch UserDefaults.standard.string(forKey: storageKey) ?? "system" {
+        case "system": return .system
+        case "light": return .fixed("defaultLight")
+        case "dark": return .fixed("defaultDark")
+        case let raw: return .fixed(raw)
+        }
+    }
+
+    private func persistSelection() {
+        switch selection {
+        case .system: UserDefaults.standard.set("system", forKey: Self.storageKey)
+        case .fixed(let id): UserDefaults.standard.set(id, forKey: Self.storageKey)
         }
     }
 }
@@ -23,26 +174,40 @@ enum AppTheme: String, CaseIterable {
 // MARK: - Color Tokens
 
 extension Color {
-    static let canvas = Color("Canvas")
-    static let canvasSecondary = Color("CanvasSecondary")
-    static let ink = Color("Ink")
-    static let inkSecondary = Color("InkSecondary")
-    static let inkTertiary = Color("InkTertiary")
-    static let accent = Color("Accent")
-    static let hairline = Color("Hairline")
-    static let tagBackground = Color("TagBackground")
+    init(hex: String) {
+        var value: UInt64 = 0
+        Scanner(string: hex.hasPrefix("#") ? String(hex.dropFirst()) : hex).scanHexInt64(&value)
+        self.init(
+            red: Double((value >> 16) & 0xFF) / 255,
+            green: Double((value >> 8) & 0xFF) / 255,
+            blue: Double(value & 0xFF) / 255
+        )
+    }
 
-    // Semantic colors
+    /// Semantic theme tokens — resolved live from ThemeStore. Reads happen
+    /// inside view bodies (MainActor), so SwiftUI's observation tracking
+    /// refreshes every view that touches a token when the selection changes.
+    @MainActor static var canvas: Color { ThemeStore.shared.palette.canvas }
+    @MainActor static var canvasSecondary: Color { ThemeStore.shared.palette.surface }
+    @MainActor static var ink: Color { ThemeStore.shared.palette.ink }
+    @MainActor static var inkSecondary: Color { ThemeStore.shared.palette.inkSecondary }
+    @MainActor static var inkTertiary: Color { ThemeStore.shared.palette.inkTertiary }
+    @MainActor static var hairline: Color { ThemeStore.shared.palette.hairline }
+    @MainActor static var accent: Color { ThemeStore.shared.palette.accent }
+    @MainActor static var onAccent: Color { ThemeStore.shared.palette.onAccent }
+
+    // Semantic colors — platform-adaptive, unchanged by themes.
     static let success = Color.green
     static let danger = Color.red
     static let warning = Color.orange
-    static let info = Color.accent
+    @MainActor static var info: Color { .accent }
 
-    // Tag dimension colors
-    static let tagFormat = Color.blue
-    static let tagTopic = Color.green
-    static let tagDomain = Color.orange
-    static let tagModule = Color.purple
+    // Tag dimension colors: fixed series slots, so a dimension keeps its
+    // identity slot in every theme instead of chasing a hue.
+    @MainActor static var tagFormat: Color { ThemeStore.shared.palette.series[0] }
+    @MainActor static var tagTopic: Color { ThemeStore.shared.palette.series[1] }
+    @MainActor static var tagDomain: Color { ThemeStore.shared.palette.series[2] }
+    @MainActor static var tagModule: Color { ThemeStore.shared.palette.series[3] }
 }
 
 // MARK: - Design Tokens
@@ -74,8 +239,15 @@ enum DG {
 // MARK: - Shared View Modifiers
 
 extension View {
-    func applyTheme(_ theme: AppTheme) -> some View {
-        self.preferredColorScheme(theme.colorScheme)
+    /// Apply the current theme: tint follows the palette accent everywhere;
+    /// the window's color scheme locks to the palette only when a concrete
+    /// theme is chosen ("follow system" hands control back to the OS).
+    func applyTheme() -> some View {
+        let store = ThemeStore.shared
+        let scheme: ColorScheme? = store.selection == .system ? nil : store.palette.scheme
+        return self
+            .tint(store.palette.accent)
+            .preferredColorScheme(scheme)
     }
 
     /// Standard card background: canvas surface with hairline border and 8pt corners.

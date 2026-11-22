@@ -194,7 +194,9 @@ class HotkeyManager: ObservableObject {
             allowsClipboardFallback: false,
             onDismiss: { [weak self] in self?.panel?.close() }
         )
-        let hostingView = NSHostingView(rootView: captureView)
+        // The floating panel is its own NSWindow, so the theme modifiers from
+        // NoteOneApp never reach it — apply them here for tint and scheme.
+        let hostingView = NSHostingView(rootView: captureView.applyTheme())
         let panel = FloatingCaptureWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 320))
         panel.contentView = hostingView
         self.panel = panel

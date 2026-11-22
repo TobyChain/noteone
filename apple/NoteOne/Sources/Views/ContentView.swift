@@ -12,6 +12,9 @@ enum AppTab: Int, CaseIterable {
 }
 
 struct ContentView: View {
+    /// Window-level trait (reliable here, unlike at the App struct): feeds
+    /// "follow system" so it can pick defaultLight vs defaultDark.
+    @Environment(\.colorScheme) private var systemScheme
     #if os(macOS)
     @EnvironmentObject var localSession: LocalSessionService
     #else
@@ -85,6 +88,13 @@ struct ContentView: View {
         .onDrop(of: [.image, .url, .plainText], isTargeted: nil) { providers in
             handleTopLevelDrop(providers)
         }
+        .onAppear { ThemeStore.shared.systemScheme = systemScheme }
+        .onChange(of: systemScheme) { _, new in
+            ThemeStore.shared.systemScheme = new
+        }
+        // Theme surfaces under the system tab bar instead of translucent chrome.
+        .toolbarBackground(Color.canvasSecondary, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
         .onReceive(NotificationCenter.default.publisher(for: .droppedPayloadReady)) { _ in
             selectedTab = .capture
         }

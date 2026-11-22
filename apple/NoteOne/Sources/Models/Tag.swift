@@ -4,7 +4,7 @@ import SwiftUI
 enum TagDimension: String, Codable, CaseIterable, Sendable {
     case format, topic, domain, module
 
-    var color: Color {
+    @MainActor var color: Color {
         switch self {
         case .format: .tagFormat
         case .topic: .tagTopic
@@ -13,7 +13,7 @@ enum TagDimension: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    static func color(fromDimension dimension: String) -> Color {
+    @MainActor static func color(fromDimension dimension: String) -> Color {
         TagDimension(rawValue: dimension)?.color ?? Color.inkSecondary
     }
 }

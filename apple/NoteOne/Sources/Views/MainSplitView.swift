@@ -96,6 +96,9 @@ struct MainSplitView: View {
         }
         .frame(minWidth: 1120, minHeight: 680)
         .toolbar { toolbarContent }
+        // Solid toolbar band in the theme canvas; the default translucent
+        // chrome would clash with dark palettes like Dracula.
+        .toolbarBackground(Color.canvas, for: .windowToolbar)
         .task { await initialLoad() }
         .onChange(of: selection) { _, newSelection in handleSelectionChange(newSelection) }
         .onReceive(NotificationCenter.default.publisher(for: .noteCreated)) { _ in
@@ -319,7 +322,7 @@ struct MainSplitView: View {
             Image(systemName: "doc.text")
                 .font(.system(size: 42))
                 .foregroundStyle(Color.inkTertiary)
-            Text(text).foregroundStyle(.secondary)
+            Text(text).foregroundStyle(Color.inkSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

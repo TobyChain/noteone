@@ -5,17 +5,12 @@ struct NoteOneApp: App {
     @StateObject private var localSession = LocalSessionService()
     @State private var didStartBootstrap = false
     @State private var syncStatus: SyncStatus?
-    @AppStorage("appTheme") private var selectedTheme: String = AppTheme.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
     #if os(macOS)
     @StateObject private var hotkeyManager = HotkeyManager.shared
     @State private var updateInfo: UpdateInfo?
     @State private var showUpdateAlert = false
     #endif
-
-    private var theme: AppTheme {
-        AppTheme(rawValue: selectedTheme) ?? .system
-    }
 
     private func syncPending() async {
         guard localSession.state == .ready else { return }
@@ -53,7 +48,7 @@ struct NoteOneApp: App {
                     VStack(spacing: 12) {
                         ProgressView()
                         Text(L("正在打开本地数据…", "Opening local data…"))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.inkSecondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .failed(let message):
@@ -86,7 +81,7 @@ struct NoteOneApp: App {
                 .background(Color.accent.opacity(0.08))
                 }
             }
-            .applyTheme(theme)
+            .applyTheme()
             .environment(\.openURL, OpenURLAction { url in
                 #if os(macOS)
                 NSWorkspace.shared.open(url)
@@ -143,6 +138,7 @@ struct NoteOneApp: App {
         Settings {
             UnifiedSettingsView()
                 .environmentObject(localSession)
+                .applyTheme()
         }
         #endif
     }
@@ -157,6 +153,12 @@ struct NoteOneApp: App {
             return
         }
         #endif
+
+        // Theme table loads off the critical path: the bundled defaults render
+        // immediately and the table hot-swaps in when the fetch completes.
+        Task { if let data = try? await APIClient.shared.getReaderThemes() {
+            ThemeStore.shared.adoptTable(data)
+        } }
 
         await localSession.prepareLocalSession()
         guard localSession.state == .ready else { return }

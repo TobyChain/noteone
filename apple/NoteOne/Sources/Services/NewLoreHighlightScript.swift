@@ -219,14 +219,14 @@ enum NewLoreHighlightScript {
       document.addEventListener('scroll', closeMenu, true);
       window.addEventListener('resize', closeMenu);
       const css = document.createElement('style'); css.textContent = `
-        .lore-highlight { background: #f8e4a0; color: inherit; border-radius: 2px; }
+        .lore-highlight { background: var(--tint-yellow, #f8e4a0); color: inherit; border-radius: 2px; }
         .lore-bold { font-weight: 750; }
-        .lore-underline { text-decoration: underline; text-decoration-color: #a78029; text-decoration-thickness: 2px; text-underline-offset: 3px; }
-        span[data-lore-ids]:focus-visible { outline: 2px solid #6c47ff; outline-offset: 2px; }
-        .lore-menu { position: fixed; z-index: 10000; min-width: 150px; padding: 5px; background: #fff; border: 1px solid #e3e0d8; border-radius: 8px; box-shadow: 0 6px 24px #0002; }
-        .lore-menu button { display: block; width: 100%; text-align: left; padding: 9px 12px; border: 0; border-radius: 4px; background: transparent; color: #292722; font: 14px -apple-system, system-ui; cursor: pointer; }
-        .lore-menu button:hover, .lore-menu button:focus-visible { background: #f3f1ed; }
-        .lore-menu button:disabled { color: #999; cursor: default; }
+        .lore-underline { text-decoration: underline; text-decoration-color: var(--brand-orange-deep, #a78029); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+        span[data-lore-ids]:focus-visible { outline: 2px solid var(--primary, #6c47ff); outline-offset: 2px; }
+        .lore-menu { position: fixed; z-index: 10000; min-width: 150px; padding: 5px; background: var(--canvas, #fff); border: 1px solid var(--hairline, #e3e0d8); border-radius: 8px; box-shadow: 0 6px 24px #0002; }
+        .lore-menu button { display: block; width: 100%; text-align: left; padding: 9px 12px; border: 0; border-radius: 4px; background: transparent; color: var(--ink, #292722); font: 14px -apple-system, system-ui; cursor: pointer; }
+        .lore-menu button:hover, .lore-menu button:focus-visible { background: var(--surface-soft, #f3f1ed); }
+        .lore-menu button:disabled { color: var(--stone, #999); cursor: default; }
       `; document.head.append(css);
       window.newLoreMarks = { render, readSelection, clearSelection: () => window.getSelection()?.removeAllRanges(), setBusy: value => { busy = value; if (busy) closeMenu(); } };
     })();

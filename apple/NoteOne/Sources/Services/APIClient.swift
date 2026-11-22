@@ -617,6 +617,19 @@ actor APIClient {
         return try await delete("/api/newlore/reports/\(date)")
     }
 
+    // MARK: - Reader Assets
+
+    /// Theme table from /reader (static, unauthenticated); fetched once at
+    /// bootstrap before the UI needs concrete palette values.
+    func getReaderThemes() async throws -> Data {
+        guard let url = URL(string: "\(baseURL)/reader/themes.json") else { throw APIError.invalidURL }
+        let (data, response) = try await session.data(from: url)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? -1)
+        }
+        return data
+    }
+
     // MARK: - FarView
 
     func getFarViewOverview() async throws -> FarViewOverviewResponse {

@@ -23,6 +23,9 @@ final class FloatingCaptureWindow: NSWindow {
         minSize = NSSize(width: 480, height: 320)
         // Follow the user across Spaces and stay visible over full-screen apps.
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        // SwiftUI's preferredColorScheme inside the hosted view does not restyle
+        // NSWindow chrome; set the window appearance so the titlebar matches.
+        appearance = NSAppearance(named: ThemeStore.shared.palette.scheme == .dark ? .darkAqua : .aqua)
         center()
     }
 }
