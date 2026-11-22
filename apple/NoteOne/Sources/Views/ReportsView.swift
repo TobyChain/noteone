@@ -298,6 +298,7 @@ struct WebView: UIViewRepresentable {
     func updateUIView(_ webView: WKWebView, context: Context) {
         webView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
         webView.scrollView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
+        webView.pageZoom = ThemeStore.shared.textSize.pageZoom
         guard context.coordinator.currentHTML != htmlContent else { return }
         context.coordinator.currentHTML = htmlContent
         webView.loadHTMLString(htmlContent, baseURL: nil)
@@ -324,6 +325,7 @@ struct WebViewMac: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
+        webView.pageZoom = ThemeStore.shared.textSize.pageZoom
         guard context.coordinator.currentHTML != htmlContent else { return }
         context.coordinator.currentHTML = htmlContent
         webView.loadHTMLString(htmlContent, baseURL: nil)

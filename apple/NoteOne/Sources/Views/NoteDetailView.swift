@@ -152,7 +152,7 @@ struct NoteDetailView: View {
             if isEditing {
                 HStack {
                     TextField(L("标题", "Title"), text: $editTitle)
-                        .font(.system(size: 34, weight: .bold))
+                        .font(.largeTitle.bold())
                         .textFieldStyle(.plain)
                     Spacer()
                 }
@@ -207,7 +207,7 @@ struct NoteDetailView: View {
 
                 if isEditing {
                     TextField(L("标题", "Title"), text: $editTitle)
-                        .font(.system(size: 34, weight: .bold))
+                        .font(.largeTitle.bold())
                         .textFieldStyle(.plain)
                         .foregroundStyle(Color.ink)
                         .padding(.bottom, 8)
@@ -273,7 +273,7 @@ struct NoteDetailView: View {
     @ViewBuilder
     private func noteHeader(_ note: Note) -> some View {
         Text(note.title ?? L("无标题", "Untitled"))
-            .font(.system(size: 36, weight: .bold))
+            .font(.largeTitle.bold())
             .foregroundStyle(Color.ink)
             .textSelection(.enabled)
             .lineSpacing(2)
@@ -336,7 +336,7 @@ struct NoteDetailView: View {
                         .foregroundStyle(selectedParagraphIDs.contains(chunk.id) ? Color.accent : Color.inkTertiary)
                         .padding(.top, 4)
                     Text(chunk.text)
-                        .font(.system(size: 17))
+                        .font(.body)
                         .lineSpacing(7)
                         .foregroundStyle(Color.ink)
                         .multilineTextAlignment(.leading)
@@ -350,7 +350,7 @@ struct NoteDetailView: View {
             .padding(.vertical, 3)
         } else {
             Text(chunk.text)
-                .font(.system(size: 17))
+                .font(.body)
                 .lineSpacing(7)
                 .foregroundStyle(Color.ink)
                 .textSelection(.enabled)

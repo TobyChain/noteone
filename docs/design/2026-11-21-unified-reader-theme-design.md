@@ -145,7 +145,7 @@ chart({ type: "bar", data: xs.map((y, i) => ({ x: `t${i}`, y })) });
 
 ## 7. 配置
 
-- 阅读偏好（三模块共享，原生）：主题、正文字号（小、标准、大）、行宽（窄、标准、宽），作用于 reader.css 的字号与最大宽变量。
+- 阅读偏好（三模块共享，原生）：主题与正文字号（小、标准、大）已随主题系统实现，字号经 dynamicTypeSize 作用于界面文字、经 WKWebView pageZoom 作用于阅读内容；行宽（窄、标准、宽）留待 reader.css 落地后作用于最大宽变量。
 - 模块配置入口（原生设置页「模块」分区）：新知与高见指向同一服务端配置页（`/newlore/`，高见带锚点定位其分区），补上高见缺失的原生入口；往事无独立配置项，其显示偏好由阅读偏好覆盖。
 - 配置页主题化：`public/newlore/style.css` 的 7 变量改用阅读器同名 token，app 以 `WKUserScript(atDocumentStart)` 注入主题块；浏览器直开时回落 `:root` 默认值加 `prefers-color-scheme`（保留现有暗色能力）。
 
@@ -172,7 +172,7 @@ chart({ type: "bar", data: xs.map((y, i) => ({ x: `t${i}`, y })) });
 3. 往事接入：text/md 进阅读器，删除 MarkdownRenderer 与原生 text 分支。验证：三类笔记显示、编辑保存、md 预览离线。
 4. 高见接入：片段化与 ReaderView 替换。验证：报告内容与图表、刷新轮询仍可用。
 5. cell：runtime 构建（marked、图表库、chart 适配层、沙箱执行器）、md 中两种 cell。验证：chart cell 六主题渲染、run cell 执行与超时停止、禁网。
-6. 配置：配置页主题化、模块配置入口、阅读偏好。验证：配置页主题一致、高见入口可达。
+6. 配置：配置页主题化、模块配置入口、行宽偏好（字号偏好已在第 1 步实现）。验证：配置页主题一致、高见入口可达。
 
 每步完成后同步 `docs/ARCHITECTURE.md`。
 

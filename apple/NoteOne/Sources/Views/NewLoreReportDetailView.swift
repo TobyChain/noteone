@@ -374,6 +374,7 @@ struct NewLoreWebView: UIViewRepresentable {
     func updateUIView(_ webView: WKWebView, context: Context) {
         webView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
         webView.scrollView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
+        webView.pageZoom = ThemeStore.shared.textSize.pageZoom
         context.coordinator.update(webView, html: htmlContent, highlights: highlights, busy: highlightBusy, event: onHighlightEvent)
     }
 
@@ -400,6 +401,7 @@ struct NewLoreWebView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
+        webView.pageZoom = ThemeStore.shared.textSize.pageZoom
         context.coordinator.update(webView, html: htmlContent, highlights: highlights, busy: highlightBusy, event: onHighlightEvent)
     }
 

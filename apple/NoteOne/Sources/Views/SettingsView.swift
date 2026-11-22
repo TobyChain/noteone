@@ -80,6 +80,13 @@ struct SettingsView: View {
         )
     }
 
+    private var textSizeSelection: Binding<TextSize> {
+        Binding(
+            get: { themeStore.textSize },
+            set: { themeStore.textSize = $0 }
+        )
+    }
+
     var body: some View {
         Form {
             if !llmHasApiKey {
@@ -294,6 +301,12 @@ struct SettingsView: View {
                 }
             }
             .pickerStyle(.menu)
+            Picker(L("字号", "Text Size"), selection: textSizeSelection) {
+                ForEach(TextSize.allCases) { size in
+                    Text(size.label).tag(size)
+                }
+            }
+            .pickerStyle(.segmented)
         } header: {
             Label(L("外观", "Appearance"), systemImage: "paintbrush")
                 .sectionHeaderStyle()

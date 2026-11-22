@@ -100,6 +100,43 @@ extension Palette: Decodable {
     }
 }
 
+// MARK: - Text Size
+
+/// Text size preference covering both native text and web reading content.
+/// "standard" leaves Dynamic Type to the system setting; the other steps pin
+/// an absolute size so the choice is predictable.
+enum TextSize: String, CaseIterable, Identifiable {
+    case small, standard, large
+
+    var id: String { rawValue }
+
+    /// nil = follow the system Dynamic Type setting (no override applied).
+    var dynamicTypeSize: DynamicTypeSize? {
+        switch self {
+        case .small: .medium
+        case .standard: nil
+        case .large: .xxLarge
+        }
+    }
+
+    /// Whole-page zoom for web content, where per-element scaling is not reachable.
+    var pageZoom: CGFloat {
+        switch self {
+        case .small: 0.9
+        case .standard: 1
+        case .large: 1.2
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .small: L("小", "Small")
+        case .standard: L("标准", "Standard")
+        case .large: L("大", "Large")
+        }
+    }
+}
+
 // MARK: - Theme Store
 
 /// App-wide theme state.
@@ -126,11 +163,16 @@ final class ThemeStore {
     var selection: Selection {
         didSet { persistSelection() }
     }
+    var textSize: TextSize {
+        didSet { UserDefaults.standard.set(textSize.rawValue, forKey: Self.textSizeKey) }
+    }
 
     private static let storageKey = "appTheme"
+    private static let textSizeKey = "textSize"
 
     private init() {
         selection = Self.loadSelection()
+        textSize = TextSize(rawValue: UserDefaults.standard.string(forKey: Self.textSizeKey) ?? "") ?? .standard
     }
 
     /// The palette views should render with right now.
@@ -239,15 +281,21 @@ enum DG {
 // MARK: - Shared View Modifiers
 
 extension View {
-    /// Apply the current theme: tint follows the palette accent everywhere;
-    /// the window's color scheme locks to the palette only when a concrete
-    /// theme is chosen ("follow system" hands control back to the OS).
-    func applyTheme() -> some View {
+    /// Apply appearance preferences: tint follows the palette accent
+    /// everywhere; the window's color scheme locks to the palette only when a
+    /// concrete theme is chosen ("follow system" hands control back to the
+    /// OS); the text size override applies unless set to standard.
+    @ViewBuilder func applyTheme() -> some View {
         let store = ThemeStore.shared
         let scheme: ColorScheme? = store.selection == .system ? nil : store.palette.scheme
-        return self
+        let themed = self
             .tint(store.palette.accent)
             .preferredColorScheme(scheme)
+        if let size = store.textSize.dynamicTypeSize {
+            themed.dynamicTypeSize(size)
+        } else {
+            themed
+        }
     }
 
     /// Standard card background: canvas surface with hairline border and 8pt corners.
