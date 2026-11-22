@@ -29,14 +29,14 @@ jobs:
           npm run build
           npm run test:run
 
-      - name: Build Apple clients (unsigned)
+      - name: Build and test Apple clients (unsigned)
         working-directory: apple
         run: |
           xcodegen generate
-          xcodebuild -quiet build -project NoteOne.xcodeproj -scheme NoteOne_macOS \
+          xcodebuild -quiet test -project NoteOne.xcodeproj -scheme NoteOne_macOS \
             -destination 'platform=macOS,arch=arm64' CODE_SIGNING_ALLOWED=NO
           simulator_id="$(xcrun simctl list devices available \
             | awk -F '[()]' '/iPhone/ && !found { id=$2; found=1 } END { print id }')"
           test -n "$simulator_id" || { echo "No available iPhone simulator" >&2; exit 1; }
-          xcodebuild -quiet build -project NoteOne.xcodeproj -scheme NoteOne_iOS \
+          xcodebuild -quiet test -project NoteOne.xcodeproj -scheme NoteOne_iOS \
             -destination "platform=iOS Simulator,id=$simulator_id" CODE_SIGNING_ALLOWED=NO
