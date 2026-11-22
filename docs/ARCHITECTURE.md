@@ -5,6 +5,7 @@
 > 文件路径均相对仓库根 `noteone/`。
 
 > **注**：2026-07 系列变更尚未全面回写本文档。主要差异：
+> - 2026-11：多主题系统落地（第 1 步）——主题表 `server/public/reader/themes.json` 经 `/reader` 静态托管，原生 token 全量切换为 `ThemeStore` 计算属性，删除 Asset Catalog 颜色集；设计见 `docs/design/2026-11-21-unified-reader-theme-design.md`
 > - 运行时默认绑定 `127.0.0.1`；非回环部署必须配置初始化访问令牌，或由受控容器端口明确声明外层回环隔离
 > - 本地工具已移除通用 shell 命令，只保留无 shell 的结构化文件搜索、列目录和读取工具
 > - 搜索使用用户 LLM 配置生成向量，不可用或无结果时自动降级为全文检索
@@ -254,7 +255,7 @@ test/                集成测试辅助(db.ts / setup.ts)
 - **Views/**：`ContentView`(根 split/tab + iOS 顶层 onDrop) · `CaptureView`(统一录入,图文+剪贴板+拖拽+离线兜底) · `NoteListView`(分时段分组+轮询+语义搜索+NoteRowView 可拖) · `NoteDetailView`(详情+AIProcessing/Failed/Trashed 三态 banner+FlowTags+懒分块) · `NottyView`(会话 UI+SessionListPopover+ChatBubble) · `SettingsView`(主题/本地数据/服务器/快捷键/LLM/统计/标签) · `TrashView`(恢复/永久删/清空) · `MCPInstallView`(macOS 一键装 MCP)。
 - **Services/**：`APIClient`(actor，全部 API) · `LocalSessionService`(@MainActor，在服务健康后建立内部本地会话，失败可重试) · `SyncQueue`(actor；macOS 使用 Application Support 离线队列，iOS 消化 App Group 共享待传) · `DropPayloadStore`(actor，跨视图拖拽内存中转)。
 - **macOS/**：`HotkeyManager`(Carbon 全局快捷键+已授权时读取选区+定向复制回退+用户主动开启的浏览器 meta 捕获) · `PermissionCoordinator`(显式授权与状态协调) · `FloatingCaptureWindow`(可拖拽、可关闭的标准 NSWindow)。普通启动和快捷键本身都不主动请求跨 App 权限。
-- **Theme/**：`Theme`(system/light/dark + 命名色板)。
+- **Theme/**：`Palette`(12 语义 token 的解码模型，来源 `server/public/reader/themes.json`) · `ThemeStore`(@MainActor @Observable 单例：启动时从本地 server `GET /reader/themes.json` 取表、选择持久化于 UserDefaults `appTheme`、表未到时用系统自适应 `systemFallback`) · `Color.ink` 等 token 为读 `ThemeStore` 的 @MainActor 计算属性，视图自动追踪刷新。内置六套主题（Default Light 暖纸橙、Default Dark、One Light、One Dark、Dracula、Forest），选择器含「跟随系统」（浅色 defaultLight、深色 defaultDark）。`applyTheme()` 在根视图施加 tint 与 preferredColorScheme；Asset Catalog 的 8 个命名颜色集已删除。
 
 ### 8.2 捕获流
 - **macOS**：`⌘⇧O`(默认) → Carbon hotkey 记录源 App → 已授权时通过 Accessibility 读取选区，否则直接使用剪贴板 → 仅在用户主动开启“读取浏览器页面信息”后抓 URL+标题 → `FloatingCaptureWindow` 内 `CaptureView` 预填 → 保存。辅助功能和浏览器自动化权限都只由用户在设置中主动开启，不在应用启动或普通快捷记录时请求。
@@ -268,7 +269,7 @@ test/                集成测试辅助(db.ts / setup.ts)
 - 笔记 `pending_ai`：列表脉冲 sparkle，详情「Notty 正在细品…」，详情每 2s 轮询直至状态变化；列表有 pending 时每 3s 轮询。
 - `failed`：列表红色 ⚠，详情 `FailedBanner`「生成失败」+「重试」。
 - `trashed`：`TrashedBanner`「恢复 / 永久删除」。
-- 标签按维度配色：format 蓝 / topic 绿 / domain 橙 / module 紫。
+- 标签按维度配色：format / topic / domain / module 固定映射主题系列色槽位 0 到 3（每套主题一组系列色，随主题切换）。
 
 ### 8.4 构建系统
 `NoteOne.xcodeproj` 为日常实际构建工程；`Project.swift`(Tuist) 与 `project.yml`(XcodeGen) 为等价生成清单（早期生成用，当前未驱动构建）。iOS 17 / macOS 14，Swift 6 严格并发。
