@@ -58,6 +58,43 @@ const REPORT_CSS = `
   --r-full: 9999px;
 }
 
+/* Transitional dark values (defaultDark tokens): WKWebView inherits the app's
+ * effective color scheme, so the report stops rendering as a white block under
+ * dark themes/palettes until the unified reader replaces this stylesheet with
+ * server-side fragments plus app-side theme injection (design doc step 2).
+ * One-shot values; removed with REPORT_CSS in step 2. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --canvas: #1c1c1e;
+    --surface: #28282a;
+    --surface-soft: #2e2e30;
+    --hairline: #38383a;
+    --hairline-soft: #2f2f31;
+    --hairline-strong: #4a4a4d;
+    --ink-deep: #f5f5f7;
+    --ink: #ededf0;
+    --charcoal: #e3e3e6;
+    --slate: #9e9ea3;
+    --steel: #85858a;
+    --stone: #707075;
+    --muted: #5a5a5f;
+    --primary: #588eff;
+    --primary-pressed: #7aa4ff;
+    --link-blue: #6fa1ff;
+    --tint-lavender: #362f41;
+    --tint-peach: #3c302a;
+    --tint-mint: #243f2b;
+    --tint-sky: #262e40;
+    --tint-yellow: #3e3f2e;
+    --brand-purple-800: #b4a7ff;
+    --brand-orange-deep: #ffb37e;
+    --brand-green: #6fd693;
+    --shadow-subtle: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px;
+    --shadow-card: rgba(0, 0, 0, 0.4) 0px 3px 8px 0px;
+  }
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {

@@ -47,6 +47,7 @@ for (const pkg of ["@electric-sql/pglite", "@electric-sql/pglite-pgvector"]) {
 cpSync(join(ROOT, "drizzle"), join(OUT, "drizzle"), { recursive: true });
 mkdirSync(join(OUT, "public"), { recursive: true });
 cpSync(join(ROOT, "public", "newlore"), join(OUT, "public", "newlore"), { recursive: true });
+cpSync(join(ROOT, "public", "reader"), join(OUT, "public", "reader"), { recursive: true });
 cpSync(join(ROOT, ".newlore/config.schema.json"), join(OUT, "config.schema.json"));
 cpSync(join(ROOT, "src/services/newlore/pipeline/data"), join(OUT, "data"), { recursive: true });
 cpSync(join(ROOT, "src/services/notty/resources"), join(OUT, "notty-resources"), { recursive: true });

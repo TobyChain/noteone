@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "themes": [
+    {
+      "id": "defaultLight",
+      "name": "Default Light",
+      "scheme": "light",
+      "canvas": "#FBFAF6",
+      "surface": "#F3EFE5",
+      "ink": "#1A1C2C",
+      "inkSecondary": "#3B3F5C",
+      "inkTertiary": "#6C7395",
+      "hairline": "#E6DFCD",
+      "accent": "#D96F3A",
+      "series": [
+        "#D26C38",
+        "#472DCF",
+        "#0088FF",
+        "#00A03C",
+        "#CB30E0"
+      ]
+    },
+    {
+      "id": "defaultDark",
+      "name": "Default Dark",
+      "scheme": "dark",
+      "canvas": "#1C1C1E",
+      "surface": "#28282A",
+      "ink": "#F5F5F7",
+      "inkSecondary": "#9E9EA3",
+      "inkTertiary": "#707075",
+      "hairline": "#38383A",
+      "accent": "#588EFF",
+      "series": [
+        "#0091FF",
+        "#FF4245",
+        "#C401DB",
+        "#009E38",
+        "#007E9C"
+      ]
+    },
+    {
+      "id": "oneLight",
+      "name": "One Light",
+      "scheme": "light",
+      "canvas": "#FAFAFA",
+      "surface": "#EAEBEB",
+      "ink": "#424243",
+      "inkSecondary": "#696C77",
+      "inkTertiary": "#8E8E90",
+      "hairline": "#DBDBDC",
+      "accent": "#526FFF",
+      "series": [
+        "#4078F2",
+        "#479847",
+        "#A626A4",
+        "#986801",
+        "#00628D"
+      ]
+    },
+    {
+      "id": "oneDark",
+      "name": "One Dark",
+      "scheme": "dark",
+      "canvas": "#282C34",
+      "surface": "#21252B",
+      "ink": "#ABB2BF",
+      "inkSecondary": "#8D93A0",
+      "inkTertiary": "#6E7687",
+      "hairline": "#353B45",
+      "accent": "#528BFF",
+      "series": [
+        "#4D9CDA",
+        "#DF6B74",
+        "#A558BB",
+        "#5D853D",
+        "#35A6B4"
+      ]
+    },
+    {
+      "id": "dracula",
+      "name": "Dracula",
+      "scheme": "dark",
+      "canvas": "#282A36",
+      "surface": "#21222C",
+      "ink": "#F8F8F2",
+      "inkSecondary": "#B5B6B6",
+      "inkTertiary": "#909194",
+      "hairline": "#44475A",
+      "accent": "#BD93F9",
+      "series": [
+        "#8E64C6",
+        "#C88436",
+        "#2899AD",
+        "#DD3239",
+        "#E15EAB"
+      ]
+    },
+    {
+      "id": "forest",
+      "name": "Forest",
+      "scheme": "dark",
+      "canvas": "#2D353B",
+      "surface": "#343F44",
+      "ink": "#D3C6AA",
+      "inkSecondary": "#9DA9A0",
+      "inkTertiary": "#859289",
+      "hairline": "#859289",
+      "accent": "#A7C080",
+      "series": [
+        "#86A05A",
+        "#C37B9F",
+        "#A6843B",
+        "#3AA99D",
+        "#CB7F5D"
+      ]
+    }
+  ]
+}

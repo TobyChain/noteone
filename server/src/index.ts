@@ -92,6 +92,14 @@ app.use("/api/ascan", requireAuth, newloreRouter);
 const PUBLIC_DIR = process.env.NOTEONE_PUBLIC_DIR
   || fileURLToPath(new URL("../public", import.meta.url));
 app.use("/newlore", express.static(join(PUBLIC_DIR, "newlore")));
+// Reader assets (theme table now; stylesheet and runtime join in later steps).
+// Same gate as /uploads: loopback serves directly, other bindings need a JWT —
+// everything under public/reader must stay publishable under that rule.
+if (config.isLoopbackHost || config.trustExternalLoopbackBinding) {
+  app.use("/reader", express.static(join(PUBLIC_DIR, "reader")));
+} else {
+  app.use("/reader", requireAuth, express.static(join(PUBLIC_DIR, "reader")));
+}
 // Compatibility alias for the previous embedded configuration page.
 app.use("/newsee", express.static(join(PUBLIC_DIR, "newlore")));
 // Compatibility alias for the old embedded configuration page.
