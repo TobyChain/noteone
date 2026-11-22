@@ -88,7 +88,7 @@ struct NoteListView: View {
                 HStack {
                     Spacer()
                     if isLoadingMore { ProgressView().controlSize(.small) }
-                    else { Text(L("加载更多", "Load More")).font(.caption).foregroundStyle(.secondary) }
+                    else { Text(L("加载更多", "Load More")).font(.caption).foregroundStyle(Color.inkSecondary) }
                     Spacer()
                 }
                 .onAppear { Task { await loadMoreNotes() } }
@@ -117,7 +117,7 @@ struct NoteListView: View {
                 .foregroundStyle(Color.inkSecondary)
                 .padding(.horizontal)
                 .padding(.vertical, 10)
-                .background(.ultraThinMaterial)
+                .background(Color.canvasSecondary)
             }
         }
         #endif
@@ -359,7 +359,7 @@ struct NoteRowView: View {
                 .font(.caption)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(.thinMaterial)
+                .background(Color.canvasSecondary)
                 .clipShape(Capsule())
         }
     }

@@ -71,7 +71,7 @@ struct NottyView: View {
                 #if os(macOS)
                 Button { onClose?() } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.inkSecondary)
                 }
                 .buttonStyle(.plain)
                 #endif
@@ -101,7 +101,7 @@ struct NottyView: View {
                             .padding(.top, 40)
                         }
                         ForEach(messages) { msg in
-                            ChatBubble(message: msg) { url in
+                            ChatBubble(message: msg, themeId: ThemeStore.shared.palette.id) { url in
                                 send(L("用 learn-art 深入分析这个链接：", "Analyze this link with learn-art: ") + url)
                             }
                             .equatable()
@@ -614,7 +614,7 @@ private struct SessionListPopover: View {
                                 Button { onDelete(session) } label: {
                                     Image(systemName: "trash")
                                         .font(.caption)
-                                        .foregroundStyle(.red.opacity(0.7))
+                                        .foregroundStyle(Color.danger.opacity(0.7))
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -637,13 +637,17 @@ private struct SessionListPopover: View {
 
 private struct ChatBubble: View, Equatable {
     let message: ChatMessage
+    /// Current palette id: participates in equality so a theme switch repaints
+    /// otherwise-unchanged bubbles that .equatable() would skip.
+    let themeId: String
     var onLearnArtAnalyze: ((String) -> Void)? = nil
 
-    // Equality on message only (the closure is never comparable). Combined with
-    // .equatable() in the ForEach this skips body re-eval — and the synchronous
-    // markdown parse below — for unchanged bubbles while SSE events stream in.
+    // Equality on message + palette id (the closure is never comparable).
+    // .equatable() in the ForEach skips body re-eval — and the synchronous
+    // markdown parse below — for unchanged bubbles while SSE events stream in;
+    // the palette id forces one repaint of every kept bubble on theme switch.
     nonisolated static func == (lhs: ChatBubble, rhs: ChatBubble) -> Bool {
-        lhs.message == rhs.message
+        lhs.message == rhs.message && lhs.themeId == rhs.themeId
     }
 
     var isUser: Bool { message.role == "user" }
@@ -710,7 +714,7 @@ private struct ChatBubble: View, Equatable {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .background(Color.accent)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.onAccent)
                         .clipShape(RoundedRectangle(cornerRadius: DG.r16))
                         .contextMenu { messageContextMenu }
                 } else if !message.content.isEmpty {

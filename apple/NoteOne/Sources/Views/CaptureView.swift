@@ -51,7 +51,7 @@ struct CaptureView: View {
                 #if os(macOS)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(nsColor: .windowBackgroundColor))
+                        .fill(Color.canvas)
                         .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 8)
                 )
                 #endif
@@ -336,10 +336,10 @@ struct CaptureView: View {
         #if os(macOS)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(.ultraThinMaterial)
+                .fill(Color.canvasSecondary)
         )
         #else
-        .background(.ultraThinMaterial)
+        .background(Color.canvasSecondary)
         #endif
     }
 

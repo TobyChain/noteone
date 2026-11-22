@@ -39,7 +39,7 @@ struct TrashView: View {
                     Button(L("清空垃圾箱", "Empty Trash"), role: .destructive) {
                         showEmptyConfirm = true
                     }
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color.danger)
                 }
             }
         }
@@ -140,7 +140,7 @@ private struct TrashRowView: View {
                     let daysLeft = max(0, 30 - Calendar.current.dateComponents([.day], from: deletedAt, to: Date()).day!)
                     Text(L("\(daysLeft) 天后自动清理", "Auto-cleaned in \(daysLeft) day(s)"))
                         .font(.caption2)
-                        .foregroundStyle(daysLeft <= 7 ? .red : Color.inkTertiary)
+                        .foregroundStyle(daysLeft <= 7 ? Color.danger : Color.inkTertiary)
                 }
 
                 Spacer()
@@ -150,7 +150,7 @@ private struct TrashRowView: View {
                     .controlSize(.mini)
 
                 Button(L("删除", "Delete"), action: onDelete)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color.danger)
                     .controlSize(.mini)
             }
         }

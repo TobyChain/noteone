@@ -58,11 +58,7 @@ struct NewLoreReportDetailView: View {
             }
             .padding(.horizontal, DG.sp16)
             .padding(.vertical, DG.sp8)
-            #if os(iOS)
-            .background(Color(.systemBackground))
-            #else
-            .background(Color(nsColor: .textBackgroundColor))
-            #endif
+            .background(Color.canvas)
             .overlay(alignment: .bottom) {
                 Rectangle().fill(Color.hairline).frame(height: 0.5)
             }
@@ -108,7 +104,7 @@ struct NewLoreReportDetailView: View {
                     HStack(spacing: DG.sp8) {
                         ProgressView().controlSize(.small)
                         Text(loading ? L("正在恢复标注…", "Restoring marks…") : L("正在保存…", "Saving…"))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.caption).foregroundStyle(Color.inkSecondary)
                     }
                 } else if let message {
                     HStack(spacing: DG.sp8) {
@@ -131,7 +127,7 @@ struct NewLoreReportDetailView: View {
             }
             .padding(.horizontal, DG.sp16)
             .padding(.vertical, DG.sp8)
-            .background(.ultraThinMaterial)
+            .background(Color.canvasSecondary)
         }
     }
 
@@ -367,8 +363,8 @@ struct NewLoreWebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let webView = WKWebView(frame: .zero, configuration: context.coordinator.configuration(enabled: highlightingEnabled))
         webView.isOpaque = false
-        webView.backgroundColor = .systemBackground
-        webView.scrollView.backgroundColor = .systemBackground
+        webView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
+        webView.scrollView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         onWebViewReady?(webView)
@@ -376,6 +372,8 @@ struct NewLoreWebView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
+        webView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
+        webView.scrollView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
         context.coordinator.update(webView, html: htmlContent, highlights: highlights, busy: highlightBusy, event: onHighlightEvent)
     }
 

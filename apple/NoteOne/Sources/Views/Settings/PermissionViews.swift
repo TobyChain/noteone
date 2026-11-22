@@ -20,7 +20,7 @@ struct PermissionOnboardingView: View {
                         "壹识只在对应功能需要时请求系统权限。",
                         "NoteOne requests system access only when a feature needs it."
                     ))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.inkSecondary)
                 }
             }
 
@@ -81,7 +81,7 @@ struct PermissionOnboardingView: View {
                 .foregroundStyle(Color.accent)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title).font(.headline)
-                Text(detail).font(.subheadline).foregroundStyle(.secondary)
+                Text(detail).font(.subheadline).foregroundStyle(Color.inkSecondary)
             }
         }
     }

@@ -38,7 +38,7 @@ struct NewLoreConfigWebContent: View {
                     ProgressView()
                     Text(L("正在打开配置页…", "Opening config page…"))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.inkSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }

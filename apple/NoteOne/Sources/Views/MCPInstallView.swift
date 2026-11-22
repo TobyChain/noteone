@@ -22,7 +22,7 @@ struct MCPInstallView: View {
 
             Text("将 NoteOne 笔记能力暴露为 MCP 工具，供 Claude Code、Cursor 等 AI Agent 直接读写你的笔记。")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.inkSecondary)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Server 路径")
@@ -65,7 +65,7 @@ struct MCPInstallView: View {
             if let msg = statusMessage {
                 HStack(spacing: 6) {
                     Image(systemName: isError ? "xmark.circle.fill" : "checkmark.circle.fill")
-                        .foregroundStyle(isError ? .red : .green)
+                        .foregroundStyle(isError ? Color.danger : Color.success)
                     Text(msg)
                         .font(.callout)
                 }
@@ -93,7 +93,7 @@ struct MCPInstallView: View {
                 .foregroundStyle(Color.accent)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.body.bold())
-                Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                Text(subtitle).font(.caption).foregroundStyle(Color.inkSecondary)
             }
             Spacer()
             Button(buttonLabel, action: action)

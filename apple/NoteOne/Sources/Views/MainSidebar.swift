@@ -167,7 +167,7 @@ struct MainSidebar: View {
                         HStack {
                             Spacer()
                             if isLoadingMore { ProgressView().controlSize(.small) }
-                            else { Text(L("加载更多", "Load More")).font(.caption2).foregroundStyle(.secondary) }
+                            else { Text(L("加载更多", "Load More")).font(.caption2).foregroundStyle(Color.inkSecondary) }
                             Spacer()
                         }
                         .padding(.vertical, DG.sp8)
