@@ -156,9 +156,12 @@ struct NoteOneApp: App {
 
         // Theme table loads off the critical path: the bundled defaults render
         // immediately and the table hot-swaps in when the fetch completes.
-        Task { if let data = try? await APIClient.shared.getReaderThemes() {
-            ThemeStore.shared.adoptTable(data)
-        } }
+        Task {
+            if let data = try? await APIClient.shared.getReaderAsset("themes.json") {
+                ThemeStore.shared.adoptTable(data)
+            }
+            await ReaderAssets.shared.load()
+        }
 
         await localSession.prepareLocalSession()
         guard localSession.state == .ready else { return }

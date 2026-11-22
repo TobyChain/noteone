@@ -245,11 +245,7 @@ struct ReportDetailView: View {
             .background(Color.canvas)
 
             if let html = report.htmlContent {
-                #if os(iOS)
-                WebView(htmlContent: html)
-                #elseif os(macOS)
-                WebViewMac(htmlContent: html)
-                #endif
+                ReaderWebView(content: .page(html), javaScriptEnabled: false)
             } else {
                 Spacer()
                 VStack(spacing: 12) {
@@ -274,92 +270,5 @@ struct ReportDetailView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-    }
-}
-
-// MARK: - WKWebView Wrapper
-#if os(iOS)
-struct WebView: UIViewRepresentable {
-    let htmlContent: String
-
-    func makeCoordinator() -> WebViewCoordinator { WebViewCoordinator() }
-
-    func makeUIView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        config.defaultWebpagePreferences.allowsContentJavaScript = false
-        let webView = WKWebView(frame: .zero, configuration: config)
-        webView.isOpaque = false
-        webView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
-        webView.scrollView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
-        webView.navigationDelegate = context.coordinator
-        return webView
-    }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        webView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
-        webView.scrollView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
-        webView.pageZoom = ThemeStore.shared.textSize.pageZoom
-        guard context.coordinator.currentHTML != htmlContent else { return }
-        context.coordinator.currentHTML = htmlContent
-        webView.loadHTMLString(htmlContent, baseURL: nil)
-    }
-}
-#endif
-
-// MARK: - macOS WebView variant
-#if os(macOS)
-struct WebViewMac: NSViewRepresentable {
-    let htmlContent: String
-
-    func makeCoordinator() -> WebViewCoordinator { WebViewCoordinator() }
-
-    func makeNSView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        config.defaultWebpagePreferences.allowsContentJavaScript = false
-        let webView = WKWebView(frame: .zero, configuration: config)
-        // Transparent so the theme canvas underneath shows through (dark palettes).
-        webView.setValue(false, forKey: "drawsBackground")
-        webView.navigationDelegate = context.coordinator
-        webView.uiDelegate = context.coordinator
-        return webView
-    }
-
-    func updateNSView(_ webView: WKWebView, context: Context) {
-        webView.pageZoom = ThemeStore.shared.textSize.pageZoom
-        guard context.coordinator.currentHTML != htmlContent else { return }
-        context.coordinator.currentHTML = htmlContent
-        webView.loadHTMLString(htmlContent, baseURL: nil)
-    }
-}
-#endif
-
-/// Per-view state for the read-only report web views: the external-link
-/// policy plus the last loaded HTML, so updates reload only on content
-/// changes (theme switches would otherwise reload the page and lose scroll).
-class WebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
-    var currentHTML: String?
-    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
-        if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url,
-           url.scheme == "http" || url.scheme == "https" {
-            #if os(macOS)
-            NSWorkspace.shared.open(url)
-            #else
-            UIApplication.shared.open(url)
-            #endif
-            decisionHandler(.cancel)
-            return
-        }
-        decisionHandler(.allow)
-    }
-
-    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-        if let url = navigationAction.request.url, url.scheme == "http" || url.scheme == "https" {
-            #if os(macOS)
-            NSWorkspace.shared.open(url)
-            #else
-            UIApplication.shared.open(url)
-            #endif
-        }
-        return nil
     }
 }

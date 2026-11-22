@@ -15,9 +15,12 @@ private enum NewLoreHighlightOperation {
 }
 
 struct NewLoreReportDetailView: View {
+    /// Report body fragment from the server; the reader wraps it in the app shell.
     let htmlContent: String
     let date: String
     let onBack: () -> Void
+
+    private var reportTitle: String { L("新知", "NewLore") + "-\(date)" }
 
     @State private var webView: WKWebView?
     @State private var highlights: [NewLoreHighlight] = []
@@ -36,7 +39,7 @@ struct NewLoreReportDetailView: View {
                     Image(systemName: "chevron.left").foregroundStyle(Color.inkTertiary)
                 }
                 Spacer()
-                Text(L("新知", "NewLore") + "-\(date)")
+                Text(reportTitle)
                     .font(.headline).foregroundStyle(Color.ink)
                 Spacer()
                 Button(action: captureSelection) {
@@ -45,11 +48,12 @@ struct NewLoreReportDetailView: View {
                 .disabled(loading || busy)
                 .help(L("快记选中片段", "Quick note selected excerpt"))
                 Button {
+                    let page = ReaderShell.page(title: reportTitle, body: htmlContent)
                     #if os(macOS)
                     NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(htmlContent, forType: .html)
+                    NSPasteboard.general.setString(page, forType: .html)
                     #elseif os(iOS)
-                    UIPasteboard.general.string = htmlContent
+                    UIPasteboard.general.string = page
                     #endif
                 } label: {
                     Image(systemName: "doc.on.doc").foregroundStyle(Color.inkTertiary)
@@ -63,10 +67,16 @@ struct NewLoreReportDetailView: View {
                 Rectangle().fill(Color.hairline).frame(height: 0.5)
             }
 
-            NewLoreWebView(htmlContent: htmlContent, highlights: highlights,
-                           highlightingEnabled: true, highlightBusy: loading || busy,
-                           onHighlightEvent: handleEvent) { webView = $0 }
-                .safeAreaInset(edge: .bottom, spacing: 0) { highlightControls }
+            if ReaderAssets.shared.isReady {
+                ReaderWebView(content: .fragment(title: reportTitle, body: htmlContent), highlights: highlights,
+                              highlightingEnabled: true, highlightBusy: loading || busy,
+                              onHighlightEvent: handleEvent) { webView = $0 }
+                    .safeAreaInset(edge: .bottom, spacing: 0) { highlightControls }
+            } else {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .task { await ReaderAssets.shared.load() }
+            }
         }
         .navigationBarBackButtonHidden(true)
         .task(id: date) {
@@ -245,166 +255,3 @@ struct NewLoreReportDetailView: View {
         busy = false
     }
 }
-
-/// Shares formatting and navigation behavior across the two native web view wrappers.
-@MainActor
-final class NewLoreWebCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
-    var currentHTML: String?
-    var onHighlightEvent: ((NewLoreHighlightEvent) -> Void)?
-    var highlights: [NewLoreHighlight] = []
-    var highlightBusy = false
-    var highlightingEnabled = false
-    private var documentReady = false
-    private var renderedHighlights: [NewLoreHighlight]?
-
-    /// Install the bridge only for the daily report detail view.
-    func configuration(enabled: Bool) -> WKWebViewConfiguration {
-        highlightingEnabled = enabled
-        let config = WKWebViewConfiguration()
-        config.defaultWebpagePreferences.allowsContentJavaScript = true
-        if enabled {
-            config.userContentController.add(self, name: "newLoreHighlight")
-            config.userContentController.addUserScript(WKUserScript(source: NewLoreHighlightScript.source, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
-        }
-        return config
-    }
-
-    /// Update formatting independently from the report's HTML loading lifecycle.
-    func update(_ webView: WKWebView, html: String, highlights: [NewLoreHighlight], busy: Bool, event: ((NewLoreHighlightEvent) -> Void)?) {
-        onHighlightEvent = event
-        self.highlights = highlights
-        highlightBusy = busy
-        if currentHTML != html {
-            currentHTML = html
-            documentReady = false
-            renderedHighlights = nil
-            webView.loadHTMLString(html, baseURL: nil)
-        } else {
-            applyMarks(to: webView)
-        }
-    }
-
-    /// Restore persisted ranges after the original report scripts finish loading.
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        documentReady = true
-        applyMarks(to: webView)
-    }
-
-    /// Keep the content DOM intact while replacing only formatting spans.
-    private func applyMarks(to webView: WKWebView) {
-        guard highlightingEnabled, documentReady else { return }
-        webView.evaluateJavaScript("window.newLoreMarks?.setBusy(\(highlightBusy ? "true" : "false"))", completionHandler: nil)
-        guard renderedHighlights != highlights else { return }
-        do {
-            let data = try JSONEncoder().encode(highlights)
-            let json = String(decoding: data, as: UTF8.self)
-            renderedHighlights = highlights
-            webView.evaluateJavaScript("window.newLoreMarks?.render(\(json))") { [weak self] result, error in
-                if error != nil { self?.renderedHighlights = nil; return }
-                self?.onHighlightEvent?(.init(action: "restored", selection: nil, style: nil, ids: nil, unresolved: result as? Int))
-            }
-        } catch { renderedHighlights = nil }
-    }
-
-    /// Decode bridge payloads as typed selections and fragment actions.
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard message.frameInfo.isMainFrame, JSONSerialization.isValidJSONObject(message.body),
-              let data = try? JSONSerialization.data(withJSONObject: message.body),
-              let event = try? JSONDecoder().decode(NewLoreHighlightEvent.self, from: data) else { return }
-        onHighlightEvent?(event)
-    }
-
-    /// Open HTTP links through the platform while keeping outline links inside the report.
-    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
-        if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url,
-           url.scheme == "http" || url.scheme == "https" {
-            openExternal(url)
-            decisionHandler(.cancel)
-            return
-        }
-        decisionHandler(.allow)
-    }
-
-    /// Send links opening a new browser window to the platform browser.
-    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-        if let url = navigationAction.request.url, url.scheme == "http" || url.scheme == "https" { openExternal(url) }
-        return nil
-    }
-
-    /// Use the existing system browser behavior for report sources.
-    private func openExternal(_ url: URL) {
-        #if os(macOS)
-        NSWorkspace.shared.open(url)
-        #elseif os(iOS)
-        UIApplication.shared.open(url)
-        #endif
-    }
-
-    /// Release bridge callbacks when SwiftUI removes the reading view.
-    func dismantle(_ webView: WKWebView) {
-        onHighlightEvent = nil
-        webView.configuration.userContentController.removeScriptMessageHandler(forName: "newLoreHighlight")
-        webView.navigationDelegate = nil
-        webView.uiDelegate = nil
-    }
-}
-
-#if os(iOS)
-struct NewLoreWebView: UIViewRepresentable {
-    let htmlContent: String
-    var highlights: [NewLoreHighlight] = []
-    var highlightingEnabled = false
-    var highlightBusy = false
-    var onHighlightEvent: ((NewLoreHighlightEvent) -> Void)? = nil
-    var onWebViewReady: ((WKWebView) -> Void)? = nil
-
-    func makeCoordinator() -> NewLoreWebCoordinator { NewLoreWebCoordinator() }
-
-    func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView(frame: .zero, configuration: context.coordinator.configuration(enabled: highlightingEnabled))
-        webView.isOpaque = false
-        webView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
-        webView.scrollView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
-        webView.navigationDelegate = context.coordinator
-        webView.uiDelegate = context.coordinator
-        onWebViewReady?(webView)
-        return webView
-    }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        webView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
-        webView.scrollView.backgroundColor = UIColor(ThemeStore.shared.palette.canvas)
-        webView.pageZoom = ThemeStore.shared.textSize.pageZoom
-        context.coordinator.update(webView, html: htmlContent, highlights: highlights, busy: highlightBusy, event: onHighlightEvent)
-    }
-
-    static func dismantleUIView(_ webView: WKWebView, coordinator: NewLoreWebCoordinator) { coordinator.dismantle(webView) }
-}
-#elseif os(macOS)
-struct NewLoreWebView: NSViewRepresentable {
-    let htmlContent: String
-    var highlights: [NewLoreHighlight] = []
-    var highlightingEnabled = false
-    var highlightBusy = false
-    var onHighlightEvent: ((NewLoreHighlightEvent) -> Void)? = nil
-    var onWebViewReady: ((WKWebView) -> Void)? = nil
-
-    func makeCoordinator() -> NewLoreWebCoordinator { NewLoreWebCoordinator() }
-
-    func makeNSView(context: Context) -> WKWebView {
-        let webView = WKWebView(frame: .zero, configuration: context.coordinator.configuration(enabled: highlightingEnabled))
-        webView.setValue(false, forKey: "drawsBackground")
-        webView.navigationDelegate = context.coordinator
-        webView.uiDelegate = context.coordinator
-        onWebViewReady?(webView)
-        return webView
-    }
-
-    func updateNSView(_ webView: WKWebView, context: Context) {
-        webView.pageZoom = ThemeStore.shared.textSize.pageZoom
-        context.coordinator.update(webView, html: htmlContent, highlights: highlights, busy: highlightBusy, event: onHighlightEvent)
-    }
-
-    static func dismantleNSView(_ webView: WKWebView, coordinator: NewLoreWebCoordinator) { coordinator.dismantle(webView) }
-}
-#endif

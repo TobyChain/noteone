@@ -619,10 +619,10 @@ actor APIClient {
 
     // MARK: - Reader Assets
 
-    /// Theme table from /reader (static, unauthenticated); fetched once at
-    /// bootstrap before the UI needs concrete palette values.
-    func getReaderThemes() async throws -> Data {
-        guard let url = URL(string: "\(baseURL)/reader/themes.json") else { throw APIError.invalidURL }
+    /// One asset from /reader (theme table and stylesheets); each is fetched
+    /// once per launch and cached in memory by its store.
+    func getReaderAsset(_ name: String) async throws -> Data {
+        guard let url = URL(string: "\(baseURL)/reader/\(name)") else { throw APIError.invalidURL }
         let (data, response) = try await session.data(from: url)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? -1)
