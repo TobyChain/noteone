@@ -93,7 +93,7 @@ struct ReaderDocument {
 }
 ```
 
-`ReaderWebView`（合并三套包装，目标 200 行内）：壳 = `<head>`（reader.css + 主题块）+ body 内容；`loadHTMLString(shell, baseURL: nil)` 保持 null origin（沿用现安全姿态）；仅 html 变化时重载（沿用 NewLoreWebCoordinator.update 的 diff 语义，NewLoreReportDetailView.swift:281-288）；dismantle 清理沿用现写法（:348-353）；外链拦截沿用（:322-336）。
+`ReaderWebView`（第 2 步合并日报与报告两套包装并新增片段壳，约 250 行；配置页包装在第 6 步随主题化并入）：壳 = `<head>`（reader.css + 主题块）+ body 内容；`loadHTMLString(shell, baseURL: nil)` 保持 null origin（沿用现安全姿态）；仅 html 变化时重载（沿用 NewLoreWebCoordinator.update 的 diff 语义，NewLoreReportDetailView.swift:281-288）；dismantle 清理沿用现写法（:348-353）；外链拦截沿用（:322-336）。
 
 ### 5.2 reader.css 与 runtime
 
@@ -167,8 +167,8 @@ chart({ type: "bar", data: xs.map((y, i) => ({ x: `t${i}`, y })) });
 
 ## 10. 实施顺序（每步独立可验证）
 
-1. 主题系统：themes.json、ThemeStore、Color 常量改造、设置页选择器、tint 与 toolbarBackground、删除 Asset Catalog 8 个颜色集。验证：六套主题下原生界面与系统 chrome 表现、启动加载态。
-2. 阅读器内核：ReaderWebView 合并三套包装、reader.css、日报片段化（buildBody + renderPage）、主题块注入。验证：日报六主题显示、标注桥与外链行为不变、导出文件浏览器打开自包含。
+1. （已完成）主题系统：themes.json、ThemeStore、Color 常量改造、设置页选择器、tint 与 toolbarBackground、删除 Asset Catalog 8 个颜色集。验证：六套主题下原生界面与系统 chrome 表现、启动加载态。
+2. （已完成）阅读器内核：ReaderWebView 合并三套包装、reader.css、日报片段化（buildBody + renderPage）、主题块注入。验证：日报六主题显示、标注桥与外链行为不变、导出文件浏览器打开自包含。
 3. 往事接入：text/md 进阅读器，删除 MarkdownRenderer 与原生 text 分支。验证：三类笔记显示、编辑保存、md 预览离线。
 4. 高见接入：片段化与 ReaderView 替换。验证：报告内容与图表、刷新轮询仍可用。
 5. cell：runtime 构建（marked、图表库、chart 适配层、沙箱执行器）、md 中两种 cell。验证：chart cell 六主题渲染、run cell 执行与超时停止、禁网。
